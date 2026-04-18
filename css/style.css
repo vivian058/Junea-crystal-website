@@ -86,9 +86,9 @@ body {
 
 /* ===== Page Container ===== */
 .container {
-  max-width: 1200px;
+  max-width: 1600px;
   margin: 0 auto;
-  padding: 28px 20px;
+  padding: 28px 24px;
 }
 
 .page-title {
@@ -274,6 +274,7 @@ tbody td {
   padding: 11px 14px;
   color: var(--text);
   vertical-align: middle;
+  white-space: nowrap;
 }
 
 .td-muted { color: var(--text-muted); font-size: 13px; }
