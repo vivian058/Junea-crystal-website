@@ -24,27 +24,23 @@
       <div class="search-row">
         <div class="form-group">
           <label>水晶名稱</label>
-          <select class="form-control" id="f-crystalName">
-            <option value="">全部</option>
-          </select>
+          <input class="form-control" id="f-crystalName" list="list-crystalName" placeholder="全部（可直接輸入）" autocomplete="off">
+          <datalist id="list-crystalName"></datalist>
         </div>
         <div class="form-group">
           <label>尺寸 (mm)</label>
-          <select class="form-control" id="f-size">
-            <option value="">全部</option>
-          </select>
+          <input class="form-control" id="f-size" list="list-size" placeholder="全部（可直接輸入）" autocomplete="off">
+          <datalist id="list-size"></datalist>
         </div>
         <div class="form-group">
           <label>規格 (條珠/成品串)</label>
-          <select class="form-control" id="f-typeA">
-            <option value="">全部</option>
-          </select>
+          <input class="form-control" id="f-typeA" list="list-typeA" placeholder="全部（可直接輸入）" autocomplete="off">
+          <datalist id="list-typeA"></datalist>
         </div>
         <div class="form-group">
           <label>形狀</label>
-          <select class="form-control" id="f-typeB">
-            <option value="">全部</option>
-          </select>
+          <input class="form-control" id="f-typeB" list="list-typeB" placeholder="全部（可直接輸入）" autocomplete="off">
+          <datalist id="list-typeB"></datalist>
         </div>
         <div class="form-group">
           <label>關鍵字搜尋</label>
@@ -148,6 +144,10 @@
           <div class="form-group">
             <label>單顆成本 ($) <span style="font-weight:400;color:var(--text-muted)">(留空自動計算)</span></label>
             <input class="form-control" id="a-costPerBead" type="number" step="0.01" placeholder="自動計算或手動填入">
+          </div>
+          <div class="form-group" style="grid-column: 1 / -1">
+            <label>備註</label>
+            <input class="form-control" id="a-note" type="text" placeholder="如：品質不錯、這家運費貴…">
           </div>
         </div>
       </div>

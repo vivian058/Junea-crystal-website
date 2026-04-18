@@ -14,7 +14,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 async function loadFilterOptions() {
   try {
     const opts = await getAccessoryFilterOptions();
-    fillSelect(document.getElementById('f-vendor'), opts.vendors);
+    fillDatalist(document.getElementById('list-vendor'), opts.vendors);
   } catch(e) { console.warn(e); }
 }
 
@@ -48,6 +48,7 @@ function renderTable(records) {
       <td>${fmtYuan(r.pricePerPieceYuan)}</td>
       <td>${r.exchangeRate || '-'}</td>
       <td><strong style="color:var(--primary-dark)">${fmtCurrency(r.costPerPiece)}</strong></td>
+      <td style="max-width:160px;color:var(--text-muted);font-size:12px">${r.note || '-'}</td>
       <td>
         <button class="btn btn-danger btn-sm" onclick="deleteRecord('${r.id}')">刪除</button>
       </td>
@@ -68,6 +69,7 @@ function renderTable(records) {
             <th>單顆¥</th>
             <th>匯率</th>
             <th>單顆成本$</th>
+            <th>備註</th>
             <th>操作</th>
           </tr>
         </thead>
@@ -97,8 +99,7 @@ function doSearch() {
 }
 
 function clearSearch() {
-  document.getElementById('f-vendor').value = '';
-  document.getElementById('f-keyword').value = '';
+  ['f-vendor','f-keyword'].forEach(id => document.getElementById(id).value = '');
   loadRecords();
 }
 
@@ -114,7 +115,8 @@ async function submitAdd() {
     spec: get('a-spec'),
     pricePerPieceYuan: parseFloat(get('a-pricePerPieceYuan')) || 0,
     exchangeRate: parseFloat(get('a-exchangeRate')) || 0,
-    costPerPiece: parseFloat(get('a-costPerPiece')) || 0
+    costPerPiece: parseFloat(get('a-costPerPiece')) || 0,
+    note: get('a-note')
   };
 
   const alertEl = document.getElementById('add-alert');
@@ -153,7 +155,7 @@ async function submitAdd() {
 
 function resetAddForm() {
   ['a-vendor','a-itemCode','a-productName','a-shopLink','a-color','a-spec',
-   'a-pricePerPieceYuan','a-exchangeRate','a-costPerPiece'].forEach(id => {
+   'a-pricePerPieceYuan','a-exchangeRate','a-costPerPiece','a-note'].forEach(id => {
     document.getElementById(id).value = '';
   });
   document.getElementById('a-date').value = new Date().toISOString().split('T')[0];
@@ -222,7 +224,8 @@ function handleExcelUpload(file) {
         spec: String(r[6] || '').trim(),
         pricePerPieceYuan: parseFloat(r[7]) || 0,
         exchangeRate: parseFloat(r[8]) || 0,
-        costPerPiece: parseFloat(r[9]) || 0
+        costPerPiece: parseFloat(r[9]) || 0,
+        note: String(r[10] || '').trim()
       }));
 
       const invalid = importRows.filter(r => !r.date || !r.vendor || !r.itemCode || !r.exchangeRate);
@@ -291,7 +294,7 @@ async function submitImport() {
 }
 
 function downloadAccessoryTemplate() {
-  const header = [['進貨日期(YYYY-MM-DD)','廠家','貨號','商品名稱','賣場連結','顏色','規格','單顆進價¥','匯率','單顆成本$(留空自動計算)']];
+  const header = [['進貨日期(YYYY-MM-DD)','廠家','貨號','商品名稱','賣場連結','顏色','規格','單顆進價¥','匯率','單顆成本$(留空自動計算)','備註']];
   const ws = XLSX.utils.aoa_to_sheet(header);
   const wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, ws, '配件進貨');

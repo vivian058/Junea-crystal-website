@@ -24,9 +24,8 @@
       <div class="search-row">
         <div class="form-group">
           <label>廠家</label>
-          <select class="form-control" id="f-vendor">
-            <option value="">全部</option>
-          </select>
+          <input class="form-control" id="f-vendor" list="list-vendor" placeholder="全部（可直接輸入）" autocomplete="off">
+          <datalist id="list-vendor"></datalist>
         </div>
         <div class="form-group">
           <label>關鍵字 / 貨號</label>
@@ -114,6 +113,10 @@
           <div class="form-group">
             <label>單顆成本 ($) <span style="font-weight:400;color:var(--text-muted)">(留空自動計算)</span></label>
             <input class="form-control" id="a-costPerPiece" type="number" step="0.01" placeholder="自動計算或手動填入">
+          </div>
+          <div class="form-group" style="grid-column: 1 / -1">
+            <label>備註</label>
+            <input class="form-control" id="a-note" type="text" placeholder="如：常用款、這家品質穩定…">
           </div>
         </div>
       </div>

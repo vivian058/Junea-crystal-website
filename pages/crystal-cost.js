@@ -18,10 +18,10 @@ document.addEventListener('DOMContentLoaded', async () => {
 async function loadFilterOptions() {
   try {
     const opts = await getCrystalFilterOptions();
-    fillSelect(document.getElementById('f-crystalName'), opts.crystalNames);
-    fillSelect(document.getElementById('f-size'), opts.sizes);
-    fillSelect(document.getElementById('f-typeA'), opts.typeAs);
-    fillSelect(document.getElementById('f-typeB'), opts.typeBs);
+    fillDatalist(document.getElementById('list-crystalName'), opts.crystalNames);
+    fillDatalist(document.getElementById('list-size'), opts.sizes);
+    fillDatalist(document.getElementById('list-typeA'), opts.typeAs);
+    fillDatalist(document.getElementById('list-typeB'), opts.typeBs);
   } catch(e) {
     console.warn('篩選選項載入失敗', e);
   }
@@ -64,6 +64,7 @@ function renderTable(records) {
       <td>${fmtYuan(r.pricePerStrand)}</td>
       <td>${r.exchangeRate ? r.exchangeRate : '-'}</td>
       <td><strong style="color:var(--primary-dark)">${fmtCurrency(r.costPerBead)}</strong></td>
+      <td style="max-width:160px;color:var(--text-muted);font-size:12px">${r.note || '-'}</td>
       <td>
         <button class="btn btn-danger btn-sm" onclick="deleteRecord('${r.id}')">刪除</button>
       </td>
@@ -86,6 +87,7 @@ function renderTable(records) {
             <th>單條¥</th>
             <th>匯率</th>
             <th>單顆成本$</th>
+            <th>備註</th>
             <th>操作</th>
           </tr>
         </thead>
@@ -128,8 +130,7 @@ function doSearch() {
 }
 
 function clearSearch() {
-  ['f-crystalName','f-size','f-typeA','f-typeB'].forEach(id => document.getElementById(id).value = '');
-  document.getElementById('f-keyword').value = '';
+  ['f-crystalName','f-size','f-typeA','f-typeB','f-keyword'].forEach(id => document.getElementById(id).value = '');
   loadRecords();
 }
 
@@ -150,7 +151,8 @@ async function submitAdd() {
     weightPerStrand: parseFloat(get('a-weightPerStrand')) || 0,
     pricePerStrand: parseFloat(get('a-pricePerStrand')) || 0,
     exchangeRate: parseFloat(get('a-exchangeRate')) || 0,
-    costPerBead: parseFloat(get('a-costPerBead')) || 0
+    costPerBead: parseFloat(get('a-costPerBead')) || 0,
+    note: get('a-note')
   };
 
   const alertEl = document.getElementById('add-alert');
@@ -213,7 +215,7 @@ async function submitAdd() {
 
 function resetAddForm() {
   ['a-crystalName','a-vendor','a-productName','a-shopLink','a-size','a-typeB',
-   'a-pricePerGram','a-weightPerStrand','a-pricePerStrand','a-exchangeRate','a-costPerBead'].forEach(id => {
+   'a-pricePerGram','a-weightPerStrand','a-pricePerStrand','a-exchangeRate','a-costPerBead','a-note'].forEach(id => {
     document.getElementById(id).value = '';
   });
   document.getElementById('a-typeA').value = '';
@@ -289,7 +291,8 @@ function handleExcelUpload(file) {
         weightPerStrand: parseFloat(r[9]) || 0,
         pricePerStrand: parseFloat(r[10]) || 0,
         exchangeRate: parseFloat(r[11]) || 0,
-        costPerBead: parseFloat(r[12]) || 0
+        costPerBead: parseFloat(r[12]) || 0,
+        note: String(r[13] || '').trim()
       }));
 
       // 驗證必填
@@ -363,7 +366,7 @@ async function submitImport() {
 }
 
 function downloadCrystalTemplate() {
-  const header = [['水晶名稱','進貨日期(YYYY-MM-DD)','尺寸mm','規格A(條珠/成品串)','形狀規格B','廠家','商品名稱','賣場連結','克價¥','重量g','單條進價¥','匯率','單顆成本$(留空自動計算)']];
+  const header = [['水晶名稱','進貨日期(YYYY-MM-DD)','尺寸mm','規格A(條珠/成品串)','形狀規格B','廠家','商品名稱','賣場連結','克價¥','重量g','單條進價¥','匯率','單顆成本$(留空自動計算)','備註']];
   const ws = XLSX.utils.aoa_to_sheet(header);
   const wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, ws, '水晶進貨');
