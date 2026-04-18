@@ -3,6 +3,7 @@
 // =============================================
 
 let allRecords = [];
+let importRows = []; // 待匯入資料
 
 document.addEventListener('DOMContentLoaded', async () => {
   document.getElementById('navbar-root').innerHTML = renderNav('水晶成本');
@@ -36,7 +37,7 @@ async function loadRecords(filters = {}) {
     renderTable(allRecords);
     renderSummary(allRecords, filters);
   } catch(e) {
-    container.innerHTML = `<div class="empty-state"><div class="empty-state-icon">⚠️</div><div class="empty-state-text">載入失敗：${e.message}</div></div>`;
+    container.innerHTML = `<div class="empty-state"><div class="empty-state-text">載入失敗：${e.message}</div></div>`;
   }
 }
 
@@ -45,7 +46,7 @@ async function loadRecords(filters = {}) {
 function renderTable(records) {
   const container = document.getElementById('table-container');
   if (!records.length) {
-    container.innerHTML = emptyState('🔮', '尚無進貨紀錄，點右上角「新增進貨」開始記錄');
+    container.innerHTML = emptyState('', '尚無進貨紀錄，點右上角「新增進貨」開始記錄');
     return;
   }
 
@@ -186,7 +187,7 @@ async function submitAdd() {
       const diff = data.costPerBead - Number(prev.costPerBead);
       if (Math.abs(diff) >= 50) {
         const dir = diff > 0 ? '上漲' : '下跌';
-        showToast(`⚠️ 「${data.crystalName} ${data.size}mm ${data.typeB}」成本${dir} $${Math.abs(diff).toFixed(1)}，請確認設計款售價！`, 'warning', 8000);
+        showToast(`「${data.crystalName} ${data.size}mm ${data.typeB}」成本${dir} $${Math.abs(diff).toFixed(1)}，請確認設計款售價！`, 'warning', 8000);
       }
     }
 
@@ -231,4 +232,140 @@ async function deleteRecord(id) {
   } catch(e) {
     showToast(`刪除失敗：${e.message}`, 'danger');
   }
+}
+
+// ─── Excel 匯入 ───────────────────────────
+
+function closeUploadModal() {
+  clearUpload();
+  closeModal('uploadModal');
+}
+
+function clearUpload() {
+  importRows = [];
+  document.getElementById('excel-file-input').value = '';
+  document.getElementById('preview-area').style.display = 'none';
+  document.getElementById('preview-tbody').innerHTML = '';
+  document.getElementById('preview-count').textContent = '';
+  document.getElementById('btn-import').disabled = true;
+  document.getElementById('upload-alert').innerHTML = '';
+}
+
+function handleExcelDrop(event) {
+  event.preventDefault();
+  const file = event.dataTransfer.files[0];
+  if (file) handleExcelUpload(file);
+}
+
+function handleExcelUpload(file) {
+  if (!file) return;
+  const alertEl = document.getElementById('upload-alert');
+  alertEl.innerHTML = '';
+
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    try {
+      const workbook = XLSX.read(e.target.result, { type: 'array' });
+      const sheet = workbook.Sheets[workbook.SheetNames[0]];
+      const rows = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: '' });
+
+      // 跳過標題列
+      const dataRows = rows.slice(1).filter(r => r.some(c => c !== ''));
+      if (!dataRows.length) {
+        alertEl.innerHTML = `<div class="inline-alert inline-alert-warning">檔案中沒有資料列</div>`;
+        return;
+      }
+
+      importRows = dataRows.map(r => ({
+        crystalName: String(r[0] || '').trim(),
+        date: String(r[1] || '').trim(),
+        size: String(r[2] || '').trim(),
+        typeA: String(r[3] || '').trim(),
+        typeB: String(r[4] || '').trim(),
+        vendor: String(r[5] || '').trim(),
+        productName: String(r[6] || '').trim(),
+        shopLink: String(r[7] || '').trim(),
+        pricePerGram: parseFloat(r[8]) || 0,
+        weightPerStrand: parseFloat(r[9]) || 0,
+        pricePerStrand: parseFloat(r[10]) || 0,
+        exchangeRate: parseFloat(r[11]) || 0,
+        costPerBead: parseFloat(r[12]) || 0
+      }));
+
+      // 驗證必填
+      const invalid = importRows.filter(r => !r.crystalName || !r.date || !r.size || !r.typeA || !r.typeB || !r.exchangeRate);
+      if (invalid.length) {
+        alertEl.innerHTML = `<div class="inline-alert inline-alert-warning">有 ${invalid.length} 列缺少必填欄位（水晶名稱/日期/尺寸/規格A/形狀B/匯率），請修正後重新上傳</div>`;
+        importRows = [];
+        return;
+      }
+
+      // 顯示預覽
+      const tbody = document.getElementById('preview-tbody');
+      tbody.innerHTML = importRows.map(r => `
+        <tr>
+          <td>${r.crystalName}</td>
+          <td>${r.date}</td>
+          <td>${r.size}mm</td>
+          <td>${r.typeA}</td>
+          <td>${r.typeB}</td>
+          <td>${r.vendor || '-'}</td>
+          <td>${r.productName || '-'}</td>
+          <td>${r.pricePerGram || '-'}</td>
+          <td>${r.weightPerStrand || '-'}</td>
+          <td>${r.pricePerStrand || '-'}</td>
+          <td>${r.exchangeRate}</td>
+          <td>${r.costPerBead || '自動'}</td>
+        </tr>`).join('');
+
+      document.getElementById('preview-count').textContent = `共 ${importRows.length} 筆，確認後點「確認匯入」`;
+      document.getElementById('preview-area').style.display = 'block';
+      document.getElementById('btn-import').disabled = false;
+    } catch(err) {
+      alertEl.innerHTML = `<div class="inline-alert inline-alert-warning">解析失敗：${err.message}</div>`;
+    }
+  };
+  reader.readAsArrayBuffer(file);
+}
+
+async function submitImport() {
+  if (!importRows.length) return;
+  const btn = document.getElementById('btn-import');
+  btn.disabled = true;
+  btn.textContent = '匯入中...';
+  const alertEl = document.getElementById('upload-alert');
+  alertEl.innerHTML = '';
+
+  let success = 0, failed = 0;
+  for (const row of importRows) {
+    try {
+      if (!row.costPerBead) {
+        row.costPerBead = await calcCrystalCostPerBead(row);
+      }
+      await addCrystalCost(row);
+      success++;
+    } catch(e) {
+      failed++;
+      console.error('匯入失敗', row, e);
+    }
+  }
+
+  btn.textContent = '確認匯入';
+  if (failed === 0) {
+    showToast(`成功匯入 ${success} 筆進貨紀錄`, 'success');
+    closeUploadModal();
+    await loadFilterOptions();
+    await loadRecords();
+  } else {
+    alertEl.innerHTML = `<div class="inline-alert inline-alert-warning">成功 ${success} 筆，失敗 ${failed} 筆，請查看 Console 了解詳情</div>`;
+    btn.disabled = false;
+  }
+}
+
+function downloadCrystalTemplate() {
+  const header = [['水晶名稱','進貨日期(YYYY-MM-DD)','尺寸mm','規格A(條珠/成品串)','形狀規格B','廠家','商品名稱','賣場連結','克價¥','重量g','單條進價¥','匯率','單顆成本$(留空自動計算)']];
+  const ws = XLSX.utils.aoa_to_sheet(header);
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, '水晶進貨');
+  XLSX.writeFile(wb, '水晶進貨範本.xlsx');
 }

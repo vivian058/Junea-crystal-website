@@ -2,6 +2,8 @@
 // 配件成本表
 // =============================================
 
+let importRows = []; // 待匯入資料
+
 document.addEventListener('DOMContentLoaded', async () => {
   document.getElementById('navbar-root').innerHTML = renderNav('配件成本');
   document.getElementById('a-date').value = new Date().toISOString().split('T')[0];
@@ -24,14 +26,14 @@ async function loadRecords(filters = {}) {
     renderTable(records);
     renderSummary(records, filters);
   } catch(e) {
-    container.innerHTML = `<div class="empty-state"><div class="empty-state-icon">⚠️</div><div>${e.message}</div></div>`;
+    container.innerHTML = `<div class="empty-state"><div class="empty-state-text">${e.message}</div></div>`;
   }
 }
 
 function renderTable(records) {
   const container = document.getElementById('table-container');
   if (!records.length) {
-    container.innerHTML = emptyState('📿', '尚無配件進貨紀錄，點右上角「新增進貨」開始記錄');
+    container.innerHTML = emptyState('', '尚無配件進貨紀錄，點右上角「新增進貨」開始記錄');
     return;
   }
   const rows = records.map(r => `
@@ -167,4 +169,131 @@ async function deleteRecord(id) {
   } catch(e) {
     showToast(`刪除失敗：${e.message}`, 'danger');
   }
+}
+
+// ─── Excel 匯入 ───────────────────────────
+
+function closeUploadModal() {
+  clearUpload();
+  closeModal('uploadModal');
+}
+
+function clearUpload() {
+  importRows = [];
+  document.getElementById('excel-file-input').value = '';
+  document.getElementById('preview-area').style.display = 'none';
+  document.getElementById('preview-tbody').innerHTML = '';
+  document.getElementById('preview-count').textContent = '';
+  document.getElementById('btn-import').disabled = true;
+  document.getElementById('upload-alert').innerHTML = '';
+}
+
+function handleExcelDrop(event) {
+  event.preventDefault();
+  const file = event.dataTransfer.files[0];
+  if (file) handleExcelUpload(file);
+}
+
+function handleExcelUpload(file) {
+  if (!file) return;
+  const alertEl = document.getElementById('upload-alert');
+  alertEl.innerHTML = '';
+
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    try {
+      const workbook = XLSX.read(e.target.result, { type: 'array' });
+      const sheet = workbook.Sheets[workbook.SheetNames[0]];
+      const rows = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: '' });
+
+      const dataRows = rows.slice(1).filter(r => r.some(c => c !== ''));
+      if (!dataRows.length) {
+        alertEl.innerHTML = `<div class="inline-alert inline-alert-warning">檔案中沒有資料列</div>`;
+        return;
+      }
+
+      importRows = dataRows.map(r => ({
+        date: String(r[0] || '').trim(),
+        vendor: String(r[1] || '').trim(),
+        itemCode: String(r[2] || '').trim(),
+        productName: String(r[3] || '').trim(),
+        shopLink: String(r[4] || '').trim(),
+        color: String(r[5] || '').trim(),
+        spec: String(r[6] || '').trim(),
+        pricePerPieceYuan: parseFloat(r[7]) || 0,
+        exchangeRate: parseFloat(r[8]) || 0,
+        costPerPiece: parseFloat(r[9]) || 0
+      }));
+
+      const invalid = importRows.filter(r => !r.date || !r.vendor || !r.itemCode || !r.exchangeRate);
+      if (invalid.length) {
+        alertEl.innerHTML = `<div class="inline-alert inline-alert-warning">有 ${invalid.length} 列缺少必填欄位（日期/廠家/貨號/匯率），請修正後重新上傳</div>`;
+        importRows = [];
+        return;
+      }
+
+      const tbody = document.getElementById('preview-tbody');
+      tbody.innerHTML = importRows.map(r => `
+        <tr>
+          <td>${r.date}</td>
+          <td>${r.vendor}</td>
+          <td>${r.itemCode}</td>
+          <td>${r.productName || '-'}</td>
+          <td>${r.color || '-'}</td>
+          <td>${r.spec || '-'}</td>
+          <td>${r.pricePerPieceYuan || '-'}</td>
+          <td>${r.exchangeRate}</td>
+          <td>${r.costPerPiece || '自動'}</td>
+        </tr>`).join('');
+
+      document.getElementById('preview-count').textContent = `共 ${importRows.length} 筆，確認後點「確認匯入」`;
+      document.getElementById('preview-area').style.display = 'block';
+      document.getElementById('btn-import').disabled = false;
+    } catch(err) {
+      alertEl.innerHTML = `<div class="inline-alert inline-alert-warning">解析失敗：${err.message}</div>`;
+    }
+  };
+  reader.readAsArrayBuffer(file);
+}
+
+async function submitImport() {
+  if (!importRows.length) return;
+  const btn = document.getElementById('btn-import');
+  btn.disabled = true;
+  btn.textContent = '匯入中...';
+  const alertEl = document.getElementById('upload-alert');
+  alertEl.innerHTML = '';
+
+  let success = 0, failed = 0;
+  for (const row of importRows) {
+    try {
+      if (!row.costPerPiece) {
+        row.costPerPiece = calcAccessoryCostPerPiece(row);
+      }
+      await addAccessoryCost(row);
+      success++;
+    } catch(e) {
+      failed++;
+      console.error('匯入失敗', row, e);
+    }
+  }
+
+  btn.textContent = '確認匯入';
+  if (failed === 0) {
+    showToast(`成功匯入 ${success} 筆配件進貨紀錄`, 'success');
+    closeUploadModal();
+    await loadFilterOptions();
+    await loadRecords();
+  } else {
+    alertEl.innerHTML = `<div class="inline-alert inline-alert-warning">成功 ${success} 筆，失敗 ${failed} 筆，請查看 Console 了解詳情</div>`;
+    btn.disabled = false;
+  }
+}
+
+function downloadAccessoryTemplate() {
+  const header = [['進貨日期(YYYY-MM-DD)','廠家','貨號','商品名稱','賣場連結','顏色','規格','單顆進價¥','匯率','單顆成本$(留空自動計算)']];
+  const ws = XLSX.utils.aoa_to_sheet(header);
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, '配件進貨');
+  XLSX.writeFile(wb, '配件進貨範本.xlsx');
 }

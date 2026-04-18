@@ -16,14 +16,14 @@ async function loadEffects(keyword = '') {
     const effects = await getCrystalEffects(keyword);
     renderEffects(effects);
   } catch(e) {
-    container.innerHTML = `<div class="empty-state"><div class="empty-state-icon">⚠️</div><div>${e.message}</div></div>`;
+    container.innerHTML = `<div class="empty-state"><div class="empty-state-text">${e.message}</div></div>`;
   }
 }
 
 function renderEffects(effects) {
   const container = document.getElementById('effects-container');
   if (!effects.length) {
-    container.innerHTML = emptyState('📖', '尚無資料。點右上角「新增水晶」開始建立功效資料庫');
+    container.innerHTML = emptyState('', '尚無資料。點右上角「新增水晶」開始建立功效資料庫');
     return;
   }
 
@@ -31,11 +31,11 @@ function renderEffects(effects) {
     const tags = (e.tags || []).map(t => `<span class="tag">${t}</span>`).join('');
     return `
       <div class="effect-card">
-        <div class="effect-card-name">💎 ${e.name}</div>
+        <div class="effect-card-name">${e.name}</div>
         <div class="effect-card-tags">${tags || '<span style="color:var(--text-muted);font-size:12px">無標籤</span>'}</div>
         <div class="effect-card-text">${e.effects || ''}</div>
         <div class="effect-card-actions">
-          <button class="btn btn-secondary btn-sm" onclick="openEditModal('${e.id}')">✏️ 編輯</button>
+          <button class="btn btn-secondary btn-sm" onclick="openEditModal('${e.id}')">編輯</button>
           <button class="btn btn-danger btn-sm" onclick="deleteEffect('${e.id}', '${e.name}')">刪除</button>
         </div>
       </div>`;
@@ -80,7 +80,7 @@ async function openEditModal(id) {
     const snapshot = await db.collection(COLLECTIONS.CRYSTAL_EFFECTS).doc(id).get();
     if (!snapshot.exists) { showToast('找不到此資料', 'danger'); return; }
     const data = snapshot.data();
-    document.getElementById('modal-title').textContent = '✏️ 編輯水晶功效';
+    document.getElementById('modal-title').textContent = '編輯水晶功效';
     document.getElementById('save-btn').textContent = '儲存修改';
     document.getElementById('e-name').value = data.name || '';
     document.getElementById('e-tags').value = (data.tags || []).join(',');

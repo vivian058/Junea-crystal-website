@@ -19,13 +19,12 @@ async function loadInventory() {
   try {
     const all = await getInventory();
     const crystals = all.filter(i => i.type === 'crystal' || !i.type);
-    const accessories = all.filter(i => i.type === 'accessory');
 
     renderCrystalTable(crystals);
     renderLowStockAlerts(all);
   } catch(e) {
     document.getElementById('crystal-table').innerHTML =
-      `<div class="empty-state"><div class="empty-state-icon">⚠️</div><div>${e.message}</div></div>`;
+      `<div class="empty-state"><div class="empty-state-text">${e.message}</div></div>`;
   }
 }
 
@@ -38,7 +37,7 @@ function renderLowStockAlerts(items) {
 
   alertsEl.innerHTML = `
     <div class="inline-alert inline-alert-danger mb-20">
-      🚨 <strong>低庫存警示</strong>：以下品項庫存低於 20，請注意補貨！<br>
+      <strong>低庫存警示</strong>：以下品項庫存低於 20，請注意補貨！<br>
       ${lowItems.map(i => `&nbsp;&nbsp;・${i.displayName}：剩 <strong>${i.quantity}</strong> 顆`).join('<br>')}
     </div>`;
 }
@@ -48,7 +47,7 @@ function renderLowStockAlerts(items) {
 function renderCrystalTable(items) {
   const container = document.getElementById('crystal-table');
   if (!items.length) {
-    container.innerHTML = emptyState('🔮', '尚無庫存紀錄。進貨水晶後會自動建立庫存（需先設定初始庫存）');
+    container.innerHTML = emptyState('', '尚無庫存紀錄。進貨水晶後會自動建立庫存（需先設定初始庫存）');
     return;
   }
 
@@ -63,7 +62,7 @@ function renderCrystalTable(items) {
         <td class="qty-cell">
           <span class="qty-big ${qtyClass}">${qty}</span>
           <span style="font-size:12px;color:var(--text-muted)"> 顆</span>
-          ${isLow ? '<span class="badge badge-danger" style="margin-left:6px">⚠️ 補貨</span>' : ''}
+          ${isLow ? '<span class="badge badge-danger" style="margin-left:6px">補貨</span>' : ''}
         </td>
         <td class="td-muted">${item.lastUpdated ? (item.lastUpdated.toDate ? item.lastUpdated.toDate().toLocaleDateString('zh-TW') : '') : '-'}</td>
         <td>
@@ -115,7 +114,7 @@ async function submitDamage() {
     showToast(`耗損紀錄完成！${damagingDisplayName} 庫存：${newQty} 顆`, 'success');
 
     if (newQty < 20) {
-      showToast(`🚨 「${damagingDisplayName}」庫存剩 ${newQty} 顆，請注意補貨！`, 'danger', 6000);
+      showToast(`「${damagingDisplayName}」庫存剩 ${newQty} 顆，請注意補貨！`, 'danger', 6000);
     }
 
     closeModal('damageModal');
@@ -145,8 +144,8 @@ async function submitShipment() {
     const alerts = await processShipment(braceletName, qty);
 
     resultEl.innerHTML = alerts.length
-      ? alerts.map(a => `<div class="inline-alert inline-alert-${a.type === 'danger' ? 'danger' : 'warning'}">${a.type === 'danger' ? '🚨' : '⚠️'} ${a.msg}</div>`).join('')
-      : `<div class="inline-alert" style="background:#d4edda;color:#155724;border:1px solid #c3e6cb">✅ 出貨完成，庫存已更新</div>`;
+      ? alerts.map(a => `<div class="inline-alert inline-alert-${a.type === 'danger' ? 'danger' : 'warning'}">${a.msg}</div>`).join('')
+      : `<div class="inline-alert" style="background:#d4edda;color:#155724;border:1px solid #c3e6cb">出貨完成，庫存已更新</div>`;
 
     if (!alerts.some(a => a.type === 'danger')) {
       showToast(`「${braceletName}」× ${qty} 條出貨完成！`, 'success');
@@ -154,7 +153,7 @@ async function submitShipment() {
 
     await loadInventory();
   } catch(e) {
-    resultEl.innerHTML = `<div class="inline-alert inline-alert-danger">⚠️ ${e.message}</div>`;
+    resultEl.innerHTML = `<div class="inline-alert inline-alert-danger">${e.message}</div>`;
     showToast(`出貨失敗：${e.message}`, 'danger');
   } finally {
     const btn = document.querySelector('#shipModal .btn-gold');

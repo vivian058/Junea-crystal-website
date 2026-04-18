@@ -30,7 +30,7 @@ async function loadDesigns() {
   try {
     const designs = await getBraceletDesigns();
     if (!designs.length) {
-      container.innerHTML = emptyState('✨', '尚無設計款，點右上角「新增設計款」建立第一款手鍊');
+      container.innerHTML = emptyState('', '尚無設計款，點右上角「新增設計款」建立第一款手鍊');
       return;
     }
 
@@ -38,7 +38,7 @@ async function loadDesigns() {
     const cards = await Promise.all(designs.map(d => renderDesignCard(d)));
     container.innerHTML = `<div class="design-cards">${cards.join('')}</div>`;
   } catch(e) {
-    container.innerHTML = `<div class="empty-state"><div class="empty-state-icon">⚠️</div><div>${e.message}</div></div>`;
+    container.innerHTML = `<div class="empty-state"><div class="empty-state-text">${e.message}</div></div>`;
   }
 }
 
@@ -52,7 +52,7 @@ async function renderDesignCard(design) {
   if (hasAlert) {
     const dir = diff > 0 ? '上漲' : '下跌';
     alertHtml = `<div class="inline-alert inline-alert-${diff > 0 ? 'danger' : 'warning'} design-card-alert">
-      ⚠️ 原料成本${dir} $${Math.abs(diff).toFixed(0)}，請確認售價
+      原料成本${dir} $${Math.abs(diff).toFixed(0)}，請確認售價
     </div>`;
   }
 
@@ -82,7 +82,7 @@ async function renderDesignCard(design) {
       ${alertHtml}
       <div class="material-summary">${materialRows}</div>
       <div class="btn-group mt-16">
-        <button class="btn btn-secondary btn-sm" onclick="openEditModal('${design.id}')">✏️ 編輯</button>
+        <button class="btn btn-secondary btn-sm" onclick="openEditModal('${design.id}')">編輯</button>
         <button class="btn btn-danger btn-sm" onclick="deleteDesign('${design.id}', '${design.name}')">刪除</button>
       </div>
     </div>`;
@@ -94,7 +94,7 @@ async function openAddModal() {
   editingId = null;
   currentMaterials = [];
   document.getElementById('d-name').value = '';
-  document.getElementById('modal-title').textContent = '＋ 新增設計款手鍊';
+  document.getElementById('modal-title').textContent = '新增設計款手鍊';
   document.getElementById('save-btn').textContent = '儲存設計款';
   renderMaterialList();
   updateTotalCostPreview();
@@ -107,7 +107,7 @@ async function openEditModal(id) {
   const design = await getBraceletDesign(id);
   if (!design) { showToast('找不到此設計款', 'danger'); return; }
   document.getElementById('d-name').value = design.name;
-  document.getElementById('modal-title').textContent = '✏️ 編輯設計款手鍊';
+  document.getElementById('modal-title').textContent = '編輯設計款手鍊';
   document.getElementById('save-btn').textContent = '儲存修改';
   currentMaterials = design.materials ? [...design.materials] : [];
   renderMaterialList();

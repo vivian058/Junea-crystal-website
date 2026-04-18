@@ -14,14 +14,14 @@ async function loadSettings() {
     const settings = await getInitialStockSettings();
     renderTable(settings);
   } catch(e) {
-    container.innerHTML = `<div class="empty-state"><div class="empty-state-icon">⚠️</div><div>${e.message}</div></div>`;
+    container.innerHTML = `<div class="empty-state"><div class="empty-state-text">${e.message}</div></div>`;
   }
 }
 
 function renderTable(settings) {
   const container = document.getElementById('table-container');
   if (!settings.length) {
-    container.innerHTML = emptyState('⚙️', '尚未設定任何規格，點右上角「新增規格設定」開始');
+    container.innerHTML = emptyState('', '尚未設定任何規格，點右上角「新增規格設定」開始');
     return;
   }
 
@@ -62,7 +62,7 @@ function renderTable(settings) {
 }
 
 function openEditModal(specKey, crystalName, size, typeA, typeB, defaultQty) {
-  document.getElementById('modal-title').textContent = '✏️ 編輯規格設定';
+  document.getElementById('modal-title').textContent = '編輯規格設定';
   document.getElementById('s-crystalName').value = crystalName;
   document.getElementById('s-size').value = size;
   document.getElementById('s-typeA').value = typeA;
