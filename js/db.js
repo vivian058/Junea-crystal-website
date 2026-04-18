@@ -30,9 +30,9 @@ async function getCrystalCosts(filters = {}) {
   results.sort((a, b) => (b.date || '').localeCompare(a.date || ''));
 
   if (filters.crystalName) results = results.filter(r => r.crystalName && r.crystalName.includes(filters.crystalName));
-  if (filters.size) results = results.filter(r => r.size === filters.size);
-  if (filters.typeA) results = results.filter(r => r.typeA === filters.typeA);
-  if (filters.typeB) results = results.filter(r => r.typeB === filters.typeB);
+  if (filters.size) results = results.filter(r => r.size && r.size.toString().includes(filters.size));
+  if (filters.typeA) results = results.filter(r => r.typeA && r.typeA.includes(filters.typeA));
+  if (filters.typeB) results = results.filter(r => r.typeB && r.typeB.includes(filters.typeB));
   if (filters.keyword) {
     const kw = filters.keyword.toLowerCase();
     results = results.filter(r =>
