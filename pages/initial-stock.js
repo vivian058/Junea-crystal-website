@@ -146,7 +146,7 @@ function renderAccessoryTable(accessories) {
     <tr>
       <td><strong>${s.productName || s.itemCode || '-'}</strong></td>
       <td><span class="badge badge-purple">${s.itemCode || '-'}</span></td>
-      <td>${s.spec || '-'}</td>
+      <td>${fmtSpec(s.spec)}</td>
       <td>
         <span style="font-size:20px;font-weight:800;color:var(--primary)">${s.defaultQuantity}</span>
         <span style="color:var(--text-muted);font-size:13px"> 個</span>

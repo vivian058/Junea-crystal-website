@@ -191,7 +191,7 @@ function buildAccessoryInventoryRows(items) {
         </td>
         <td><strong>${item.productName || displayName}</strong></td>
         <td>${item.itemCode ? `<span class="badge badge-purple">${item.itemCode}</span>` : '-'}</td>
-        <td>${item.spec || '-'}</td>
+        <td>${fmtSpec(item.spec)}</td>
         <td>
           <span class="qty-big ${qtyClass}">${qty}</span>
           <span style="font-size:12px;color:var(--text-muted)"> 個</span>

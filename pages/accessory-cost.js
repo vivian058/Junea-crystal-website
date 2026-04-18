@@ -55,7 +55,7 @@ function renderTable(records) {
       <td>${r.vendor || '-'}</td>
       <td>${r.productName || '-'}</td>
       <td>${r.color || '-'}</td>
-      <td>${r.spec || '-'}</td>
+      <td>${fmtSpec(r.spec)}</td>
       <td class="td-link">${r.shopLink ? `<a href="${r.shopLink}" target="_blank">連結 ↗</a>` : '-'}</td>
       <td>${fmtYuan(r.pricePerPieceYuan)}</td>
       <td>${r.exchangeRate || '-'}</td>
@@ -357,7 +357,7 @@ function handleExcelUpload(file) {
           <td>${r.itemCode}</td>
           <td>${r.productName || '-'}</td>
           <td>${r.color || '-'}</td>
-          <td>${r.spec || '-'}</td>
+          <td>${fmtSpec(r.spec)}</td>
           <td>${r.pricePerPieceYuan || '-'}</td>
           <td>${r.exchangeRate}</td>
           <td>${r.costPerPiece || '自動'}</td>
