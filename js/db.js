@@ -73,10 +73,10 @@ async function getCrystalFilterOptions() {
 async function getCrystalCostSummary(specKey) {
   const snapshot = await db.collection(COLLECTIONS.CRYSTAL_COSTS)
     .where('specKey', '==', specKey)
-    .orderBy('date', 'desc')
     .get();
   if (snapshot.empty) return null;
-  const records = snapshot.docs.map(doc => doc.data());
+  const records = snapshot.docs.map(doc => doc.data())
+    .sort((a, b) => (b.date || '').localeCompare(a.date || ''));
   const costs = records.map(r => Number(r.costPerBead)).filter(v => !isNaN(v) && v > 0);
   return {
     latest: costs[0] || 0,
@@ -90,11 +90,11 @@ async function getCrystalCostSummary(specKey) {
 async function getPreviousCrystalCost(specKey) {
   const snapshot = await db.collection(COLLECTIONS.CRYSTAL_COSTS)
     .where('specKey', '==', specKey)
-    .orderBy('date', 'desc')
-    .limit(2)
     .get();
-  if (snapshot.size < 2) return null;
-  return { id: snapshot.docs[1].id, ...snapshot.docs[1].data() };
+  if (snapshot.empty) return null;
+  const records = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }))
+    .sort((a, b) => (b.date || '').localeCompare(a.date || ''));
+  return records.length >= 2 ? records[1] : null;
 }
 
 /** 刪除水晶進貨紀錄 */
@@ -148,10 +148,10 @@ async function getAccessoryFilterOptions() {
 async function getAccessoryCostSummary(specKey) {
   const snapshot = await db.collection(COLLECTIONS.ACCESSORY_COSTS)
     .where('specKey', '==', specKey)
-    .orderBy('date', 'desc')
     .get();
   if (snapshot.empty) return null;
-  const records = snapshot.docs.map(doc => doc.data());
+  const records = snapshot.docs.map(doc => doc.data())
+    .sort((a, b) => (b.date || '').localeCompare(a.date || ''));
   const costs = records.map(r => Number(r.costPerPiece)).filter(v => !isNaN(v) && v > 0);
   return {
     latest: costs[0] || 0,
@@ -180,11 +180,11 @@ async function getLatestAccessoryCosts() {
 async function getPreviousAccessoryCost(specKey) {
   const snapshot = await db.collection(COLLECTIONS.ACCESSORY_COSTS)
     .where('specKey', '==', specKey)
-    .orderBy('date', 'desc')
-    .limit(2)
     .get();
-  if (snapshot.size < 2) return null;
-  return { id: snapshot.docs[1].id, ...snapshot.docs[1].data() };
+  if (snapshot.empty) return null;
+  const records = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }))
+    .sort((a, b) => (b.date || '').localeCompare(a.date || ''));
+  return records.length >= 2 ? records[1] : null;
 }
 
 /** 刪除配件進貨紀錄 */
