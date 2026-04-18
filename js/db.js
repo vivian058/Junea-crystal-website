@@ -276,6 +276,65 @@ async function deleteInventoryItem(specKey) {
   await db.collection(COLLECTIONS.INVENTORY).doc(specKey).delete();
 }
 
+async function syncCrystalInventory() {
+  // 讀取所有水晶成本紀錄，取得不重複的 specKey
+  const costsSnap = await db.collection(COLLECTIONS.CRYSTAL_COSTS).get();
+  const all = costsSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+  const seen = new Set();
+  const unique = all.filter(r => r.specKey && !seen.has(r.specKey) && seen.add(r.specKey));
+
+  // 讀取現有庫存 specKey
+  const invSnap = await db.collection(COLLECTIONS.INVENTORY).get();
+  const existingKeys = new Set(invSnap.docs.map(d => d.id));
+
+  const added = [];
+  const noInitialSetting = [];
+
+  for (const r of unique) {
+    if (existingKeys.has(r.specKey)) continue; // 已存在，跳過
+    const displayName = `${r.crystalName} ${r.size}mm ${r.typeB} ${r.typeA}`;
+    await db.collection(COLLECTIONS.INVENTORY).doc(r.specKey).set({
+      specKey: r.specKey, type: 'crystal', displayName,
+      crystalName: r.crystalName, size: r.size, typeA: r.typeA, typeB: r.typeB,
+      quantity: 0,
+      lastUpdated: firebase.firestore.FieldValue.serverTimestamp()
+    });
+    added.push(displayName);
+    // 確認是否有初始庫存設定
+    const settingDoc = await db.collection(COLLECTIONS.INITIAL_STOCK).doc(r.specKey).get();
+    if (!settingDoc.exists) noInitialSetting.push(displayName);
+  }
+  return { added, noInitialSetting };
+}
+
+async function syncAccessoryInventory() {
+  // 讀取所有配件成本紀錄，取得不重複的 specKey
+  const costsSnap = await db.collection(COLLECTIONS.ACCESSORY_COSTS).get();
+  const all = costsSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+  const seen = new Set();
+  const unique = all.filter(r => r.specKey && !seen.has(r.specKey) && seen.add(r.specKey));
+
+  const invSnap = await db.collection(COLLECTIONS.INVENTORY).get();
+  const existingKeys = new Set(invSnap.docs.map(d => d.id));
+
+  const added = [];
+
+  for (const r of unique) {
+    if (existingKeys.has(r.specKey)) continue;
+    const displayName = r.productName || r.itemCode || r.specKey;
+    await db.collection(COLLECTIONS.INVENTORY).doc(r.specKey).set({
+      specKey: r.specKey, type: 'accessory', displayName,
+      itemCode: r.itemCode || '',
+      productName: r.productName || '',
+      spec: r.spec || '',
+      quantity: 0,
+      lastUpdated: firebase.firestore.FieldValue.serverTimestamp()
+    });
+    added.push(displayName);
+  }
+  return { added };
+}
+
 async function createInventoryEntry(specKey, data) {
   await db.collection(COLLECTIONS.INVENTORY).doc(specKey).set({
     specKey,
