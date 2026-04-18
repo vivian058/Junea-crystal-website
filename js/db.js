@@ -350,15 +350,15 @@ async function processReturn(braceletName, quantity = 1) {
 }
 
 async function _addInventoryFromCrystalPurchase(specKey, data) {
-  console.log('[庫存更新] 開始處理 specKey:', specKey);
   const settingDoc = await db.collection(COLLECTIONS.INITIAL_STOCK).doc(specKey).get();
   const hasInitialSetting = settingDoc.exists;
-  const defaultQty = hasInitialSetting ? (settingDoc.data().defaultQuantity || 0) : 0;
-  console.log('[庫存更新] hasInitialSetting:', hasInitialSetting, 'defaultQty:', defaultQty);
 
+  // 沒有初始庫存設定 → 不建立庫存，只回傳提醒旗標
+  if (!hasInitialSetting) return { hasInitialSetting: false, defaultQty: 0 };
+
+  const defaultQty = settingDoc.data().defaultQuantity || 0;
   const invRef = db.collection(COLLECTIONS.INVENTORY).doc(specKey);
   const invDoc = await invRef.get();
-  console.log('[庫存更新] invDoc.exists:', invDoc.exists);
   const baseData = {
     specKey, type: 'crystal',
     displayName: `${data.crystalName} ${data.size}mm ${data.typeB} ${data.typeA}`,
@@ -370,15 +370,11 @@ async function _addInventoryFromCrystalPurchase(specKey, data) {
   };
 
   if (invDoc.exists) {
-    const updateData = { ...baseData };
-    if (hasInitialSetting && defaultQty > 0) {
-      updateData.quantity = firebase.firestore.FieldValue.increment(defaultQty);
-    }
-    await invRef.update(updateData);
+    await invRef.update({ ...baseData, quantity: firebase.firestore.FieldValue.increment(defaultQty) });
   } else {
     await invRef.set({ ...baseData, quantity: defaultQty });
   }
-  return { hasInitialSetting, defaultQty };
+  return { hasInitialSetting: true, defaultQty };
 }
 
 async function _ensureAccessoryInventory(specKey, data) {
@@ -410,13 +406,28 @@ async function getInitialStockSettings() {
 
 async function setInitialStockSetting(data) {
   const specKey = makeCrystalKey(data.crystalName, data.size, data.typeA, data.typeB);
+  const displayName = `${data.crystalName} ${data.size}mm ${data.typeB} ${data.typeA}`;
   await db.collection(COLLECTIONS.INITIAL_STOCK).doc(specKey).set({
     specKey, crystalName: data.crystalName, size: data.size, typeA: data.typeA, typeB: data.typeB,
-    displayName: `${data.crystalName} ${data.size}mm ${data.typeB} ${data.typeA}`,
+    displayName,
     defaultQuantity: Number(data.defaultQuantity),
     updatedAt: firebase.firestore.FieldValue.serverTimestamp()
   }, { merge: true });
-  return specKey;
+
+  // 初始設定新增後，自動在庫存建立對應項目（若尚未存在）
+  const invRef = db.collection(COLLECTIONS.INVENTORY).doc(specKey);
+  const invDoc = await invRef.get();
+  let isNewInventory = false;
+  if (!invDoc.exists) {
+    await invRef.set({
+      specKey, type: 'crystal', displayName,
+      crystalName: data.crystalName, size: data.size, typeA: data.typeA, typeB: data.typeB,
+      quantity: 0,
+      lastUpdated: firebase.firestore.FieldValue.serverTimestamp()
+    });
+    isNewInventory = true;
+  }
+  return { specKey, isNewInventory };
 }
 
 async function deleteInitialStockSetting(specKey) {
