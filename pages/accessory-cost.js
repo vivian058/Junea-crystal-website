@@ -314,7 +314,7 @@ function handleExcelUpload(file) {
   const reader = new FileReader();
   reader.onload = (e) => {
     try {
-      const workbook = XLSX.read(e.target.result, { type: 'array' });
+      const workbook = XLSX.read(e.target.result, { type: 'array', cellDates: true });
       const sheet = workbook.Sheets[workbook.SheetNames[0]];
       const rows = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: '' });
 
@@ -325,7 +325,7 @@ function handleExcelUpload(file) {
       }
 
       importRows = dataRows.map(r => ({
-        date: String(r[0] || '').trim(),
+        date: toDateStr(r[0]),
         vendor: String(r[1] || '').trim(),
         itemCode: String(r[2] || '').trim(),
         productName: String(r[3] || '').trim(),
