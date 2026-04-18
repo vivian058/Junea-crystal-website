@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>庫存表 - 玖釀</title>
+  <link rel="stylesheet" href="../css/style.css">
+  <style>
+    .inventory-section-title {
+      font-size: 16px; font-weight: 700; color: var(--primary-dark);
+      margin: 24px 0 12px; display: flex; align-items: center; gap: 8px;
+    }
+    .qty-big { font-size: 18px; font-weight: 800; }
+    .qty-ok { color: var(--success); }
+    .qty-warn { color: var(--warning); }
+    .qty-danger { color: var(--danger); }
+    .action-btns { display: flex; gap: 6px; flex-wrap: wrap; }
+  </style>
+</head>
+<body>
+  <div id="navbar-root"></div>
+
+  <div class="container">
+    <div class="flex-between mb-20">
+      <div class="page-title">📦 庫存表</div>
+      <div class="btn-group">
+        <button class="btn btn-gold" onclick="openModal('shipModal')">📤 出貨扣庫存</button>
+      </div>
+    </div>
+
+    <!-- 低庫存警示區 -->
+    <div id="low-stock-alerts"></div>
+
+    <!-- 水晶庫存 -->
+    <div class="inventory-section-title">🔮 水晶庫存</div>
+    <div class="card">
+      <div id="crystal-table">
+        <div class="loading"><div class="spinner"></div><div>載入中...</div></div>
+      </div>
+    </div>
+
+    <!-- 配件庫存（未來擴充預留） -->
+    <div class="inventory-section-title">📿 配件庫存</div>
+    <div class="card">
+      <div id="accessory-table">
+        <div style="text-align:center;padding:24px;color:var(--text-muted);font-size:13px">
+          配件庫存目前由系統自動追蹤（根據設計款出貨扣除）
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 耗損紀錄 Modal -->
+  <div class="modal-overlay" id="damageModal">
+    <div class="modal" style="max-width:480px">
+      <div class="modal-header">
+        <div class="modal-title">📝 記錄耗損</div>
+        <button class="modal-close" onclick="closeModal('damageModal')">✕</button>
+      </div>
+      <div class="modal-body">
+        <div class="form-group mb-20">
+          <label>規格</label>
+          <input class="form-control readonly" id="dmg-spec" readonly>
+        </div>
+        <div class="form-group mb-20">
+          <label class="required">耗損顆數</label>
+          <input class="form-control" id="dmg-amount" type="number" min="1" placeholder="輸入耗損數量">
+        </div>
+        <div class="form-group">
+          <label>備註</label>
+          <input class="form-control" id="dmg-note" type="text" placeholder="如：破損、遺失…">
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" onclick="closeModal('damageModal')">取消</button>
+        <button class="btn btn-primary" onclick="submitDamage()">確認扣除</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 出貨 Modal -->
+  <div class="modal-overlay" id="shipModal">
+    <div class="modal" style="max-width:480px">
+      <div class="modal-header">
+        <div class="modal-title">📤 出貨扣庫存</div>
+        <button class="modal-close" onclick="closeModal('shipModal')">✕</button>
+      </div>
+      <div class="modal-body">
+        <div class="form-group mb-20">
+          <label class="required">手鍊名稱</label>
+          <input class="form-control" id="ship-name" type="text" placeholder="輸入設計款手鍊名稱（需完全一致）">
+        </div>
+        <div class="form-group mb-20">
+          <label class="required">出貨數量（條）</label>
+          <input class="form-control" id="ship-qty" type="number" min="1" value="1">
+        </div>
+        <div id="ship-result"></div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" onclick="closeModal('shipModal')">取消</button>
+        <button class="btn btn-gold" onclick="submitShipment()">確認出貨</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+  <script src="../js/firebase-config.js"></script>
+  <script src="../js/db.js"></script>
+  <script src="../js/utils.js"></script>
+  <script src="inventory.js"></script>
+</body>
+</html>

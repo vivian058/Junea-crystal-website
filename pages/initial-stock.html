@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>初始庫存設定 - 玖釀</title>
+  <link rel="stylesheet" href="../css/style.css">
+</head>
+<body>
+  <div id="navbar-root"></div>
+
+  <div class="container">
+    <div class="flex-between mb-20">
+      <div class="page-title">⚙️ 初始庫存設定</div>
+      <button class="btn btn-primary" onclick="openModal('addModal')">＋ 新增規格設定</button>
+    </div>
+
+    <div class="card" style="margin-bottom:16px;background:var(--primary-light)">
+      <div style="font-size:14px;color:var(--primary-dark)">
+        📌 <strong>說明：</strong>此頁面設定每次進貨時，各規格水晶要自動增加多少顆庫存。
+        例如：白水晶 6mm 圓珠 條珠 → 每次進貨自動加 150 顆。
+      </div>
+    </div>
+
+    <div class="card">
+      <div id="table-container">
+        <div class="loading"><div class="spinner"></div><div>載入中...</div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 新增/編輯 Modal -->
+  <div class="modal-overlay" id="addModal">
+    <div class="modal" style="max-width:540px">
+      <div class="modal-header">
+        <div class="modal-title" id="modal-title">＋ 新增規格設定</div>
+        <button class="modal-close" onclick="closeModal('addModal')">✕</button>
+      </div>
+      <div class="modal-body">
+        <div class="form-grid">
+          <div class="form-group">
+            <label class="required">水晶名稱</label>
+            <input class="form-control" id="s-crystalName" type="text" placeholder="如：白水晶">
+          </div>
+          <div class="form-group">
+            <label class="required">尺寸 (mm)</label>
+            <input class="form-control" id="s-size" type="text" placeholder="如：6、8、10">
+          </div>
+          <div class="form-group">
+            <label class="required">規格 A</label>
+            <select class="form-control" id="s-typeA">
+              <option value="">選擇...</option>
+              <option>條珠</option>
+              <option>成品串</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="required">形狀 / 規格 B</label>
+            <input class="form-control" id="s-typeB" type="text" placeholder="如：圓珠、扁刻面">
+          </div>
+          <div class="form-group">
+            <label class="required">每次進貨預設顆數</label>
+            <input class="form-control" id="s-defaultQty" type="number" min="1" placeholder="如：150">
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" onclick="closeModal('addModal')">取消</button>
+        <button class="btn btn-primary" onclick="submitSetting()">儲存設定</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+  <script src="../js/firebase-config.js"></script>
+  <script src="../js/db.js"></script>
+  <script src="../js/utils.js"></script>
+  <script src="initial-stock.js"></script>
+</body>
+</html>

@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>配件成本表 - 玖釀</title>
+  <link rel="stylesheet" href="../css/style.css">
+</head>
+<body>
+  <div id="navbar-root"></div>
+
+  <div class="container">
+    <div class="flex-between mb-20">
+      <div class="page-title">📿 配件成本表</div>
+      <button class="btn btn-primary" onclick="openModal('addModal')">＋ 新增進貨</button>
+    </div>
+
+    <!-- 查詢區 -->
+    <div class="search-area">
+      <div class="card-title">🔍 查詢配件紀錄</div>
+      <div class="search-row">
+        <div class="form-group">
+          <label>廠家</label>
+          <select class="form-control" id="f-vendor">
+            <option value="">全部</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>關鍵字 / 貨號</label>
+          <input class="form-control" id="f-keyword" type="text" placeholder="商品名、貨號、顏色…">
+        </div>
+        <button class="btn btn-primary" onclick="doSearch()">查詢</button>
+        <button class="btn btn-secondary" onclick="clearSearch()">清除</button>
+      </div>
+    </div>
+
+    <!-- 查詢結果摘要 -->
+    <div id="result-summary" style="display:none" class="result-summary mb-12">
+      <div class="result-stat">
+        <div class="result-stat-label">符合筆數</div>
+        <div class="result-stat-value" id="r-count">0</div>
+      </div>
+      <div class="result-stat">
+        <div class="result-stat-label">當前成本價（最新）</div>
+        <div class="result-stat-value gold" id="r-latest">-</div>
+      </div>
+      <div class="result-stat">
+        <div class="result-stat-label">歷史最低</div>
+        <div class="result-stat-value" id="r-min">-</div>
+      </div>
+      <div class="result-stat">
+        <div class="result-stat-label">歷史最高</div>
+        <div class="result-stat-value" id="r-max">-</div>
+      </div>
+    </div>
+
+    <!-- 表格 -->
+    <div class="card">
+      <div id="table-container">
+        <div class="loading"><div class="spinner"></div><div>載入中...</div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 新增進貨 Modal -->
+  <div class="modal-overlay" id="addModal">
+    <div class="modal">
+      <div class="modal-header">
+        <div class="modal-title">＋ 新增配件進貨</div>
+        <button class="modal-close" onclick="closeModal('addModal')">✕</button>
+      </div>
+      <div class="modal-body">
+        <div id="add-alert"></div>
+        <div class="form-grid">
+          <div class="form-group">
+            <label class="required">進貨日期</label>
+            <input class="form-control" id="a-date" type="date">
+          </div>
+          <div class="form-group">
+            <label class="required">廠家</label>
+            <input class="form-control" id="a-vendor" type="text" placeholder="廠家名稱">
+          </div>
+          <div class="form-group">
+            <label class="required">貨號</label>
+            <input class="form-control" id="a-itemCode" type="text" placeholder="如：JDZ210924">
+          </div>
+          <div class="form-group">
+            <label>賣場商品名稱</label>
+            <input class="form-control" id="a-productName" type="text" placeholder="賣場上的商品名稱">
+          </div>
+          <div class="form-group">
+            <label>賣場連結</label>
+            <input class="form-control" id="a-shopLink" type="url" placeholder="https://...">
+          </div>
+          <div class="form-group">
+            <label>顏色</label>
+            <input class="form-control" id="a-color" type="text" placeholder="如：金、銀、玫瑰金">
+          </div>
+          <div class="form-group">
+            <label>規格</label>
+            <input class="form-control" id="a-spec" type="text" placeholder="如：3mm、大號、瓜子型">
+          </div>
+          <div class="form-group">
+            <label>單顆進價 (¥)</label>
+            <input class="form-control" id="a-pricePerPieceYuan" type="number" step="0.001" placeholder="0.000">
+          </div>
+          <div class="form-group">
+            <label class="required">當次匯率 (¥→$)</label>
+            <input class="form-control" id="a-exchangeRate" type="number" step="0.01" placeholder="如：4.45">
+          </div>
+          <div class="form-group">
+            <label>單顆成本 ($) <span style="font-weight:400;color:var(--text-muted)">(留空自動計算)</span></label>
+            <input class="form-control" id="a-costPerPiece" type="number" step="0.01" placeholder="自動計算或手動填入">
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" onclick="closeModal('addModal')">取消</button>
+        <button class="btn btn-primary" onclick="submitAdd()">儲存進貨紀錄</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+  <script src="../js/firebase-config.js"></script>
+  <script src="../js/db.js"></script>
+  <script src="../js/utils.js"></script>
+  <script src="accessory-cost.js"></script>
+</body>
+</html>

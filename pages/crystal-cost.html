@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>水晶成本表 - 玖釀</title>
+  <link rel="stylesheet" href="../css/style.css">
+</head>
+<body>
+  <div id="navbar-root"></div>
+
+  <div class="container">
+    <div class="flex-between mb-20">
+      <div class="page-title">🔮 水晶成本表</div>
+      <button class="btn btn-primary" onclick="openModal('addModal')">＋ 新增進貨</button>
+    </div>
+
+    <!-- 查詢區 -->
+    <div class="search-area">
+      <div class="card-title">🔍 查詢進貨紀錄</div>
+      <div class="search-row">
+        <div class="form-group">
+          <label>水晶名稱</label>
+          <select class="form-control" id="f-crystalName">
+            <option value="">全部</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>尺寸 (mm)</label>
+          <select class="form-control" id="f-size">
+            <option value="">全部</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>規格 (條珠/成品串)</label>
+          <select class="form-control" id="f-typeA">
+            <option value="">全部</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>形狀</label>
+          <select class="form-control" id="f-typeB">
+            <option value="">全部</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>關鍵字搜尋</label>
+          <input class="form-control" id="f-keyword" type="text" placeholder="廠家、商品名…">
+        </div>
+        <button class="btn btn-primary" onclick="doSearch()">查詢</button>
+        <button class="btn btn-secondary" onclick="clearSearch()">清除</button>
+      </div>
+    </div>
+
+    <!-- 查詢結果摘要 -->
+    <div id="result-summary" style="display:none" class="result-summary mb-12">
+      <div class="result-stat">
+        <div class="result-stat-label">符合筆數</div>
+        <div class="result-stat-value" id="r-count">0</div>
+      </div>
+      <div class="result-stat">
+        <div class="result-stat-label">當前成本價（最新）</div>
+        <div class="result-stat-value gold" id="r-latest">-</div>
+      </div>
+      <div class="result-stat">
+        <div class="result-stat-label">歷史最低</div>
+        <div class="result-stat-value" id="r-min">-</div>
+      </div>
+      <div class="result-stat">
+        <div class="result-stat-label">歷史最高</div>
+        <div class="result-stat-value" id="r-max">-</div>
+      </div>
+    </div>
+
+    <!-- 表格 -->
+    <div class="card">
+      <div id="table-container">
+        <div class="loading"><div class="spinner"></div><div>載入中...</div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 新增進貨 Modal -->
+  <div class="modal-overlay" id="addModal">
+    <div class="modal">
+      <div class="modal-header">
+        <div class="modal-title">＋ 新增水晶進貨</div>
+        <button class="modal-close" onclick="closeModal('addModal')">✕</button>
+      </div>
+      <div class="modal-body">
+        <div id="add-alert"></div>
+        <div class="form-grid">
+          <div class="form-group">
+            <label class="required">水晶名稱</label>
+            <input class="form-control" id="a-crystalName" type="text" placeholder="如：白水晶、紫水晶">
+          </div>
+          <div class="form-group">
+            <label class="required">進貨日期</label>
+            <input class="form-control" id="a-date" type="date">
+          </div>
+          <div class="form-group">
+            <label class="required">尺寸 (mm)</label>
+            <input class="form-control" id="a-size" type="text" placeholder="如：6、8、10">
+          </div>
+          <div class="form-group">
+            <label class="required">規格 A</label>
+            <select class="form-control" id="a-typeA">
+              <option value="">選擇...</option>
+              <option>條珠</option>
+              <option>成品串</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="required">形狀 / 規格 B</label>
+            <input class="form-control" id="a-typeB" type="text" placeholder="如：圓珠、扁刻面、算盤珠">
+          </div>
+          <div class="form-group">
+            <label>廠家</label>
+            <input class="form-control" id="a-vendor" type="text" placeholder="廠家名稱">
+          </div>
+          <div class="form-group">
+            <label>賣場商品名稱</label>
+            <input class="form-control" id="a-productName" type="text" placeholder="賣場上的商品名">
+          </div>
+          <div class="form-group">
+            <label>賣場連結</label>
+            <input class="form-control" id="a-shopLink" type="url" placeholder="https://...">
+          </div>
+          <div class="form-group">
+            <label>克價 (¥)</label>
+            <input class="form-control" id="a-pricePerGram" type="number" step="0.01" placeholder="0.00">
+          </div>
+          <div class="form-group">
+            <label>一條重量 (g)</label>
+            <input class="form-control" id="a-weightPerStrand" type="number" step="0.1" placeholder="0.0">
+          </div>
+          <div class="form-group">
+            <label>單條進價 (¥)</label>
+            <input class="form-control" id="a-pricePerStrand" type="number" step="0.01" placeholder="0.00">
+          </div>
+          <div class="form-group">
+            <label class="required">當次匯率 (¥→$)</label>
+            <input class="form-control" id="a-exchangeRate" type="number" step="0.01" placeholder="如：4.45">
+          </div>
+          <div class="form-group">
+            <label>單顆成本 ($) <span style="font-weight:400;color:var(--text-muted)">(留空自動計算)</span></label>
+            <input class="form-control" id="a-costPerBead" type="number" step="0.01" placeholder="自動計算或手動填入">
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" onclick="closeModal('addModal')">取消</button>
+        <button class="btn btn-primary" onclick="submitAdd()">儲存進貨紀錄</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Firebase SDK -->
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+  <script src="../js/firebase-config.js"></script>
+  <script src="../js/db.js"></script>
+  <script src="../js/utils.js"></script>
+  <script src="crystal-cost.js"></script>
+</body>
+</html>

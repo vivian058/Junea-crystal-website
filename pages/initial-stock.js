@@ -1,0 +1,124 @@
+// =============================================
+// 初始庫存設定
+// =============================================
+
+document.addEventListener('DOMContentLoaded', async () => {
+  document.getElementById('navbar-root').innerHTML = renderNav('初始庫存設定');
+  await loadSettings();
+});
+
+async function loadSettings() {
+  const container = document.getElementById('table-container');
+  container.innerHTML = loadingState();
+  try {
+    const settings = await getInitialStockSettings();
+    renderTable(settings);
+  } catch(e) {
+    container.innerHTML = `<div class="empty-state"><div class="empty-state-icon">⚠️</div><div>${e.message}</div></div>`;
+  }
+}
+
+function renderTable(settings) {
+  const container = document.getElementById('table-container');
+  if (!settings.length) {
+    container.innerHTML = emptyState('⚙️', '尚未設定任何規格，點右上角「新增規格設定」開始');
+    return;
+  }
+
+  const rows = settings.map(s => `
+    <tr>
+      <td><strong>${s.crystalName || '-'}</strong></td>
+      <td>${s.size ? s.size + 'mm' : '-'}</td>
+      <td>${s.typeB || '-'}</td>
+      <td><span class="badge badge-purple">${s.typeA || '-'}</span></td>
+      <td>
+        <span style="font-size:20px;font-weight:800;color:var(--primary)">${s.defaultQuantity}</span>
+        <span style="color:var(--text-muted);font-size:13px"> 顆</span>
+      </td>
+      <td>
+        <div class="btn-group">
+          <button class="btn btn-secondary btn-sm" onclick="openEditModal('${s.specKey}', '${s.crystalName}', '${s.size}', '${s.typeA}', '${s.typeB}', ${s.defaultQuantity})">編輯</button>
+          <button class="btn btn-danger btn-sm" onclick="deleteSetting('${s.specKey}', '${s.displayName}')">刪除</button>
+        </div>
+      </td>
+    </tr>`).join('');
+
+  container.innerHTML = `
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>水晶名稱</th>
+            <th>尺寸</th>
+            <th>形狀</th>
+            <th>規格</th>
+            <th>每次進貨預設顆數</th>
+            <th>操作</th>
+          </tr>
+        </thead>
+        <tbody>${rows}</tbody>
+      </table>
+    </div>`;
+}
+
+function openEditModal(specKey, crystalName, size, typeA, typeB, defaultQty) {
+  document.getElementById('modal-title').textContent = '✏️ 編輯規格設定';
+  document.getElementById('s-crystalName').value = crystalName;
+  document.getElementById('s-size').value = size;
+  document.getElementById('s-typeA').value = typeA;
+  document.getElementById('s-typeB').value = typeB;
+  document.getElementById('s-defaultQty').value = defaultQty;
+  openModal('addModal');
+}
+
+async function submitSetting() {
+  const get = id => document.getElementById(id).value.trim();
+  const data = {
+    crystalName: get('s-crystalName'),
+    size: get('s-size'),
+    typeA: get('s-typeA'),
+    typeB: get('s-typeB'),
+    defaultQuantity: parseInt(get('s-defaultQty')) || 0
+  };
+
+  if (!data.crystalName || !data.size || !data.typeA || !data.typeB) {
+    showToast('請填寫所有必填欄位', 'warning'); return;
+  }
+  if (!data.defaultQuantity || data.defaultQuantity < 1) {
+    showToast('請填寫有效的預設顆數', 'warning'); return;
+  }
+
+  try {
+    const btn = document.querySelector('#addModal .btn-primary');
+    btn.disabled = true; btn.textContent = '儲存中...';
+    await setInitialStockSetting(data);
+    showToast('設定已儲存！', 'success');
+    closeModal('addModal');
+    resetForm();
+    await loadSettings();
+  } catch(e) {
+    showToast(`儲存失敗：${e.message}`, 'danger');
+  } finally {
+    const btn = document.querySelector('#addModal .btn-primary');
+    if (btn) { btn.disabled = false; btn.textContent = '儲存設定'; }
+  }
+}
+
+function resetForm() {
+  ['s-crystalName','s-size','s-typeB','s-defaultQty'].forEach(id => {
+    document.getElementById(id).value = '';
+  });
+  document.getElementById('s-typeA').value = '';
+  document.getElementById('modal-title').textContent = '＋ 新增規格設定';
+}
+
+async function deleteSetting(specKey, displayName) {
+  if (!confirmDialog(`確定要刪除「${displayName}」的初始庫存設定嗎？`)) return;
+  try {
+    await deleteInitialStockSetting(specKey);
+    showToast('已刪除', 'success');
+    await loadSettings();
+  } catch(e) {
+    showToast(`刪除失敗：${e.message}`, 'danger');
+  }
+}

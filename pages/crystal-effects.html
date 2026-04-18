@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>水晶功效資料庫 - 玖釀</title>
+  <link rel="stylesheet" href="../css/style.css">
+  <style>
+    .effect-cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 16px; }
+    .effect-card {
+      background: white;
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      padding: 20px;
+      border-top: 4px solid var(--primary);
+      transition: all 0.2s;
+    }
+    .effect-card:hover { transform: translateY(-2px); box-shadow: var(--shadow-hover); }
+    .effect-card-name { font-size: 18px; font-weight: 800; color: var(--primary-dark); margin-bottom: 8px; }
+    .effect-card-tags { display: flex; flex-wrap: wrap; gap: 4px; margin-bottom: 10px; }
+    .effect-card-text { font-size: 14px; color: var(--text); line-height: 1.7; white-space: pre-wrap; }
+    .effect-card-actions { margin-top: 14px; display: flex; gap: 8px; }
+  </style>
+</head>
+<body>
+  <div id="navbar-root"></div>
+
+  <div class="container">
+    <div class="flex-between mb-20">
+      <div class="page-title">📖 水晶功效資料庫</div>
+      <button class="btn btn-primary" onclick="openAddModal()">＋ 新增水晶</button>
+    </div>
+
+    <!-- 查詢區 -->
+    <div class="search-area">
+      <div class="search-row">
+        <div class="form-group" style="flex:2">
+          <label>搜尋關鍵字（名稱、功效、標籤）</label>
+          <input class="form-control" id="f-keyword" type="text" placeholder="如：感情、招財、白水晶…">
+        </div>
+        <button class="btn btn-primary" onclick="doSearch()">查詢</button>
+        <button class="btn btn-secondary" onclick="clearSearch()">清除</button>
+      </div>
+    </div>
+
+    <div id="effects-container">
+      <div class="loading"><div class="spinner"></div><div>載入中...</div></div>
+    </div>
+  </div>
+
+  <!-- 新增/編輯 Modal -->
+  <div class="modal-overlay" id="effectModal">
+    <div class="modal" style="max-width:600px">
+      <div class="modal-header">
+        <div class="modal-title" id="modal-title">＋ 新增水晶功效</div>
+        <button class="modal-close" onclick="closeModal('effectModal')">✕</button>
+      </div>
+      <div class="modal-body">
+        <div class="form-group mb-20">
+          <label class="required">水晶名稱</label>
+          <input class="form-control" id="e-name" type="text" placeholder="如：白水晶、紫水晶、粉晶">
+        </div>
+        <div class="form-group mb-20">
+          <label>功效標籤 <span style="font-weight:400;color:var(--text-muted)">（用逗號分隔，如：感情,招財,淨化）</span></label>
+          <input class="form-control" id="e-tags" type="text" placeholder="感情,招財,淨化,事業…">
+        </div>
+        <div class="form-group">
+          <label class="required">功效說明</label>
+          <textarea class="form-control" id="e-effects" placeholder="詳細描述此水晶的功效、能量、適合對象等&#10;可換行輸入"></textarea>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" onclick="closeModal('effectModal')">取消</button>
+        <button class="btn btn-primary" id="save-btn" onclick="submitEffect()">儲存</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+  <script src="../js/firebase-config.js"></script>
+  <script src="../js/db.js"></script>
+  <script src="../js/utils.js"></script>
+  <script src="crystal-effects.js"></script>
+</body>
+</html>
