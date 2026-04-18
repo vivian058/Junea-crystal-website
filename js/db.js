@@ -19,8 +19,8 @@ async function addCrystalCost(data) {
   const specKey = makeCrystalKey(data.crystalName, data.size, data.typeA, data.typeB);
   const record = { ...data, specKey, createdAt: firebase.firestore.FieldValue.serverTimestamp() };
   const docRef = await db.collection(COLLECTIONS.CRYSTAL_COSTS).add(record);
-  await _addInventoryFromCrystalPurchase(specKey, data);
-  return docRef.id;
+  const invResult = await _addInventoryFromCrystalPurchase(specKey, data);
+  return { id: docRef.id, ...invResult };
 }
 
 async function getCrystalCosts(filters = {}) {
@@ -98,7 +98,8 @@ async function addAccessoryCost(data) {
   const specKey = makeAccessoryKey(data.itemCode);
   const record = { ...data, specKey, createdAt: firebase.firestore.FieldValue.serverTimestamp() };
   const docRef = await db.collection(COLLECTIONS.ACCESSORY_COSTS).add(record);
-  return docRef.id;
+  const alreadyExisted = await _ensureAccessoryInventory(specKey, data);
+  return { id: docRef.id, isNewInventory: !alreadyExisted };
 }
 
 async function getAccessoryCosts(filters = {}) {
@@ -318,22 +319,75 @@ async function processShipment(braceletName, quantity = 1) {
   return alerts;
 }
 
+async function processReturn(braceletName, quantity = 1) {
+  const snapshot = await db.collection(COLLECTIONS.BRACELET_DESIGNS)
+    .where('name', '==', braceletName).get();
+  if (snapshot.empty) throw new Error(`找不到設計款「${braceletName}」`);
+  const design = snapshot.docs[0].data();
+  const results = [];
+
+  for (const m of design.materials) {
+    const restored = Number(m.quantity) * quantity;
+    const docRef = db.collection(COLLECTIONS.INVENTORY).doc(m.specKey);
+    const doc = await docRef.get();
+    if (!doc.exists) {
+      results.push({ name: m.displayName, restored, missing: true });
+      continue;
+    }
+    await docRef.update({
+      quantity: firebase.firestore.FieldValue.increment(restored),
+      lastUpdated: firebase.firestore.FieldValue.serverTimestamp()
+    });
+    results.push({ name: m.displayName, restored });
+  }
+  return results;
+}
+
 async function _addInventoryFromCrystalPurchase(specKey, data) {
   const settingDoc = await db.collection(COLLECTIONS.INITIAL_STOCK).doc(specKey).get();
-  if (!settingDoc.exists) return null;
-  const defaultQty = settingDoc.data().defaultQuantity || 0;
+  const hasInitialSetting = settingDoc.exists;
+  const defaultQty = hasInitialSetting ? (settingDoc.data().defaultQuantity || 0) : 0;
+
   const invRef = db.collection(COLLECTIONS.INVENTORY).doc(specKey);
   const invDoc = await invRef.get();
+  const baseData = {
+    specKey, type: 'crystal',
+    displayName: `${data.crystalName} ${data.size}mm ${data.typeB} ${data.typeA}`,
+    crystalName: data.crystalName,
+    size: data.size,
+    typeA: data.typeA,
+    typeB: data.typeB,
+    lastUpdated: firebase.firestore.FieldValue.serverTimestamp()
+  };
+
   if (invDoc.exists) {
-    await invRef.update({ quantity: firebase.firestore.FieldValue.increment(defaultQty), lastUpdated: firebase.firestore.FieldValue.serverTimestamp() });
+    const updateData = { ...baseData };
+    if (hasInitialSetting && defaultQty > 0) {
+      updateData.quantity = firebase.firestore.FieldValue.increment(defaultQty);
+    }
+    await invRef.update(updateData);
   } else {
-    await invRef.set({
-      specKey, type: 'crystal',
-      displayName: `${data.crystalName} ${data.size}mm ${data.typeB} ${data.typeA}`,
-      quantity: defaultQty, lastUpdated: firebase.firestore.FieldValue.serverTimestamp()
-    });
+    await invRef.set({ ...baseData, quantity: defaultQty });
   }
-  return defaultQty;
+  return { hasInitialSetting, defaultQty };
+}
+
+async function _ensureAccessoryInventory(specKey, data) {
+  const invRef = db.collection(COLLECTIONS.INVENTORY).doc(specKey);
+  const invDoc = await invRef.get();
+  if (!invDoc.exists) {
+    await invRef.set({
+      specKey, type: 'accessory',
+      displayName: data.productName || data.itemCode || specKey,
+      itemCode: data.itemCode || '',
+      productName: data.productName || '',
+      spec: data.spec || '',
+      quantity: 0,
+      lastUpdated: firebase.firestore.FieldValue.serverTimestamp()
+    });
+    return false; // 新建立
+  }
+  return true; // 已存在
 }
 
 // ─── 初始庫存設定 ──────────────────────────
