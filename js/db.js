@@ -82,6 +82,12 @@ async function getPreviousCrystalCost(specKey) {
   return records.length >= 2 ? records[1] : null;
 }
 
+async function updateCrystalCost(id, data) {
+  await db.collection(COLLECTIONS.CRYSTAL_COSTS).doc(id).update({
+    ...data, updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+  });
+}
+
 async function deleteCrystalCost(id) {
   await db.collection(COLLECTIONS.CRYSTAL_COSTS).doc(id).delete();
 }
@@ -156,6 +162,12 @@ async function getPreviousAccessoryCost(specKey) {
   const records = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }))
     .sort((a, b) => (b.date || '').localeCompare(a.date || ''));
   return records.length >= 2 ? records[1] : null;
+}
+
+async function updateAccessoryCost(id, data) {
+  await db.collection(COLLECTIONS.ACCESSORY_COSTS).doc(id).update({
+    ...data, updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+  });
 }
 
 async function deleteAccessoryCost(id) {
