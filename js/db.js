@@ -211,6 +211,13 @@ async function deleteBraceletDesign(id) {
   await db.collection(COLLECTIONS.BRACELET_DESIGNS).doc(id).delete();
 }
 
+async function updateBraceletSellingPrice(id, sellingPrice) {
+  await db.collection(COLLECTIONS.BRACELET_DESIGNS).doc(id).update({
+    sellingPrice: Number(sellingPrice) || 0,
+    updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+  });
+}
+
 async function calcBraceletCurrentCost(materials) {
   return await _calcBraceletCost(materials);
 }
@@ -260,6 +267,16 @@ async function updateInventoryItem(specKey, data) {
 
 async function deleteInventoryItem(specKey) {
   await db.collection(COLLECTIONS.INVENTORY).doc(specKey).delete();
+}
+
+async function createInventoryEntry(specKey, data) {
+  await db.collection(COLLECTIONS.INVENTORY).doc(specKey).set({
+    specKey,
+    type: data.type || 'crystal',
+    displayName: data.displayName,
+    quantity: data.quantity || 0,
+    lastUpdated: firebase.firestore.FieldValue.serverTimestamp()
+  });
 }
 
 async function logDamage(specKey, amount, note) {
