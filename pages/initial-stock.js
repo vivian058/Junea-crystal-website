@@ -91,8 +91,12 @@ async function submitSetting() {
   try {
     const btn = document.querySelector('#addModal .btn-primary');
     btn.disabled = true; btn.textContent = '儲存中...';
-    await setInitialStockSetting(data);
-    showToast('設定已儲存！', 'success');
+    const result = await setInitialStockSetting(data);
+    if (result.isNewInventory) {
+      showToast(`設定已儲存！已自動在庫存表新增「${data.crystalName} ${data.size}mm ${data.typeB} ${data.typeA}」（初始數量 0）`, 'success', 7000);
+    } else {
+      showToast('設定已儲存！', 'success');
+    }
     closeModal('addModal');
     resetForm();
     await loadSettings();
