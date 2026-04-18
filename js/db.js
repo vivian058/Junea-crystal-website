@@ -493,6 +493,37 @@ async function deleteInitialStockSetting(specKey) {
   await db.collection(COLLECTIONS.INITIAL_STOCK).doc(specKey).delete();
 }
 
+async function setAccessoryInitialSetting(data) {
+  const specKey = makeAccessoryKey(data.itemCode);
+  const displayName = data.productName || data.itemCode;
+  await db.collection(COLLECTIONS.INITIAL_STOCK).doc(specKey).set({
+    specKey, type: 'accessory',
+    itemCode: data.itemCode,
+    productName: data.productName || '',
+    spec: data.spec || '',
+    displayName,
+    defaultQuantity: Number(data.defaultQuantity),
+    updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+  }, { merge: true });
+
+  // 初始設定新增後，自動在庫存建立對應項目（若尚未存在）
+  const invRef = db.collection(COLLECTIONS.INVENTORY).doc(specKey);
+  const invDoc = await invRef.get();
+  let isNewInventory = false;
+  if (!invDoc.exists) {
+    await invRef.set({
+      specKey, type: 'accessory', displayName,
+      itemCode: data.itemCode,
+      productName: data.productName || '',
+      spec: data.spec || '',
+      quantity: 0,
+      lastUpdated: firebase.firestore.FieldValue.serverTimestamp()
+    });
+    isNewInventory = true;
+  }
+  return { specKey, isNewInventory };
+}
+
 // ─── 水晶功效 ─────────────────────────────
 
 async function addCrystalEffect(data) {
