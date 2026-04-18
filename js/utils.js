@@ -62,6 +62,16 @@ function toDateStr(val) {
 
 // ─── 漲跌徽章 ─────────────────────────────
 
+// 規格顯示：純數字或 N*N 格式自動補 mm，其他原樣輸出
+function fmtSpec(val) {
+  if (!val) return '-';
+  const s = String(val).trim();
+  if (!s) return '-';
+  if (s.toLowerCase().endsWith('mm')) return s;
+  if (/^\d+(\.\d+)?(\*\d+(\.\d+)?)?$/.test(s)) return s + 'mm';
+  return s;
+}
+
 function makePriceChangeBadge(current, previous, threshold = 50) {
   if (!previous || isNaN(current) || isNaN(previous)) return '';
   const diff = Number(current) - Number(previous);
