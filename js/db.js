@@ -1,44 +1,34 @@
 // =============================================
 // 資料庫操作層 - 所有 Firestore 操作集中於此
+// （所有排序改為客戶端處理，避免需要建立索引）
 // =============================================
 
 // ─── 工具函式 ───────────────────────────────
 
-/** 水晶規格唯一 key：水晶名_尺寸mm_規格A_規格B */
 function makeCrystalKey(crystalName, size, typeA, typeB) {
   return `${crystalName}_${size}mm_${typeA}_${typeB}`.replace(/\s+/g, '_');
 }
 
-/** 配件唯一 key */
 function makeAccessoryKey(itemCode) {
   return `ACC_${itemCode}`.replace(/\s+/g, '_');
 }
 
 // ─── 水晶成本表 ────────────────────────────
 
-/** 新增水晶進貨紀錄 */
 async function addCrystalCost(data) {
   const specKey = makeCrystalKey(data.crystalName, data.size, data.typeA, data.typeB);
-  const record = {
-    ...data,
-    specKey,
-    createdAt: firebase.firestore.FieldValue.serverTimestamp()
-  };
+  const record = { ...data, specKey, createdAt: firebase.firestore.FieldValue.serverTimestamp() };
   const docRef = await db.collection(COLLECTIONS.CRYSTAL_COSTS).add(record);
-
-  // 自動更新庫存
   await _addInventoryFromCrystalPurchase(specKey, data);
-
   return docRef.id;
 }
 
-/** 取得水晶進貨紀錄（可帶篩選） */
 async function getCrystalCosts(filters = {}) {
-  let ref = db.collection(COLLECTIONS.CRYSTAL_COSTS);
-  const snapshot = await ref.orderBy('date', 'desc').get();
+  const snapshot = await db.collection(COLLECTIONS.CRYSTAL_COSTS).get();
   let results = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+  // 客戶端排序（日期新→舊）
+  results.sort((a, b) => (b.date || '').localeCompare(a.date || ''));
 
-  // 客戶端篩選（資料量小，不建 composite index）
   if (filters.crystalName) results = results.filter(r => r.crystalName && r.crystalName.includes(filters.crystalName));
   if (filters.size) results = results.filter(r => r.size === filters.size);
   if (filters.typeA) results = results.filter(r => r.typeA === filters.typeA);
@@ -57,7 +47,6 @@ async function getCrystalCosts(filters = {}) {
   return results;
 }
 
-/** 取得所有不重複的水晶篩選選項 */
 async function getCrystalFilterOptions() {
   const snapshot = await db.collection(COLLECTIONS.CRYSTAL_COSTS).get();
   const all = snapshot.docs.map(doc => doc.data());
@@ -69,11 +58,9 @@ async function getCrystalFilterOptions() {
   };
 }
 
-/** 取得某規格的當前成本（最新進貨）與歷史區間 */
 async function getCrystalCostSummary(specKey) {
   const snapshot = await db.collection(COLLECTIONS.CRYSTAL_COSTS)
-    .where('specKey', '==', specKey)
-    .get();
+    .where('specKey', '==', specKey).get();
   if (snapshot.empty) return null;
   const records = snapshot.docs.map(doc => doc.data())
     .sort((a, b) => (b.date || '').localeCompare(a.date || ''));
@@ -86,40 +73,32 @@ async function getCrystalCostSummary(specKey) {
   };
 }
 
-/** 取得某規格的前一筆進貨（用於漲跌偵測） */
 async function getPreviousCrystalCost(specKey) {
   const snapshot = await db.collection(COLLECTIONS.CRYSTAL_COSTS)
-    .where('specKey', '==', specKey)
-    .get();
+    .where('specKey', '==', specKey).get();
   if (snapshot.empty) return null;
   const records = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }))
     .sort((a, b) => (b.date || '').localeCompare(a.date || ''));
   return records.length >= 2 ? records[1] : null;
 }
 
-/** 刪除水晶進貨紀錄 */
 async function deleteCrystalCost(id) {
   await db.collection(COLLECTIONS.CRYSTAL_COSTS).doc(id).delete();
 }
 
 // ─── 配件成本表 ────────────────────────────
 
-/** 新增配件進貨紀錄 */
 async function addAccessoryCost(data) {
   const specKey = makeAccessoryKey(data.itemCode);
-  const record = {
-    ...data,
-    specKey,
-    createdAt: firebase.firestore.FieldValue.serverTimestamp()
-  };
+  const record = { ...data, specKey, createdAt: firebase.firestore.FieldValue.serverTimestamp() };
   const docRef = await db.collection(COLLECTIONS.ACCESSORY_COSTS).add(record);
   return docRef.id;
 }
 
-/** 取得配件進貨紀錄（可帶篩選） */
 async function getAccessoryCosts(filters = {}) {
-  const snapshot = await db.collection(COLLECTIONS.ACCESSORY_COSTS).orderBy('date', 'desc').get();
+  const snapshot = await db.collection(COLLECTIONS.ACCESSORY_COSTS).get();
   let results = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+  results.sort((a, b) => (b.date || '').localeCompare(a.date || ''));
 
   if (filters.vendor) results = results.filter(r => r.vendor && r.vendor.includes(filters.vendor));
   if (filters.keyword) {
@@ -135,7 +114,6 @@ async function getAccessoryCosts(filters = {}) {
   return results;
 }
 
-/** 取得配件篩選選項 */
 async function getAccessoryFilterOptions() {
   const snapshot = await db.collection(COLLECTIONS.ACCESSORY_COSTS).get();
   const all = snapshot.docs.map(doc => doc.data());
@@ -144,11 +122,9 @@ async function getAccessoryFilterOptions() {
   };
 }
 
-/** 取得某配件的當前成本與歷史區間 */
 async function getAccessoryCostSummary(specKey) {
   const snapshot = await db.collection(COLLECTIONS.ACCESSORY_COSTS)
-    .where('specKey', '==', specKey)
-    .get();
+    .where('specKey', '==', specKey).get();
   if (snapshot.empty) return null;
   const records = snapshot.docs.map(doc => doc.data())
     .sort((a, b) => (b.date || '').localeCompare(a.date || ''));
@@ -161,80 +137,68 @@ async function getAccessoryCostSummary(specKey) {
   };
 }
 
-/** 取得所有配件（最新成本，用於設計款選料） */
 async function getLatestAccessoryCosts() {
-  const snapshot = await db.collection(COLLECTIONS.ACCESSORY_COSTS).orderBy('date', 'desc').get();
+  const snapshot = await db.collection(COLLECTIONS.ACCESSORY_COSTS).get();
+  const results = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+  results.sort((a, b) => (b.date || '').localeCompare(a.date || ''));
   const seen = new Set();
-  const results = [];
-  for (const doc of snapshot.docs) {
-    const data = doc.data();
-    if (!seen.has(data.specKey)) {
-      seen.add(data.specKey);
-      results.push({ id: doc.id, ...data });
-    }
-  }
-  return results;
+  return results.filter(r => {
+    if (seen.has(r.specKey)) return false;
+    seen.add(r.specKey);
+    return true;
+  });
 }
 
-/** 取得配件前一筆進貨 */
 async function getPreviousAccessoryCost(specKey) {
   const snapshot = await db.collection(COLLECTIONS.ACCESSORY_COSTS)
-    .where('specKey', '==', specKey)
-    .get();
+    .where('specKey', '==', specKey).get();
   if (snapshot.empty) return null;
   const records = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }))
     .sort((a, b) => (b.date || '').localeCompare(a.date || ''));
   return records.length >= 2 ? records[1] : null;
 }
 
-/** 刪除配件進貨紀錄 */
 async function deleteAccessoryCost(id) {
   await db.collection(COLLECTIONS.ACCESSORY_COSTS).doc(id).delete();
 }
 
 // ─── 設計款手鍊 ────────────────────────────
 
-/** 新增設計款手鍊 */
 async function addBraceletDesign(data) {
   const currentCost = await _calcBraceletCost(data.materials);
-  const record = {
-    ...data,
-    baseCost: currentCost,
-    createdAt: firebase.firestore.FieldValue.serverTimestamp()
-  };
+  const record = { ...data, baseCost: currentCost, createdAt: firebase.firestore.FieldValue.serverTimestamp() };
   const docRef = await db.collection(COLLECTIONS.BRACELET_DESIGNS).add(record);
   return docRef.id;
 }
 
-/** 取得所有設計款 */
 async function getBraceletDesigns() {
-  const snapshot = await db.collection(COLLECTIONS.BRACELET_DESIGNS).orderBy('createdAt', 'desc').get();
-  return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+  const snapshot = await db.collection(COLLECTIONS.BRACELET_DESIGNS).get();
+  const results = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+  results.sort((a, b) => {
+    const ta = a.createdAt ? (a.createdAt.seconds || 0) : 0;
+    const tb = b.createdAt ? (b.createdAt.seconds || 0) : 0;
+    return tb - ta;
+  });
+  return results;
 }
 
-/** 取得單一設計款 */
 async function getBraceletDesign(id) {
   const doc = await db.collection(COLLECTIONS.BRACELET_DESIGNS).doc(id).get();
   if (!doc.exists) return null;
   return { id: doc.id, ...doc.data() };
 }
 
-/** 更新設計款 */
 async function updateBraceletDesign(id, data) {
   const currentCost = await _calcBraceletCost(data.materials);
   await db.collection(COLLECTIONS.BRACELET_DESIGNS).doc(id).update({
-    ...data,
-    baseCost: currentCost,
-    updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+    ...data, baseCost: currentCost, updatedAt: firebase.firestore.FieldValue.serverTimestamp()
   });
 }
 
-/** 刪除設計款 */
 async function deleteBraceletDesign(id) {
   await db.collection(COLLECTIONS.BRACELET_DESIGNS).doc(id).delete();
 }
 
-/** 計算設計款當前總成本 */
 async function calcBraceletCurrentCost(materials) {
   return await _calcBraceletCost(materials);
 }
@@ -255,30 +219,27 @@ async function _calcBraceletCost(materials) {
   return Math.round(total * 10) / 10;
 }
 
-/** 取得所有水晶最新成本（用於設計款選料） */
 async function getLatestCrystalCosts() {
-  const snapshot = await db.collection(COLLECTIONS.CRYSTAL_COSTS).orderBy('date', 'desc').get();
+  const snapshot = await db.collection(COLLECTIONS.CRYSTAL_COSTS).get();
+  const results = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+  results.sort((a, b) => (b.date || '').localeCompare(a.date || ''));
   const seen = new Set();
-  const results = [];
-  for (const doc of snapshot.docs) {
-    const data = doc.data();
-    if (!seen.has(data.specKey)) {
-      seen.add(data.specKey);
-      results.push({ id: doc.id, ...data });
-    }
-  }
-  return results;
+  return results.filter(r => {
+    if (seen.has(r.specKey)) return false;
+    seen.add(r.specKey);
+    return true;
+  });
 }
 
 // ─── 庫存表 ────────────────────────────────
 
-/** 取得所有庫存 */
 async function getInventory() {
-  const snapshot = await db.collection(COLLECTIONS.INVENTORY).orderBy('displayName').get();
-  return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+  const snapshot = await db.collection(COLLECTIONS.INVENTORY).get();
+  const results = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+  results.sort((a, b) => (a.displayName || '').localeCompare(b.displayName || '', 'zh-TW'));
+  return results;
 }
 
-/** 記錄耗損 */
 async function logDamage(specKey, amount, note) {
   const docRef = db.collection(COLLECTIONS.INVENTORY).doc(specKey);
   const doc = await docRef.get();
@@ -293,9 +254,7 @@ async function logDamage(specKey, amount, note) {
   return newQty;
 }
 
-/** 出貨：依手鍊名稱扣庫存 */
 async function processShipment(braceletName, quantity = 1) {
-  // 搜尋設計款
   const snapshot = await db.collection(COLLECTIONS.BRACELET_DESIGNS)
     .where('name', '==', braceletName).get();
   if (snapshot.empty) throw new Error(`找不到設計款「${braceletName}」`);
@@ -312,10 +271,7 @@ async function processShipment(braceletName, quantity = 1) {
     }
     const current = doc.data().quantity || 0;
     const newQty = Math.max(0, current - needed);
-    await docRef.update({
-      quantity: newQty,
-      lastUpdated: firebase.firestore.FieldValue.serverTimestamp()
-    });
+    await docRef.update({ quantity: newQty, lastUpdated: firebase.firestore.FieldValue.serverTimestamp() });
     if (newQty < 20) {
       alerts.push({ type: 'danger', msg: `「${m.displayName}」庫存剩 ${newQty} 顆，低於 20，請補貨！` });
     }
@@ -323,31 +279,19 @@ async function processShipment(braceletName, quantity = 1) {
   return alerts;
 }
 
-/** 進貨時根據初始庫存設定新增庫存 */
 async function _addInventoryFromCrystalPurchase(specKey, data) {
-  // 查初始庫存設定
   const settingDoc = await db.collection(COLLECTIONS.INITIAL_STOCK).doc(specKey).get();
-  if (!settingDoc.exists) {
-    // 沒有設定，跳過（前端會顯示提示）
-    return null;
-  }
+  if (!settingDoc.exists) return null;
   const defaultQty = settingDoc.data().defaultQuantity || 0;
-
-  // 更新或建立庫存
   const invRef = db.collection(COLLECTIONS.INVENTORY).doc(specKey);
   const invDoc = await invRef.get();
   if (invDoc.exists) {
-    await invRef.update({
-      quantity: firebase.firestore.FieldValue.increment(defaultQty),
-      lastUpdated: firebase.firestore.FieldValue.serverTimestamp()
-    });
+    await invRef.update({ quantity: firebase.firestore.FieldValue.increment(defaultQty), lastUpdated: firebase.firestore.FieldValue.serverTimestamp() });
   } else {
     await invRef.set({
-      specKey,
-      type: 'crystal',
+      specKey, type: 'crystal',
       displayName: `${data.crystalName} ${data.size}mm ${data.typeB} ${data.typeA}`,
-      quantity: defaultQty,
-      lastUpdated: firebase.firestore.FieldValue.serverTimestamp()
+      quantity: defaultQty, lastUpdated: firebase.firestore.FieldValue.serverTimestamp()
     });
   }
   return defaultQty;
@@ -355,21 +299,17 @@ async function _addInventoryFromCrystalPurchase(specKey, data) {
 
 // ─── 初始庫存設定 ──────────────────────────
 
-/** 取得所有初始庫存設定 */
 async function getInitialStockSettings() {
-  const snapshot = await db.collection(COLLECTIONS.INITIAL_STOCK).orderBy('displayName').get();
-  return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+  const snapshot = await db.collection(COLLECTIONS.INITIAL_STOCK).get();
+  const results = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+  results.sort((a, b) => (a.displayName || '').localeCompare(b.displayName || '', 'zh-TW'));
+  return results;
 }
 
-/** 新增或更新初始庫存設定 */
 async function setInitialStockSetting(data) {
   const specKey = makeCrystalKey(data.crystalName, data.size, data.typeA, data.typeB);
   await db.collection(COLLECTIONS.INITIAL_STOCK).doc(specKey).set({
-    specKey,
-    crystalName: data.crystalName,
-    size: data.size,
-    typeA: data.typeA,
-    typeB: data.typeB,
+    specKey, crystalName: data.crystalName, size: data.size, typeA: data.typeA, typeB: data.typeB,
     displayName: `${data.crystalName} ${data.size}mm ${data.typeB} ${data.typeA}`,
     defaultQuantity: Number(data.defaultQuantity),
     updatedAt: firebase.firestore.FieldValue.serverTimestamp()
@@ -377,24 +317,22 @@ async function setInitialStockSetting(data) {
   return specKey;
 }
 
-/** 刪除初始庫存設定 */
 async function deleteInitialStockSetting(specKey) {
   await db.collection(COLLECTIONS.INITIAL_STOCK).doc(specKey).delete();
 }
 
 // ─── 水晶功效 ─────────────────────────────
 
-/** 新增水晶功效 */
 async function addCrystalEffect(data) {
   const record = { ...data, createdAt: firebase.firestore.FieldValue.serverTimestamp() };
   const docRef = await db.collection(COLLECTIONS.CRYSTAL_EFFECTS).add(record);
   return docRef.id;
 }
 
-/** 取得所有水晶功效（可關鍵字篩選） */
 async function getCrystalEffects(keyword = '') {
-  const snapshot = await db.collection(COLLECTIONS.CRYSTAL_EFFECTS).orderBy('name').get();
+  const snapshot = await db.collection(COLLECTIONS.CRYSTAL_EFFECTS).get();
   let results = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+  results.sort((a, b) => (a.name || '').localeCompare(b.name || '', 'zh-TW'));
   if (keyword) {
     const kw = keyword.toLowerCase();
     results = results.filter(r =>
@@ -406,20 +344,14 @@ async function getCrystalEffects(keyword = '') {
   return results;
 }
 
-/** 更新水晶功效 */
 async function updateCrystalEffect(id, data) {
-  await db.collection(COLLECTIONS.CRYSTAL_EFFECTS).doc(id).update({
-    ...data,
-    updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-  });
+  await db.collection(COLLECTIONS.CRYSTAL_EFFECTS).doc(id).update({ ...data, updatedAt: firebase.firestore.FieldValue.serverTimestamp() });
 }
 
-/** 刪除水晶功效 */
 async function deleteCrystalEffect(id) {
   await db.collection(COLLECTIONS.CRYSTAL_EFFECTS).doc(id).delete();
 }
 
-/** 取得所有功效 tag 選項 */
 async function getEffectTags() {
   const snapshot = await db.collection(COLLECTIONS.CRYSTAL_EFFECTS).get();
   const all = snapshot.docs.flatMap(doc => doc.data().tags || []);
