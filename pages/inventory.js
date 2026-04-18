@@ -224,6 +224,146 @@ async function deleteInv(specKey, displayName) {
   }
 }
 
+// ─── 同步初始庫存設定 ─────────────────────
+
+let syncPendingItems = [];
+
+async function syncInitialStock() {
+  const contentEl = document.getElementById('sync-content');
+  const applyBtn = document.getElementById('btn-apply-sync');
+  contentEl.innerHTML = loadingState();
+  applyBtn.style.display = '';
+  openModal('syncModal');
+
+  try {
+    const [settings, inventory] = await Promise.all([
+      getInitialStockSettings(),
+      getInventory()
+    ]);
+
+    const inventoryKeys = new Set(inventory.map(i => i.specKey || i.id));
+    syncPendingItems = settings.filter(s => !inventoryKeys.has(s.specKey));
+
+    if (!syncPendingItems.length) {
+      contentEl.innerHTML = `<div class="inline-alert" style="background:#d4edda;color:#155724;border:1px solid #c3e6cb">庫存已是最新狀態，無需同步。</div>`;
+      applyBtn.style.display = 'none';
+      return;
+    }
+
+    contentEl.innerHTML = `
+      <p style="font-size:13px;color:var(--text-muted);margin-bottom:12px">
+        以下規格在初始設定中存在，但庫存表尚無對應紀錄。<br>
+        套用後將建立庫存項目（初始數量 0 顆），日後進貨時自動累加。
+      </p>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>規格名稱</th><th>每次進貨預設顆數</th></tr></thead>
+          <tbody>
+            ${syncPendingItems.map(s => `
+              <tr>
+                <td><strong>${s.displayName || s.specKey}</strong></td>
+                <td>${s.defaultQuantity} 顆</td>
+              </tr>`).join('')}
+          </tbody>
+        </table>
+      </div>`;
+  } catch(e) {
+    contentEl.innerHTML = `<div class="inline-alert inline-alert-danger">${e.message}</div>`;
+    applyBtn.style.display = 'none';
+  }
+}
+
+async function applySyncItems() {
+  if (!syncPendingItems.length) return;
+  const btn = document.getElementById('btn-apply-sync');
+  btn.disabled = true; btn.textContent = '套用中...';
+  try {
+    for (const s of syncPendingItems) {
+      await createInventoryEntry(s.specKey, {
+        type: 'crystal',
+        displayName: s.displayName || `${s.crystalName} ${s.size}mm ${s.typeB} ${s.typeA}`,
+        quantity: 0
+      });
+    }
+    showToast(`已建立 ${syncPendingItems.length} 筆庫存紀錄`, 'success');
+    closeModal('syncModal');
+    await loadInventory();
+  } catch(e) {
+    showToast(`套用失敗：${e.message}`, 'danger');
+  } finally {
+    btn.disabled = false; btn.textContent = '確認套用';
+  }
+}
+
+// ─── 售價設定 ─────────────────────────────
+
+let allBraceletDesigns = [];
+
+async function openPriceModal() {
+  const contentEl = document.getElementById('price-content');
+  contentEl.innerHTML = loadingState();
+  openModal('priceModal');
+
+  try {
+    allBraceletDesigns = await getBraceletDesigns();
+    renderPriceList();
+  } catch(e) {
+    contentEl.innerHTML = `<div class="inline-alert inline-alert-danger">${e.message}</div>`;
+  }
+}
+
+function renderPriceList() {
+  const contentEl = document.getElementById('price-content');
+  if (!allBraceletDesigns.length) {
+    contentEl.innerHTML = `<div style="text-align:center;padding:24px;color:var(--text-muted);font-size:13px">尚無設計款手鍊，請先至「設計款手鍊」頁面新增。</div>`;
+    return;
+  }
+
+  contentEl.innerHTML = `
+    <p style="font-size:13px;color:var(--text-muted);margin-bottom:12px">設定每款手鍊的對外售價，儲存後立即生效。</p>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th style="min-width:160px">手鍊名稱</th>
+            <th style="min-width:90px">成本價</th>
+            <th style="min-width:130px">售價 ($)</th>
+            <th style="min-width:70px">操作</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${allBraceletDesigns.map(d => `
+            <tr>
+              <td><strong>${d.name || '-'}</strong></td>
+              <td style="color:var(--text-muted)">${fmtCurrency(d.baseCost)}</td>
+              <td>
+                <input class="form-control" id="price-${d.id}" type="number" min="0" step="1"
+                  value="${d.sellingPrice || ''}" placeholder="輸入售價"
+                  style="padding:4px 8px;font-size:13px;width:110px">
+              </td>
+              <td>
+                <button class="btn btn-primary btn-sm" onclick="saveBraceletPrice('${d.id}')">儲存</button>
+              </td>
+            </tr>`).join('')}
+        </tbody>
+      </table>
+    </div>`;
+}
+
+async function saveBraceletPrice(id) {
+  const input = document.getElementById(`price-${id}`);
+  if (!input) return;
+  const price = parseFloat(input.value) || 0;
+  try {
+    await updateBraceletSellingPrice(id, price);
+    showToast('售價已儲存', 'success');
+    const d = allBraceletDesigns.find(x => x.id === id);
+    if (d) d.sellingPrice = price;
+  } catch(e) {
+    showToast(`儲存失敗：${e.message}`, 'danger');
+  }
+}
+
 // ─── 出貨扣庫存 ───────────────────────────
 
 async function submitShipment() {

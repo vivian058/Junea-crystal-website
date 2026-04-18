@@ -100,7 +100,21 @@
           </div>
           <div class="form-group">
             <label>規格</label>
-            <input class="form-control" id="a-spec" type="text" placeholder="如：3mm、大號、瓜子型">
+            <input class="form-control" id="a-spec" list="list-spec" placeholder="如：3mm、大號、瓜子型" autocomplete="off">
+            <datalist id="list-spec">
+              <option value="2mm">
+              <option value="3mm">
+              <option value="4mm">
+              <option value="5mm">
+              <option value="6mm">
+              <option value="8mm">
+              <option value="10mm">
+              <option value="12mm">
+              <option value="14mm">
+              <option value="大號">
+              <option value="中號">
+              <option value="小號">
+            </datalist>
           </div>
           <div class="form-group">
             <label>單顆進價 (¥)</label>

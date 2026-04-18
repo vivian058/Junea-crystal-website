@@ -41,7 +41,11 @@
   <div class="container">
     <div class="flex-between mb-20">
       <div class="page-title">庫存表</div>
-      <button class="btn btn-gold" onclick="openModal('shipModal')">出貨扣庫存</button>
+      <div style="display:flex;gap:8px">
+        <button class="btn btn-secondary" onclick="openPriceModal()">售價設定</button>
+        <button class="btn btn-secondary" onclick="syncInitialStock()">同步初始設定</button>
+        <button class="btn btn-gold" onclick="openModal('shipModal')">出貨扣庫存</button>
+      </div>
     </div>
 
     <!-- 低庫存警示區 -->
@@ -150,6 +154,39 @@
       <div class="modal-footer">
         <button class="btn btn-secondary" onclick="closeModal('shipModal')">取消</button>
         <button class="btn btn-gold" onclick="submitShipment()">確認出貨</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 同步初始設定 Modal -->
+  <div class="modal-overlay" id="syncModal">
+    <div class="modal" style="max-width:560px">
+      <div class="modal-header">
+        <div class="modal-title">同步初始庫存設定</div>
+        <button class="modal-close" onclick="closeModal('syncModal')">✕</button>
+      </div>
+      <div class="modal-body">
+        <div id="sync-content"></div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" onclick="closeModal('syncModal')">取消</button>
+        <button class="btn btn-primary" id="btn-apply-sync" onclick="applySyncItems()">確認套用</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 售價設定 Modal -->
+  <div class="modal-overlay" id="priceModal">
+    <div class="modal" style="max-width:600px">
+      <div class="modal-header">
+        <div class="modal-title">售價設定</div>
+        <button class="modal-close" onclick="closeModal('priceModal')">✕</button>
+      </div>
+      <div class="modal-body">
+        <div id="price-content"></div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" onclick="closeModal('priceModal')">關閉</button>
       </div>
     </div>
   </div>
