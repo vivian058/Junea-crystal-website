@@ -3,6 +3,7 @@
 // =============================================
 
 let allInventory = [];
+let initialSettingKeys = new Set(); // 有初始庫存設定的 specKey
 let damagingSpecKey = '';
 let damagingDisplayName = '';
 let editingSpecKey = '';
@@ -19,7 +20,12 @@ async function loadInventory() {
   crystalContainer.innerHTML = loadingState();
 
   try {
-    allInventory = await getInventory();
+    const [inventory, settings] = await Promise.all([
+      getInventory(),
+      getInitialStockSettings()
+    ]);
+    allInventory = inventory;
+    initialSettingKeys = new Set(settings.map(s => s.specKey));
     renderLowStockAlerts(allInventory);
     filterInventory();
   } catch(e) {
@@ -46,7 +52,13 @@ function filterInventory() {
 // ─── 低庫存警示 ───────────────────────────
 
 function renderLowStockAlerts(items) {
-  const lowItems = items.filter(i => (i.quantity || 0) < 20);
+  // 排除「待設定」項目（數量 0 且無初始庫存設定的水晶）
+  const lowItems = items.filter(i => {
+    const qty = i.quantity || 0;
+    if (qty >= 20) return false;
+    const needsSetup = qty === 0 && i.type === 'crystal' && !initialSettingKeys.has(i.specKey || i.id);
+    return !needsSetup;
+  });
   const alertsEl = document.getElementById('low-stock-alerts');
   if (!lowItems.length) { alertsEl.innerHTML = ''; return; }
   alertsEl.innerHTML = `
@@ -78,8 +90,10 @@ function buildCrystalInventoryRows(items) {
 
   const rows = items.flatMap(item => {
     const qty = item.quantity || 0;
-    const qtyClass = qty >= 50 ? 'qty-ok' : qty >= 20 ? 'qty-warn' : 'qty-danger';
-    const isLow = qty < 20;
+    const specKey = item.specKey || item.id;
+    const needsSetup = qty === 0 && !initialSettingKeys.has(specKey);
+    const isLow = !needsSetup && qty < 20;
+    const qtyClass = needsSetup ? 'qty-warn' : qty >= 50 ? 'qty-ok' : qty >= 20 ? 'qty-warn' : 'qty-danger';
     const { html: logRowsHtml, count: logCount } = buildLogRows(item);
     const safeId = item.id.replace(/[^a-zA-Z0-9_-]/g, '_');
     const displayName = item.displayName || item.specKey || '';
@@ -100,6 +114,7 @@ function buildCrystalInventoryRows(items) {
         <td>
           <span class="qty-big ${qtyClass}">${qty}</span>
           <span style="font-size:12px;color:var(--text-muted)"> 顆</span>
+          ${needsSetup ? '<span class="badge badge-warning" style="margin-left:6px">初始資料待設定</span>' : ''}
           ${isLow ? '<span class="badge badge-danger" style="margin-left:6px">補貨</span>' : ''}
         </td>
         <td class="td-muted">${item.lastUpdated ? (item.lastUpdated.toDate ? item.lastUpdated.toDate().toLocaleDateString('zh-TW') : '') : '-'}</td>
