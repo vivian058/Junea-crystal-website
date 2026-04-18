@@ -2,7 +2,9 @@
 // 配件成本表
 // =============================================
 
-let importRows = []; // 待匯入資料
+let allRecords = [];
+let importRows = [];
+let editingRecordId = null; // null = 新增；有值 = 編輯
 
 document.addEventListener('DOMContentLoaded', async () => {
   document.getElementById('navbar-root').innerHTML = renderNav('配件成本');
@@ -11,6 +13,8 @@ document.addEventListener('DOMContentLoaded', async () => {
   await loadRecords();
 });
 
+// ─── 載入篩選選項 ─────────────────────────
+
 async function loadFilterOptions() {
   try {
     const opts = await getAccessoryFilterOptions();
@@ -18,17 +22,21 @@ async function loadFilterOptions() {
   } catch(e) { console.warn(e); }
 }
 
+// ─── 載入紀錄 ─────────────────────────────
+
 async function loadRecords(filters = {}) {
   const container = document.getElementById('table-container');
   container.innerHTML = loadingState();
   try {
-    const records = await getAccessoryCosts(filters);
-    renderTable(records);
-    renderSummary(records, filters);
+    allRecords = await getAccessoryCosts(filters);
+    renderTable(allRecords);
+    renderSummary(allRecords, filters);
   } catch(e) {
     container.innerHTML = `<div class="empty-state"><div class="empty-state-text">${e.message}</div></div>`;
   }
 }
+
+// ─── 渲染表格 ─────────────────────────────
 
 function renderTable(records) {
   const container = document.getElementById('table-container');
@@ -36,8 +44,12 @@ function renderTable(records) {
     container.innerHTML = emptyState('', '尚無配件進貨紀錄，點右上角「新增進貨」開始記錄');
     return;
   }
+
   const rows = records.map(r => `
     <tr>
+      <td style="text-align:center;padding:8px 6px">
+        <input type="checkbox" class="row-check" value="${r.id}" onchange="updateBulkBar()">
+      </td>
       <td>${fmtDate(r.date)}</td>
       <td><span class="badge badge-purple">${r.itemCode || '-'}</span></td>
       <td>${r.vendor || '-'}</td>
@@ -48,35 +60,87 @@ function renderTable(records) {
       <td>${fmtYuan(r.pricePerPieceYuan)}</td>
       <td>${r.exchangeRate || '-'}</td>
       <td><strong style="color:var(--primary-dark)">${fmtCurrency(r.costPerPiece)}</strong></td>
-      <td style="max-width:160px;color:var(--text-muted);font-size:12px">${r.note || '-'}</td>
+      <td style="min-width:120px;color:var(--text-muted);font-size:12px">${r.note || '-'}</td>
       <td>
-        <button class="btn btn-danger btn-sm" onclick="deleteRecord('${r.id}')">刪除</button>
+        <div style="display:flex;gap:4px;flex-wrap:nowrap">
+          <button class="btn btn-secondary btn-sm" onclick="openEditRecord('${r.id}')">編輯</button>
+          <button class="btn btn-danger btn-sm" onclick="deleteRecord('${r.id}')">刪除</button>
+        </div>
       </td>
     </tr>`).join('');
 
   container.innerHTML = `
+    <div id="bulk-bar" style="display:none;padding:10px 16px;background:var(--primary-light);border-radius:6px;margin-bottom:8px;align-items:center;gap:12px">
+      <span id="bulk-count" style="font-size:13px;color:var(--primary-dark);font-weight:600"></span>
+      <button class="btn btn-danger btn-sm" onclick="deleteSelected()">刪除已選</button>
+    </div>
     <div class="table-wrap">
-      <table>
+      <table style="min-width:1100px">
         <thead>
           <tr>
-            <th>日期</th>
-            <th>貨號</th>
-            <th>廠家</th>
-            <th>商品名稱</th>
-            <th>顏色</th>
-            <th>規格</th>
-            <th>賣場</th>
-            <th>單顆¥</th>
-            <th>匯率</th>
-            <th>單顆成本$</th>
-            <th>備註</th>
-            <th>操作</th>
+            <th style="width:40px;text-align:center">
+              <input type="checkbox" id="check-all" onchange="toggleSelectAll(this)" title="全選">
+            </th>
+            <th style="min-width:90px">日期</th>
+            <th style="min-width:100px">貨號</th>
+            <th style="min-width:90px">廠家</th>
+            <th style="min-width:120px">商品名稱</th>
+            <th style="min-width:70px">顏色</th>
+            <th style="min-width:80px">規格</th>
+            <th style="min-width:60px">賣場</th>
+            <th style="min-width:80px">單顆¥</th>
+            <th style="min-width:60px">匯率</th>
+            <th style="min-width:100px">單顆成本$</th>
+            <th style="min-width:160px">備註</th>
+            <th style="min-width:110px">操作</th>
           </tr>
         </thead>
         <tbody>${rows}</tbody>
       </table>
     </div>`;
 }
+
+// ─── 全選 / 批次刪除 ──────────────────────
+
+function toggleSelectAll(checkbox) {
+  document.querySelectorAll('.row-check').forEach(c => c.checked = checkbox.checked);
+  updateBulkBar();
+}
+
+function updateBulkBar() {
+  const checked = document.querySelectorAll('.row-check:checked');
+  const bar = document.getElementById('bulk-bar');
+  const checkAll = document.getElementById('check-all');
+  if (!bar) return;
+  if (checked.length > 0) {
+    bar.style.display = 'flex';
+    document.getElementById('bulk-count').textContent = `已選 ${checked.length} 筆`;
+    if (checkAll) {
+      const total = document.querySelectorAll('.row-check').length;
+      checkAll.checked = checked.length === total;
+      checkAll.indeterminate = checked.length > 0 && checked.length < total;
+    }
+  } else {
+    bar.style.display = 'none';
+    if (checkAll) { checkAll.checked = false; checkAll.indeterminate = false; }
+  }
+}
+
+async function deleteSelected() {
+  const ids = [...document.querySelectorAll('.row-check:checked')].map(c => c.value);
+  if (!ids.length) return;
+  if (!confirmDialog(`確定要刪除選取的 ${ids.length} 筆紀錄嗎？此操作無法復原。`)) return;
+  try {
+    await Promise.all(ids.map(id => deleteAccessoryCost(id)));
+    showToast(`已刪除 ${ids.length} 筆`, 'success');
+    await loadFilterOptions();
+    await loadRecords();
+  } catch(e) {
+    showToast(`刪除失敗：${e.message}`, 'danger');
+  }
+}
+
+// ─── 查詢結果摘要 ─────────────────────────
 
 function renderSummary(records, filters) {
   const summaryEl = document.getElementById('result-summary');
@@ -90,6 +154,8 @@ function renderSummary(records, filters) {
   document.getElementById('r-max').textContent = costs.length ? fmtCurrency(Math.max(...costs)) : '-';
 }
 
+// ─── 查詢 / 清除 ──────────────────────────
+
 function doSearch() {
   const filters = {
     vendor: document.getElementById('f-vendor').value,
@@ -102,6 +168,39 @@ function clearSearch() {
   ['f-vendor','f-keyword'].forEach(id => document.getElementById(id).value = '');
   loadRecords();
 }
+
+// ─── 新增 / 編輯 Modal ────────────────────
+
+function openAddModal() {
+  editingRecordId = null;
+  resetAddForm();
+  document.querySelector('#addModal .modal-title').textContent = '新增配件進貨';
+  document.querySelector('#addModal .btn-primary').textContent = '儲存進貨紀錄';
+  openModal('addModal');
+}
+
+function openEditRecord(id) {
+  const record = allRecords.find(r => r.id === id);
+  if (!record) return;
+  editingRecordId = id;
+  document.getElementById('a-date').value = record.date || '';
+  document.getElementById('a-vendor').value = record.vendor || '';
+  document.getElementById('a-itemCode').value = record.itemCode || '';
+  document.getElementById('a-productName').value = record.productName || '';
+  document.getElementById('a-shopLink').value = record.shopLink || '';
+  document.getElementById('a-color').value = record.color || '';
+  document.getElementById('a-spec').value = record.spec || '';
+  document.getElementById('a-pricePerPieceYuan').value = record.pricePerPieceYuan || '';
+  document.getElementById('a-exchangeRate').value = record.exchangeRate || '';
+  document.getElementById('a-costPerPiece').value = record.costPerPiece || '';
+  document.getElementById('a-note').value = record.note || '';
+  document.getElementById('add-alert').innerHTML = '';
+  document.querySelector('#addModal .modal-title').textContent = '編輯進貨紀錄';
+  document.querySelector('#addModal .btn-primary').textContent = '儲存修改';
+  openModal('addModal');
+}
+
+// ─── 儲存（新增 / 編輯 共用）─────────────
 
 async function submitAdd() {
   const get = id => document.getElementById(id).value.trim();
@@ -135,12 +234,19 @@ async function submitAdd() {
     data.costPerPiece = calcAccessoryCostPerPiece(data);
   }
 
+  const btn = document.querySelector('#addModal .btn-primary');
   try {
-    const btn = document.querySelector('#addModal .btn-primary');
-    btn.disabled = true; btn.textContent = '儲存中...';
+    btn.disabled = true;
+    btn.textContent = '儲存中...';
 
-    await addAccessoryCost(data);
-    showToast('配件進貨紀錄儲存成功！', 'success');
+    if (editingRecordId) {
+      await updateAccessoryCost(editingRecordId, data);
+      showToast('配件進貨紀錄已更新', 'success');
+    } else {
+      await addAccessoryCost(data);
+      showToast('配件進貨紀錄儲存成功！', 'success');
+    }
+
     closeModal('addModal');
     resetAddForm();
     await loadFilterOptions();
@@ -148,8 +254,8 @@ async function submitAdd() {
   } catch(e) {
     showToast(`儲存失敗：${e.message}`, 'danger');
   } finally {
-    const btn = document.querySelector('#addModal .btn-primary');
-    if (btn) { btn.disabled = false; btn.textContent = '儲存進貨紀錄'; }
+    btn.disabled = false;
+    btn.textContent = editingRecordId ? '儲存修改' : '儲存進貨紀錄';
   }
 }
 
@@ -160,13 +266,17 @@ function resetAddForm() {
   });
   document.getElementById('a-date').value = new Date().toISOString().split('T')[0];
   document.getElementById('add-alert').innerHTML = '';
+  editingRecordId = null;
 }
+
+// ─── 刪除（單筆）─────────────────────────
 
 async function deleteRecord(id) {
   if (!confirmDialog('確定要刪除這筆配件進貨紀錄嗎？')) return;
   try {
     await deleteAccessoryCost(id);
     showToast('已刪除', 'success');
+    await loadFilterOptions();
     await loadRecords();
   } catch(e) {
     showToast(`刪除失敗：${e.message}`, 'danger');

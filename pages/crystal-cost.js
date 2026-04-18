@@ -3,11 +3,11 @@
 // =============================================
 
 let allRecords = [];
-let importRows = []; // 待匯入資料
+let importRows = [];
+let editingRecordId = null; // null = 新增；有值 = 編輯
 
 document.addEventListener('DOMContentLoaded', async () => {
   document.getElementById('navbar-root').innerHTML = renderNav('水晶成本');
-  // 預設今天日期
   document.getElementById('a-date').value = new Date().toISOString().split('T')[0];
   await loadFilterOptions();
   await loadRecords();
@@ -52,6 +52,9 @@ function renderTable(records) {
 
   const rows = records.map(r => `
     <tr>
+      <td style="text-align:center;padding:8px 6px">
+        <input type="checkbox" class="row-check" value="${r.id}" onchange="updateBulkBar()">
+      </td>
       <td>${fmtDate(r.date)}</td>
       <td><strong>${r.crystalName || '-'}</strong></td>
       <td>${r.size ? r.size + 'mm' : '-'}</td>
@@ -62,38 +65,88 @@ function renderTable(records) {
       <td>${fmtYuan(r.pricePerGram)}</td>
       <td>${r.weightPerStrand ? r.weightPerStrand + 'g' : '-'}</td>
       <td>${fmtYuan(r.pricePerStrand)}</td>
-      <td>${r.exchangeRate ? r.exchangeRate : '-'}</td>
+      <td>${r.exchangeRate || '-'}</td>
       <td><strong style="color:var(--primary-dark)">${fmtCurrency(r.costPerBead)}</strong></td>
-      <td style="max-width:160px;color:var(--text-muted);font-size:12px">${r.note || '-'}</td>
+      <td style="min-width:120px;color:var(--text-muted);font-size:12px">${r.note || '-'}</td>
       <td>
-        <button class="btn btn-danger btn-sm" onclick="deleteRecord('${r.id}')">刪除</button>
+        <div style="display:flex;gap:4px;flex-wrap:nowrap">
+          <button class="btn btn-secondary btn-sm" onclick="openEditRecord('${r.id}')">編輯</button>
+          <button class="btn btn-danger btn-sm" onclick="deleteRecord('${r.id}')">刪除</button>
+        </div>
       </td>
     </tr>`).join('');
 
   container.innerHTML = `
+    <div id="bulk-bar" style="display:none;padding:10px 16px;background:var(--primary-light);border-radius:6px;margin-bottom:8px;align-items:center;gap:12px">
+      <span id="bulk-count" style="font-size:13px;color:var(--primary-dark);font-weight:600"></span>
+      <button class="btn btn-danger btn-sm" onclick="deleteSelected()">刪除已選</button>
+    </div>
     <div class="table-wrap">
-      <table>
+      <table style="min-width:1400px">
         <thead>
           <tr>
-            <th>日期</th>
-            <th>水晶</th>
-            <th>尺寸</th>
-            <th>形狀</th>
-            <th>規格</th>
-            <th>廠家</th>
-            <th>賣場</th>
-            <th>克價¥</th>
-            <th>重量</th>
-            <th>單條¥</th>
-            <th>匯率</th>
-            <th>單顆成本$</th>
-            <th>備註</th>
-            <th>操作</th>
+            <th style="width:40px;text-align:center">
+              <input type="checkbox" id="check-all" onchange="toggleSelectAll(this)" title="全選">
+            </th>
+            <th style="min-width:90px">日期</th>
+            <th style="min-width:90px">水晶</th>
+            <th style="min-width:60px">尺寸</th>
+            <th style="min-width:90px">形狀</th>
+            <th style="min-width:70px">規格</th>
+            <th style="min-width:90px">廠家</th>
+            <th style="min-width:60px">賣場</th>
+            <th style="min-width:80px">克價¥</th>
+            <th style="min-width:70px">重量</th>
+            <th style="min-width:80px">單條¥</th>
+            <th style="min-width:60px">匯率</th>
+            <th style="min-width:100px">單顆成本$</th>
+            <th style="min-width:160px">備註</th>
+            <th style="min-width:110px">操作</th>
           </tr>
         </thead>
         <tbody>${rows}</tbody>
       </table>
     </div>`;
+}
+
+// ─── 全選 / 批次刪除 ──────────────────────
+
+function toggleSelectAll(checkbox) {
+  document.querySelectorAll('.row-check').forEach(c => c.checked = checkbox.checked);
+  updateBulkBar();
+}
+
+function updateBulkBar() {
+  const checked = document.querySelectorAll('.row-check:checked');
+  const bar = document.getElementById('bulk-bar');
+  const checkAll = document.getElementById('check-all');
+  if (!bar) return;
+  if (checked.length > 0) {
+    bar.style.display = 'flex';
+    document.getElementById('bulk-count').textContent = `已選 ${checked.length} 筆`;
+    if (checkAll) {
+      const total = document.querySelectorAll('.row-check').length;
+      checkAll.checked = checked.length === total;
+      checkAll.indeterminate = checked.length > 0 && checked.length < total;
+    }
+  } else {
+    bar.style.display = 'none';
+    if (checkAll) { checkAll.checked = false; checkAll.indeterminate = false; }
+  }
+}
+
+async function deleteSelected() {
+  const ids = [...document.querySelectorAll('.row-check:checked')].map(c => c.value);
+  if (!ids.length) return;
+  if (!confirmDialog(`確定要刪除選取的 ${ids.length} 筆紀錄嗎？此操作無法復原。`)) return;
+  try {
+    await Promise.all(ids.map(id => deleteCrystalCost(id)));
+    showToast(`已刪除 ${ids.length} 筆`, 'success');
+    await loadFilterOptions();
+    await loadRecords();
+  } catch(e) {
+    showToast(`刪除失敗：${e.message}`, 'danger');
+  }
 }
 
 // ─── 查詢結果摘要 ─────────────────────────
@@ -134,7 +187,41 @@ function clearSearch() {
   loadRecords();
 }
 
-// ─── 新增進貨 ─────────────────────────────
+// ─── 新增 / 編輯 Modal ────────────────────
+
+function openAddModal() {
+  editingRecordId = null;
+  resetAddForm();
+  document.querySelector('#addModal .modal-title').textContent = '新增水晶進貨';
+  document.querySelector('#addModal .btn-primary').textContent = '儲存進貨紀錄';
+  openModal('addModal');
+}
+
+function openEditRecord(id) {
+  const record = allRecords.find(r => r.id === id);
+  if (!record) return;
+  editingRecordId = id;
+  document.getElementById('a-crystalName').value = record.crystalName || '';
+  document.getElementById('a-date').value = record.date || '';
+  document.getElementById('a-size').value = record.size || '';
+  document.getElementById('a-typeA').value = record.typeA || '';
+  document.getElementById('a-typeB').value = record.typeB || '';
+  document.getElementById('a-vendor').value = record.vendor || '';
+  document.getElementById('a-productName').value = record.productName || '';
+  document.getElementById('a-shopLink').value = record.shopLink || '';
+  document.getElementById('a-pricePerGram').value = record.pricePerGram || '';
+  document.getElementById('a-weightPerStrand').value = record.weightPerStrand || '';
+  document.getElementById('a-pricePerStrand').value = record.pricePerStrand || '';
+  document.getElementById('a-exchangeRate').value = record.exchangeRate || '';
+  document.getElementById('a-costPerBead').value = record.costPerBead || '';
+  document.getElementById('a-note').value = record.note || '';
+  document.getElementById('add-alert').innerHTML = '';
+  document.querySelector('#addModal .modal-title').textContent = '編輯進貨紀錄';
+  document.querySelector('#addModal .btn-primary').textContent = '儲存修改';
+  openModal('addModal');
+}
+
+// ─── 儲存（新增 / 編輯 共用）─────────────
 
 async function submitAdd() {
   const get = id => document.getElementById(id).value.trim();
@@ -158,7 +245,6 @@ async function submitAdd() {
   const alertEl = document.getElementById('add-alert');
   alertEl.innerHTML = '';
 
-  // 驗證必填
   if (!data.crystalName || !data.date || !data.size || !data.typeA || !data.typeB) {
     alertEl.innerHTML = `<div class="inline-alert inline-alert-warning">請填寫必填欄位（水晶名稱、日期、尺寸、規格A、形狀）</div>`;
     return;
@@ -168,37 +254,41 @@ async function submitAdd() {
     return;
   }
 
-  // 自動計算單顆成本
   if (!data.costPerBead) {
     data.costPerBead = await calcCrystalCostPerBead(data);
   }
 
+  const btn = document.querySelector('#addModal .btn-primary');
   try {
-    const btn = document.querySelector('#addModal .btn-primary');
     btn.disabled = true;
     btn.textContent = '儲存中...';
 
-    // 查詢上一筆，偵測漲跌
-    const specKey = makeCrystalKey(data.crystalName, data.size, data.typeA, data.typeB);
-    const prev = await getPreviousCrystalCost(specKey);
-
-    await addCrystalCost(data);
-
-    // 漲跌提醒
-    if (prev && data.costPerBead > 0) {
-      const diff = data.costPerBead - Number(prev.costPerBead);
-      if (Math.abs(diff) >= 50) {
-        const dir = diff > 0 ? '上漲' : '下跌';
-        showToast(`「${data.crystalName} ${data.size}mm ${data.typeB}」成本${dir} $${Math.abs(diff).toFixed(1)}，請確認設計款售價！`, 'warning', 8000);
-      }
-    }
-
-    // 庫存提示
-    const settingDoc = await db.collection(COLLECTIONS.INITIAL_STOCK).doc(specKey).get();
-    if (!settingDoc.exists) {
-      showToast(`提醒：「${data.crystalName} ${data.size}mm ${data.typeB} ${data.typeA}」尚未設定初始庫存，庫存不會自動更新，請至「初始庫存設定」頁面補充。`, 'info', 8000);
+    if (editingRecordId) {
+      // ── 編輯模式：直接更新，不觸發庫存或漲跌邏輯 ──
+      await updateCrystalCost(editingRecordId, data);
+      showToast('進貨紀錄已更新', 'success');
     } else {
-      showToast(`進貨紀錄儲存成功！庫存已自動增加 ${settingDoc.data().defaultQuantity} 顆`, 'success');
+      // ── 新增模式 ──
+      const specKey = makeCrystalKey(data.crystalName, data.size, data.typeA, data.typeB);
+      const prev = await getPreviousCrystalCost(specKey);
+      await addCrystalCost(data);
+
+      // 漲跌提醒
+      if (prev && data.costPerBead > 0) {
+        const diff = data.costPerBead - Number(prev.costPerBead);
+        if (Math.abs(diff) >= 50) {
+          const dir = diff > 0 ? '上漲' : '下跌';
+          showToast(`「${data.crystalName} ${data.size}mm ${data.typeB}」成本${dir} $${Math.abs(diff).toFixed(1)}，請確認設計款售價！`, 'warning', 8000);
+        }
+      }
+
+      // 庫存提示
+      const settingDoc = await db.collection(COLLECTIONS.INITIAL_STOCK).doc(specKey).get();
+      if (!settingDoc.exists) {
+        showToast(`提醒：「${data.crystalName} ${data.size}mm ${data.typeB} ${data.typeA}」尚未設定初始庫存，庫存不會自動更新，請至「初始庫存設定」頁面補充。`, 'info', 8000);
+      } else {
+        showToast(`進貨紀錄儲存成功！庫存已自動增加 ${settingDoc.data().defaultQuantity} 顆`, 'success');
+      }
     }
 
     closeModal('addModal');
@@ -208,8 +298,8 @@ async function submitAdd() {
   } catch(e) {
     showToast(`儲存失敗：${e.message}`, 'danger');
   } finally {
-    const btn = document.querySelector('#addModal .btn-primary');
-    if (btn) { btn.disabled = false; btn.textContent = '儲存進貨紀錄'; }
+    btn.disabled = false;
+    btn.textContent = editingRecordId ? '儲存修改' : '儲存進貨紀錄';
   }
 }
 
@@ -221,15 +311,17 @@ function resetAddForm() {
   document.getElementById('a-typeA').value = '';
   document.getElementById('a-date').value = new Date().toISOString().split('T')[0];
   document.getElementById('add-alert').innerHTML = '';
+  editingRecordId = null;
 }
 
-// ─── 刪除 ─────────────────────────────────
+// ─── 刪除（單筆）─────────────────────────
 
 async function deleteRecord(id) {
   if (!confirmDialog('確定要刪除這筆進貨紀錄嗎？此操作無法復原。')) return;
   try {
     await deleteCrystalCost(id);
     showToast('已刪除', 'success');
+    await loadFilterOptions();
     await loadRecords();
   } catch(e) {
     showToast(`刪除失敗：${e.message}`, 'danger');
@@ -271,7 +363,6 @@ function handleExcelUpload(file) {
       const sheet = workbook.Sheets[workbook.SheetNames[0]];
       const rows = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: '' });
 
-      // 跳過標題列
       const dataRows = rows.slice(1).filter(r => r.some(c => c !== ''));
       if (!dataRows.length) {
         alertEl.innerHTML = `<div class="inline-alert inline-alert-warning">檔案中沒有資料列</div>`;
@@ -295,7 +386,6 @@ function handleExcelUpload(file) {
         note: String(r[13] || '').trim()
       }));
 
-      // 驗證必填
       const invalid = importRows.filter(r => !r.crystalName || !r.date || !r.size || !r.typeA || !r.typeB || !r.exchangeRate);
       if (invalid.length) {
         alertEl.innerHTML = `<div class="inline-alert inline-alert-warning">有 ${invalid.length} 列缺少必填欄位（水晶名稱/日期/尺寸/規格A/形狀B/匯率），請修正後重新上傳</div>`;
@@ -303,7 +393,6 @@ function handleExcelUpload(file) {
         return;
       }
 
-      // 顯示預覽
       const tbody = document.getElementById('preview-tbody');
       tbody.innerHTML = importRows.map(r => `
         <tr>
