@@ -40,7 +40,7 @@ function filterInventory() {
   const accessories = filtered.filter(i => i.type === 'accessory');
 
   renderCrystalTable(crystals);
-  if (accessories.length) renderAccessoryTable(accessories);
+  renderAccessoryTable(accessories);
 }
 
 // ─── 低庫存警示 ───────────────────────────
@@ -56,36 +56,47 @@ function renderLowStockAlerts(items) {
     </div>`;
 }
 
-// ─── 渲染表格（共用）─────────────────────
+// ─── 渲染表格（水晶）─────────────────────
 
-function buildInventoryRows(items) {
+function buildLogRows(item) {
+  const logs = Object.entries(item.damageLog || {})
+    .map(([ts, v]) => ({ ts: Number(ts), ...v }))
+    .sort((a, b) => b.ts - a.ts);
+  const html = logs.length
+    ? logs.map(l => `
+        <tr>
+          <td>${l.date || '-'}</td>
+          <td style="color:var(--danger)">－${l.amount}</td>
+          <td>${l.note || '-'}</td>
+        </tr>`).join('')
+    : `<tr><td colspan="3" class="log-empty">尚無耗損紀錄</td></tr>`;
+  return { html, count: logs.length };
+}
+
+function buildCrystalInventoryRows(items) {
   if (!items.length) return '<div class="empty-state"><div class="empty-state-text">無符合項目</div></div>';
 
   const rows = items.flatMap(item => {
     const qty = item.quantity || 0;
     const qtyClass = qty >= 50 ? 'qty-ok' : qty >= 20 ? 'qty-warn' : 'qty-danger';
     const isLow = qty < 20;
-
-    // 解析耗損紀錄
-    const logs = Object.entries(item.damageLog || {})
-      .map(([ts, v]) => ({ ts: Number(ts), ...v }))
-      .sort((a, b) => b.ts - a.ts);
-    const logCount = logs.length;
-
-    const logRowsHtml = logCount
-      ? logs.map(l => `
-          <tr>
-            <td>${l.date || '-'}</td>
-            <td style="color:var(--danger)">－${l.amount} 顆</td>
-            <td>${l.note || '-'}</td>
-          </tr>`).join('')
-      : `<tr><td colspan="3" class="log-empty">尚無耗損紀錄</td></tr>`;
-
+    const { html: logRowsHtml, count: logCount } = buildLogRows(item);
     const safeId = item.id.replace(/[^a-zA-Z0-9_-]/g, '_');
+    const displayName = item.displayName || item.specKey || '';
+
+    // 支援舊資料（未儲存個別欄位時，從 displayName 拆解）
+    const parts = displayName.split(' ');
+    const crystalName = item.crystalName || parts[0] || '-';
+    const size = item.size ? item.size + 'mm' : (parts[1] || '-');
+    const typeB = item.typeB || parts[2] || '-';
+    const typeA = item.typeA || parts[3] || '-';
 
     return [
       `<tr>
-        <td><strong>${item.displayName || item.specKey}</strong></td>
+        <td><strong>${crystalName}</strong></td>
+        <td>${size}</td>
+        <td>${typeB}</td>
+        <td><span class="badge badge-purple">${typeA}</span></td>
         <td>
           <span class="qty-big ${qtyClass}">${qty}</span>
           <span style="font-size:12px;color:var(--text-muted)"> 顆</span>
@@ -94,9 +105,9 @@ function buildInventoryRows(items) {
         <td class="td-muted">${item.lastUpdated ? (item.lastUpdated.toDate ? item.lastUpdated.toDate().toLocaleDateString('zh-TW') : '') : '-'}</td>
         <td>
           <div class="action-btns">
-            <button class="btn btn-secondary btn-sm" onclick="openDamageModal('${item.id}','${item.displayName.replace(/'/g, "\\'")}')">記錄耗損</button>
-            <button class="btn btn-secondary btn-sm" onclick="openEditInv('${item.id}','${item.displayName.replace(/'/g, "\\'")}',${qty})">編輯</button>
-            <button class="btn btn-danger btn-sm" onclick="deleteInv('${item.id}','${item.displayName.replace(/'/g, "\\'")}')">刪除</button>
+            <button class="btn btn-secondary btn-sm" onclick="openDamageModal('${item.id}','${displayName.replace(/'/g, "\\'")}')">記錄耗損</button>
+            <button class="btn btn-secondary btn-sm" onclick="openEditInv('${item.id}','${displayName.replace(/'/g, "\\'")}',${qty})">編輯</button>
+            <button class="btn btn-danger btn-sm" onclick="deleteInv('${item.id}','${displayName.replace(/'/g, "\\'")}')">刪除</button>
             <button class="log-toggle" onclick="toggleLog('log-${safeId}')">
               耗損紀錄${logCount ? ` (${logCount})` : ''} ▾
             </button>
@@ -104,7 +115,7 @@ function buildInventoryRows(items) {
         </td>
       </tr>`,
       `<tr id="log-${safeId}" class="log-sub-row" style="display:none">
-        <td colspan="4">
+        <td colspan="7">
           <div class="log-inner">
             <table>
               <thead><tr><th>日期</th><th>耗損量</th><th>備註</th></tr></thead>
@@ -121,7 +132,76 @@ function buildInventoryRows(items) {
       <table>
         <thead>
           <tr>
-            <th style="min-width:200px">規格</th>
+            <th style="min-width:100px">水晶名稱</th>
+            <th style="min-width:70px">尺寸</th>
+            <th style="min-width:80px">形狀</th>
+            <th style="min-width:80px">規格</th>
+            <th style="min-width:130px">庫存數量</th>
+            <th style="min-width:100px">最後更新</th>
+            <th style="min-width:360px">操作</th>
+          </tr>
+        </thead>
+        <tbody>${rows}</tbody>
+      </table>
+    </div>`;
+}
+
+// ─── 渲染表格（配件）─────────────────────
+
+function buildAccessoryInventoryRows(items) {
+  if (!items.length) return '<div class="empty-state"><div class="empty-state-text">無符合項目</div></div>';
+
+  const rows = items.flatMap(item => {
+    const qty = item.quantity || 0;
+    const qtyClass = qty >= 50 ? 'qty-ok' : qty >= 20 ? 'qty-warn' : 'qty-danger';
+    const isLow = qty < 20;
+    const { html: logRowsHtml, count: logCount } = buildLogRows(item);
+    const safeId = item.id.replace(/[^a-zA-Z0-9_-]/g, '_');
+    const displayName = item.displayName || item.specKey || '';
+
+    return [
+      `<tr>
+        <td><strong>${item.productName || displayName}</strong></td>
+        <td>${item.itemCode ? `<span class="badge badge-purple">${item.itemCode}</span>` : '-'}</td>
+        <td>${item.spec || '-'}</td>
+        <td>
+          <span class="qty-big ${qtyClass}">${qty}</span>
+          <span style="font-size:12px;color:var(--text-muted)"> 個</span>
+          ${isLow ? '<span class="badge badge-danger" style="margin-left:6px">補貨</span>' : ''}
+        </td>
+        <td class="td-muted">${item.lastUpdated ? (item.lastUpdated.toDate ? item.lastUpdated.toDate().toLocaleDateString('zh-TW') : '') : '-'}</td>
+        <td>
+          <div class="action-btns">
+            <button class="btn btn-secondary btn-sm" onclick="openDamageModal('${item.id}','${displayName.replace(/'/g, "\\'")}')">記錄耗損</button>
+            <button class="btn btn-secondary btn-sm" onclick="openEditInv('${item.id}','${displayName.replace(/'/g, "\\'")}',${qty})">編輯</button>
+            <button class="btn btn-danger btn-sm" onclick="deleteInv('${item.id}','${displayName.replace(/'/g, "\\'")}')">刪除</button>
+            <button class="log-toggle" onclick="toggleLog('log-${safeId}')">
+              耗損紀錄${logCount ? ` (${logCount})` : ''} ▾
+            </button>
+          </div>
+        </td>
+      </tr>`,
+      `<tr id="log-${safeId}" class="log-sub-row" style="display:none">
+        <td colspan="6">
+          <div class="log-inner">
+            <table>
+              <thead><tr><th>日期</th><th>耗損量</th><th>備註</th></tr></thead>
+              <tbody>${logRowsHtml}</tbody>
+            </table>
+          </div>
+        </td>
+      </tr>`
+    ];
+  }).join('');
+
+  return `
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th style="min-width:150px">商品名稱</th>
+            <th style="min-width:100px">貨號</th>
+            <th style="min-width:80px">規格</th>
             <th style="min-width:130px">庫存數量</th>
             <th style="min-width:100px">最後更新</th>
             <th style="min-width:360px">操作</th>
@@ -133,11 +213,13 @@ function buildInventoryRows(items) {
 }
 
 function renderCrystalTable(items) {
-  document.getElementById('crystal-table').innerHTML = buildInventoryRows(items);
+  document.getElementById('crystal-table').innerHTML = buildCrystalInventoryRows(items);
 }
 
 function renderAccessoryTable(items) {
-  document.getElementById('accessory-table').innerHTML = buildInventoryRows(items);
+  document.getElementById('accessory-table').innerHTML =
+    items.length ? buildAccessoryInventoryRows(items)
+      : '<div style="text-align:center;padding:24px;color:var(--text-muted);font-size:13px">尚無配件庫存紀錄</div>';
 }
 
 // ─── 展開 / 收合耗損紀錄 ──────────────────
@@ -224,74 +306,36 @@ async function deleteInv(specKey, displayName) {
   }
 }
 
-// ─── 同步初始庫存設定 ─────────────────────
+// ─── 退貨回庫 ─────────────────────────────
 
-let syncPendingItems = [];
-
-async function syncInitialStock() {
-  const contentEl = document.getElementById('sync-content');
-  const applyBtn = document.getElementById('btn-apply-sync');
-  contentEl.innerHTML = loadingState();
-  applyBtn.style.display = '';
-  openModal('syncModal');
+async function submitReturn() {
+  const braceletName = document.getElementById('return-name').value.trim();
+  const qty = parseInt(document.getElementById('return-qty').value) || 1;
+  const resultEl = document.getElementById('return-result');
+  resultEl.innerHTML = '';
+  if (!braceletName) { showToast('請填寫手鍊名稱', 'warning'); return; }
 
   try {
-    const [settings, inventory] = await Promise.all([
-      getInitialStockSettings(),
-      getInventory()
-    ]);
-
-    const inventoryKeys = new Set(inventory.map(i => i.specKey || i.id));
-    syncPendingItems = settings.filter(s => !inventoryKeys.has(s.specKey));
-
-    if (!syncPendingItems.length) {
-      contentEl.innerHTML = `<div class="inline-alert" style="background:#d4edda;color:#155724;border:1px solid #c3e6cb">庫存已是最新狀態，無需同步。</div>`;
-      applyBtn.style.display = 'none';
-      return;
-    }
-
-    contentEl.innerHTML = `
-      <p style="font-size:13px;color:var(--text-muted);margin-bottom:12px">
-        以下規格在初始設定中存在，但庫存表尚無對應紀錄。<br>
-        套用後將建立庫存項目（初始數量 0 顆），日後進貨時自動累加。
-      </p>
-      <div class="table-wrap">
-        <table>
-          <thead><tr><th>規格名稱</th><th>每次進貨預設顆數</th></tr></thead>
-          <tbody>
-            ${syncPendingItems.map(s => `
-              <tr>
-                <td><strong>${s.displayName || s.specKey}</strong></td>
-                <td>${s.defaultQuantity} 顆</td>
-              </tr>`).join('')}
-          </tbody>
-        </table>
+    const btn = document.querySelector('#returnModal .btn-primary');
+    btn.disabled = true; btn.textContent = '處理中...';
+    const results = await processReturn(braceletName, qty);
+    const hasWarning = results.some(r => r.missing);
+    resultEl.innerHTML = `
+      <div class="inline-alert" style="background:#d4edda;color:#155724;border:1px solid #c3e6cb">
+        退貨回庫完成！已恢復以下庫存：<br>
+        ${results.map(r => r.missing
+          ? `&nbsp;&nbsp;・${r.name}：找不到庫存項目，已略過`
+          : `&nbsp;&nbsp;・${r.name}：＋${r.restored} 顆`
+        ).join('<br>')}
       </div>`;
-  } catch(e) {
-    contentEl.innerHTML = `<div class="inline-alert inline-alert-danger">${e.message}</div>`;
-    applyBtn.style.display = 'none';
-  }
-}
-
-async function applySyncItems() {
-  if (!syncPendingItems.length) return;
-  const btn = document.getElementById('btn-apply-sync');
-  btn.disabled = true; btn.textContent = '套用中...';
-  try {
-    for (const s of syncPendingItems) {
-      await createInventoryEntry(s.specKey, {
-        type: 'crystal',
-        displayName: s.displayName || `${s.crystalName} ${s.size}mm ${s.typeB} ${s.typeA}`,
-        quantity: 0
-      });
-    }
-    showToast(`已建立 ${syncPendingItems.length} 筆庫存紀錄`, 'success');
-    closeModal('syncModal');
+    if (!hasWarning) showToast(`「${braceletName}」× ${qty} 條退貨回庫完成！`, 'success');
     await loadInventory();
   } catch(e) {
-    showToast(`套用失敗：${e.message}`, 'danger');
+    resultEl.innerHTML = `<div class="inline-alert inline-alert-danger">${e.message}</div>`;
+    showToast(`退貨回庫失敗：${e.message}`, 'danger');
   } finally {
-    btn.disabled = false; btn.textContent = '確認套用';
+    const btn = document.querySelector('#returnModal .btn-primary');
+    if (btn) { btn.disabled = false; btn.textContent = '確認退貨回庫'; }
   }
 }
 

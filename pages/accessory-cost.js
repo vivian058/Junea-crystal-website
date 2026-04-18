@@ -243,8 +243,12 @@ async function submitAdd() {
       await updateAccessoryCost(editingRecordId, data);
       showToast('配件進貨紀錄已更新', 'success');
     } else {
-      await addAccessoryCost(data);
-      showToast('配件進貨紀錄儲存成功！', 'success');
+      const result = await addAccessoryCost(data);
+      if (result.isNewInventory) {
+        showToast(`進貨已儲存！已在庫存新增「${data.productName || data.itemCode}」（數量 0 個）。`, 'info', 8000);
+      } else {
+        showToast('配件進貨紀錄儲存成功！', 'success');
+      }
     }
 
     closeModal('addModal');

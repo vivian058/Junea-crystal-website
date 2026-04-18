@@ -271,7 +271,7 @@ async function submitAdd() {
       // ── 新增模式 ──
       const specKey = makeCrystalKey(data.crystalName, data.size, data.typeA, data.typeB);
       const prev = await getPreviousCrystalCost(specKey);
-      await addCrystalCost(data);
+      const result = await addCrystalCost(data);
 
       // 漲跌提醒
       if (prev && data.costPerBead > 0) {
@@ -283,11 +283,10 @@ async function submitAdd() {
       }
 
       // 庫存提示
-      const settingDoc = await db.collection(COLLECTIONS.INITIAL_STOCK).doc(specKey).get();
-      if (!settingDoc.exists) {
-        showToast(`提醒：「${data.crystalName} ${data.size}mm ${data.typeB} ${data.typeA}」尚未設定初始庫存，庫存不會自動更新，請至「初始庫存設定」頁面補充。`, 'info', 8000);
+      if (!result.hasInitialSetting) {
+        showToast(`進貨已儲存！已在庫存新增「${data.crystalName} ${data.size}mm ${data.typeB} ${data.typeA}」（數量 0），請至「初始庫存設定」補充預設顆數。`, 'info', 9000);
       } else {
-        showToast(`進貨紀錄儲存成功！庫存已自動增加 ${settingDoc.data().defaultQuantity} 顆`, 'success');
+        showToast(`進貨紀錄儲存成功！庫存已自動增加 ${result.defaultQty} 顆`, 'success');
       }
     }
 

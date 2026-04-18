@@ -43,7 +43,7 @@
       <div class="page-title">庫存表</div>
       <div style="display:flex;gap:8px">
         <button class="btn btn-secondary" onclick="openPriceModal()">售價設定</button>
-        <button class="btn btn-secondary" onclick="syncInitialStock()">同步初始設定</button>
+        <button class="btn btn-secondary" onclick="openModal('returnModal')">退貨回庫</button>
         <button class="btn btn-gold" onclick="openModal('shipModal')">出貨扣庫存</button>
       </div>
     </div>
@@ -158,19 +158,30 @@
     </div>
   </div>
 
-  <!-- 同步初始設定 Modal -->
-  <div class="modal-overlay" id="syncModal">
-    <div class="modal" style="max-width:560px">
+  <!-- 退貨回庫 Modal -->
+  <div class="modal-overlay" id="returnModal">
+    <div class="modal" style="max-width:480px">
       <div class="modal-header">
-        <div class="modal-title">同步初始庫存設定</div>
-        <button class="modal-close" onclick="closeModal('syncModal')">✕</button>
+        <div class="modal-title">退貨回庫</div>
+        <button class="modal-close" onclick="closeModal('returnModal')">✕</button>
       </div>
       <div class="modal-body">
-        <div id="sync-content"></div>
+        <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px">
+          輸入手鍊名稱與退貨數量，系統將自動把對應的水晶和配件庫存全部加回。
+        </p>
+        <div class="form-group mb-20">
+          <label class="required">手鍊名稱</label>
+          <input class="form-control" id="return-name" type="text" placeholder="輸入設計款手鍊名稱（需完全一致）">
+        </div>
+        <div class="form-group mb-20">
+          <label class="required">退貨數量（條）</label>
+          <input class="form-control" id="return-qty" type="number" min="1" value="1">
+        </div>
+        <div id="return-result"></div>
       </div>
       <div class="modal-footer">
-        <button class="btn btn-secondary" onclick="closeModal('syncModal')">取消</button>
-        <button class="btn btn-primary" id="btn-apply-sync" onclick="applySyncItems()">確認套用</button>
+        <button class="btn btn-secondary" onclick="closeModal('returnModal')">取消</button>
+        <button class="btn btn-primary" onclick="submitReturn()">確認退貨回庫</button>
       </div>
     </div>
   </div>
