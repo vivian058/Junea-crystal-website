@@ -97,8 +97,6 @@ function buildCrystalInventoryRows(items) {
     const { html: logRowsHtml, count: logCount } = buildLogRows(item);
     const safeId = item.id.replace(/[^a-zA-Z0-9_-]/g, '_');
     const displayName = item.displayName || item.specKey || '';
-
-    // 支援舊資料（未儲存個別欄位時，從 displayName 拆解）
     const parts = displayName.split(' ');
     const crystalName = item.crystalName || parts[0] || '-';
     const size = item.size ? item.size + 'mm' : (parts[1] || '-');
@@ -107,6 +105,9 @@ function buildCrystalInventoryRows(items) {
 
     return [
       `<tr>
+        <td style="text-align:center;padding:8px 6px">
+          <input type="checkbox" class="inv-check-crystal" value="${item.id}" onchange="updateInvBulkBar('crystal')">
+        </td>
         <td><strong>${crystalName}</strong></td>
         <td>${size}</td>
         <td>${typeB}</td>
@@ -130,7 +131,7 @@ function buildCrystalInventoryRows(items) {
         </td>
       </tr>`,
       `<tr id="log-${safeId}" class="log-sub-row" style="display:none">
-        <td colspan="7">
+        <td colspan="8">
           <div class="log-inner">
             <table>
               <thead><tr><th>日期</th><th>耗損量</th><th>備註</th></tr></thead>
@@ -143,10 +144,17 @@ function buildCrystalInventoryRows(items) {
   }).join('');
 
   return `
+    <div id="inv-bulk-bar-crystal" style="display:none;padding:10px 16px;background:var(--primary-light);border-radius:6px;margin-bottom:8px;align-items:center;gap:12px">
+      <span id="inv-bulk-count-crystal" style="font-size:13px;color:var(--primary-dark);font-weight:600"></span>
+      <button class="btn btn-danger btn-sm" onclick="deleteInvSelected('crystal')">刪除已選</button>
+    </div>
     <div class="table-wrap">
       <table>
         <thead>
           <tr>
+            <th style="width:40px;text-align:center">
+              <input type="checkbox" id="inv-check-all-crystal" onchange="toggleInvSelectAll(this,'crystal')" title="全選">
+            </th>
             <th style="min-width:100px">水晶名稱</th>
             <th style="min-width:70px">尺寸</th>
             <th style="min-width:80px">形狀</th>
@@ -176,6 +184,9 @@ function buildAccessoryInventoryRows(items) {
 
     return [
       `<tr>
+        <td style="text-align:center;padding:8px 6px">
+          <input type="checkbox" class="inv-check-accessory" value="${item.id}" onchange="updateInvBulkBar('accessory')">
+        </td>
         <td><strong>${item.productName || displayName}</strong></td>
         <td>${item.itemCode ? `<span class="badge badge-purple">${item.itemCode}</span>` : '-'}</td>
         <td>${item.spec || '-'}</td>
@@ -197,7 +208,7 @@ function buildAccessoryInventoryRows(items) {
         </td>
       </tr>`,
       `<tr id="log-${safeId}" class="log-sub-row" style="display:none">
-        <td colspan="6">
+        <td colspan="7">
           <div class="log-inner">
             <table>
               <thead><tr><th>日期</th><th>耗損量</th><th>備註</th></tr></thead>
@@ -210,10 +221,17 @@ function buildAccessoryInventoryRows(items) {
   }).join('');
 
   return `
+    <div id="inv-bulk-bar-accessory" style="display:none;padding:10px 16px;background:var(--primary-light);border-radius:6px;margin-bottom:8px;align-items:center;gap:12px">
+      <span id="inv-bulk-count-accessory" style="font-size:13px;color:var(--primary-dark);font-weight:600"></span>
+      <button class="btn btn-danger btn-sm" onclick="deleteInvSelected('accessory')">刪除已選</button>
+    </div>
     <div class="table-wrap">
       <table>
         <thead>
           <tr>
+            <th style="width:40px;text-align:center">
+              <input type="checkbox" id="inv-check-all-accessory" onchange="toggleInvSelectAll(this,'accessory')" title="全選">
+            </th>
             <th style="min-width:150px">商品名稱</th>
             <th style="min-width:100px">貨號</th>
             <th style="min-width:80px">規格</th>
@@ -235,6 +253,45 @@ function renderAccessoryTable(items) {
   document.getElementById('accessory-table').innerHTML =
     items.length ? buildAccessoryInventoryRows(items)
       : '<div style="text-align:center;padding:24px;color:var(--text-muted);font-size:13px">尚無配件庫存紀錄</div>';
+}
+
+// ─── 全選 / 批次刪除（庫存）──────────────
+
+function toggleInvSelectAll(el, prefix) {
+  document.querySelectorAll(`.inv-check-${prefix}`).forEach(c => c.checked = el.checked);
+  updateInvBulkBar(prefix);
+}
+
+function updateInvBulkBar(prefix) {
+  const checked = document.querySelectorAll(`.inv-check-${prefix}:checked`);
+  const bar = document.getElementById(`inv-bulk-bar-${prefix}`);
+  const checkAll = document.getElementById(`inv-check-all-${prefix}`);
+  if (!bar) return;
+  if (checked.length > 0) {
+    bar.style.display = 'flex';
+    document.getElementById(`inv-bulk-count-${prefix}`).textContent = `已選 ${checked.length} 筆`;
+    const total = document.querySelectorAll(`.inv-check-${prefix}`).length;
+    if (checkAll) {
+      checkAll.checked = checked.length === total;
+      checkAll.indeterminate = checked.length > 0 && checked.length < total;
+    }
+  } else {
+    bar.style.display = 'none';
+    if (checkAll) { checkAll.checked = false; checkAll.indeterminate = false; }
+  }
+}
+
+async function deleteInvSelected(prefix) {
+  const ids = [...document.querySelectorAll(`.inv-check-${prefix}:checked`)].map(c => c.value);
+  if (!ids.length) return;
+  if (!confirmDialog(`確定要刪除選取的 ${ids.length} 筆庫存紀錄嗎？此操作無法復原。`)) return;
+  try {
+    await Promise.all(ids.map(id => deleteInventoryItem(id)));
+    showToast(`已刪除 ${ids.length} 筆`, 'success');
+    await loadInventory();
+  } catch(e) {
+    showToast(`刪除失敗：${e.message}`, 'danger');
+  }
 }
 
 // ─── 展開 / 收合耗損紀錄 ──────────────────
