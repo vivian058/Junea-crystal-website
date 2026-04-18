@@ -6,71 +6,126 @@
   <title>玖釀水晶管理系統</title>
   <link rel="stylesheet" href="css/style.css">
   <style>
-    .index-navbar {
+    body { background: var(--bg); }
+    .index-nav {
       background: white;
-      border-bottom: 2px solid var(--primary-light);
-      padding: 0 24px;
+      border-bottom: 1px solid var(--border);
+      padding: 0 40px;
+      height: 60px;
       display: flex;
       align-items: center;
-      height: 60px;
-      box-shadow: 0 2px 8px rgba(155,123,184,0.08);
     }
-    .index-navbar .nav-brand {
-      font-size: 20px;
+    .index-brand {
+      font-size: 16px;
       font-weight: 700;
-      color: var(--primary-dark);
+      color: var(--text);
+      letter-spacing: 2px;
+    }
+    .index-brand span { color: var(--primary); }
+    .hero {
+      text-align: center;
+      padding: 64px 20px 44px;
+    }
+    .hero-title {
+      font-size: 26px;
+      font-weight: 700;
+      color: var(--text);
+      letter-spacing: 3px;
+      margin-bottom: 8px;
+    }
+    .hero-title span { color: var(--primary); }
+    .hero-sub {
+      font-size: 12px;
+      color: var(--text-muted);
+      letter-spacing: 2px;
+    }
+    .nav-cards {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+      gap: 16px;
+      max-width: 1080px;
+      margin: 0 auto;
+      padding: 0 24px 72px;
+    }
+    .nav-card {
+      background: white;
+      border-radius: var(--radius);
+      border: 1px solid var(--border);
+      padding: 28px 24px;
       text-decoration: none;
+      display: block;
+      transition: all 0.2s;
+    }
+    .nav-card:hover {
+      border-color: var(--primary);
+      box-shadow: var(--shadow-hover);
+      transform: translateY(-2px);
+    }
+    .nav-card-num {
+      font-size: 10px;
+      font-weight: 600;
+      color: var(--primary);
+      letter-spacing: 3px;
+      margin-bottom: 10px;
+    }
+    .nav-card-title {
+      font-size: 15px;
+      font-weight: 700;
+      color: var(--text);
+      margin-bottom: 8px;
+    }
+    .nav-card-desc {
+      font-size: 13px;
+      color: var(--text-muted);
+      line-height: 1.7;
+    }
+    @media (max-width: 480px) {
+      .nav-cards { grid-template-columns: 1fr; }
+      .hero-title { font-size: 20px; }
     }
   </style>
 </head>
 <body>
-  <nav class="index-navbar">
-    <span class="nav-brand">玖釀 <span style="color:var(--secondary)">Crystal</span> 管理系統</span>
+  <nav class="index-nav">
+    <div class="index-brand">玖釀 <span>Crystal</span></div>
   </nav>
 
-  <div class="container">
-    <div class="hero">
-      <div class="hero-title">💎 玖釀水晶管理系統</div>
-      <div class="hero-subtitle">成本記錄 · 庫存管理 · 設計款成本計算</div>
-    </div>
+  <div class="hero">
+    <div class="hero-title">玖釀 <span>水晶管理系統</span></div>
+    <div class="hero-sub">成本記錄 · 庫存管理 · 設計款成本計算</div>
+  </div>
 
-    <div class="nav-cards">
-      <a href="pages/crystal-cost.html" class="nav-card">
-        <div class="nav-card-icon">🔮</div>
-        <div class="nav-card-title">水晶成本表</div>
-        <div class="nav-card-desc">記錄水晶進貨資訊、查詢歷史成本、監控價格變動</div>
-      </a>
-
-      <a href="pages/accessory-cost.html" class="nav-card">
-        <div class="nav-card-icon">📿</div>
-        <div class="nav-card-title">配件成本表</div>
-        <div class="nav-card-desc">記錄配件進貨、貨號查詢、追蹤各廠家進價</div>
-      </a>
-
-      <a href="pages/bracelet-design.html" class="nav-card">
-        <div class="nav-card-icon">✨</div>
-        <div class="nav-card-title">設計款手鍊</div>
-        <div class="nav-card-desc">建立材料清單、自動估算總成本、原料漲跌提醒</div>
-      </a>
-
-      <a href="pages/inventory.html" class="nav-card">
-        <div class="nav-card-icon">📦</div>
-        <div class="nav-card-title">庫存表</div>
-        <div class="nav-card-desc">即時庫存追蹤、耗損紀錄、出貨扣庫存、低量警示</div>
-      </a>
-
-      <a href="pages/initial-stock.html" class="nav-card">
-        <div class="nav-card-icon">⚙️</div>
-        <div class="nav-card-title">初始庫存設定</div>
-        <div class="nav-card-desc">設定各規格水晶每次進貨的預設顆數</div>
-      </a>
-
-      <a href="pages/crystal-effects.html" class="nav-card">
-        <div class="nav-card-icon">📖</div>
-        <div class="nav-card-title">水晶功效資料庫</div>
-        <div class="nav-card-desc">記錄與查詢各種水晶的功效、能量與適合對象</div>
-      </a>
-    </div>
+  <div class="nav-cards">
+    <a href="pages/crystal-cost.html" class="nav-card">
+      <div class="nav-card-num">01</div>
+      <div class="nav-card-title">水晶成本表</div>
+      <div class="nav-card-desc">記錄水晶進貨資訊、查詢歷史成本、監控價格變動</div>
+    </a>
+    <a href="pages/accessory-cost.html" class="nav-card">
+      <div class="nav-card-num">02</div>
+      <div class="nav-card-title">配件成本表</div>
+      <div class="nav-card-desc">記錄配件進貨、貨號查詢、追蹤各廠家進價</div>
+    </a>
+    <a href="pages/bracelet-design.html" class="nav-card">
+      <div class="nav-card-num">03</div>
+      <div class="nav-card-title">設計款手鍊</div>
+      <div class="nav-card-desc">建立材料清單、自動估算總成本、原料漲跌提醒</div>
+    </a>
+    <a href="pages/inventory.html" class="nav-card">
+      <div class="nav-card-num">04</div>
+      <div class="nav-card-title">庫存表</div>
+      <div class="nav-card-desc">即時庫存追蹤、耗損紀錄、出貨扣庫存、低量警示</div>
+    </a>
+    <a href="pages/initial-stock.html" class="nav-card">
+      <div class="nav-card-num">05</div>
+      <div class="nav-card-title">初始庫存設定</div>
+      <div class="nav-card-desc">設定各規格水晶每次進貨的預設顆數</div>
+    </a>
+    <a href="pages/crystal-effects.html" class="nav-card">
+      <div class="nav-card-num">06</div>
+      <div class="nav-card-title">水晶功效資料庫</div>
+      <div class="nav-card-desc">記錄與查詢各種水晶的功效、能量與適合對象</div>
+    </a>
   </div>
 </body>
 </html>
