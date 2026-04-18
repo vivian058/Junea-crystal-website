@@ -19,7 +19,13 @@ async function addCrystalCost(data) {
   const specKey = makeCrystalKey(data.crystalName, data.size, data.typeA, data.typeB);
   const record = { ...data, specKey, createdAt: firebase.firestore.FieldValue.serverTimestamp() };
   const docRef = await db.collection(COLLECTIONS.CRYSTAL_COSTS).add(record);
-  const invResult = await _addInventoryFromCrystalPurchase(specKey, data);
+  let invResult = { hasInitialSetting: false, defaultQty: 0, inventoryError: null };
+  try {
+    invResult = await _addInventoryFromCrystalPurchase(specKey, data);
+  } catch(e) {
+    console.error('[庫存寫入失敗]', specKey, e);
+    invResult.inventoryError = e.message;
+  }
   return { id: docRef.id, ...invResult };
 }
 
@@ -344,12 +350,15 @@ async function processReturn(braceletName, quantity = 1) {
 }
 
 async function _addInventoryFromCrystalPurchase(specKey, data) {
+  console.log('[庫存更新] 開始處理 specKey:', specKey);
   const settingDoc = await db.collection(COLLECTIONS.INITIAL_STOCK).doc(specKey).get();
   const hasInitialSetting = settingDoc.exists;
   const defaultQty = hasInitialSetting ? (settingDoc.data().defaultQuantity || 0) : 0;
+  console.log('[庫存更新] hasInitialSetting:', hasInitialSetting, 'defaultQty:', defaultQty);
 
   const invRef = db.collection(COLLECTIONS.INVENTORY).doc(specKey);
   const invDoc = await invRef.get();
+  console.log('[庫存更新] invDoc.exists:', invDoc.exists);
   const baseData = {
     specKey, type: 'crystal',
     displayName: `${data.crystalName} ${data.size}mm ${data.typeB} ${data.typeA}`,
