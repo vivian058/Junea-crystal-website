@@ -40,6 +40,26 @@ function fmtDate(dateStr) {
   return dateStr;
 }
 
+// 將 Excel 日期（Date 物件 / 數字 / 字串）統一轉成 YYYY-MM-DD
+function toDateStr(val) {
+  if (!val && val !== 0) return '';
+  if (val instanceof Date) {
+    const y = val.getFullYear();
+    const m = String(val.getMonth() + 1).padStart(2, '0');
+    const d = String(val.getDate()).padStart(2, '0');
+    return `${y}-${m}-${d}`;
+  }
+  // 純數字（Excel serial）→ 交給 SheetJS 轉
+  if (typeof val === 'number') {
+    const d = new Date(Math.round((val - 25569) * 86400 * 1000));
+    const y = d.getUTCFullYear();
+    const mo = String(d.getUTCMonth() + 1).padStart(2, '0');
+    const dy = String(d.getUTCDate()).padStart(2, '0');
+    return `${y}-${mo}-${dy}`;
+  }
+  return String(val).trim();
+}
+
 // ─── 漲跌徽章 ─────────────────────────────
 
 function makePriceChangeBadge(current, previous, threshold = 50) {
