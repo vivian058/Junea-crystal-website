@@ -252,6 +252,16 @@ async function getInventory() {
   return results;
 }
 
+async function updateInventoryItem(specKey, data) {
+  await db.collection(COLLECTIONS.INVENTORY).doc(specKey).update({
+    ...data, lastUpdated: firebase.firestore.FieldValue.serverTimestamp()
+  });
+}
+
+async function deleteInventoryItem(specKey) {
+  await db.collection(COLLECTIONS.INVENTORY).doc(specKey).delete();
+}
+
 async function logDamage(specKey, amount, note) {
   const docRef = db.collection(COLLECTIONS.INVENTORY).doc(specKey);
   const doc = await docRef.get();
