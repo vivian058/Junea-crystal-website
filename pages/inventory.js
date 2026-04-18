@@ -306,6 +306,47 @@ async function deleteInv(specKey, displayName) {
   }
 }
 
+// ─── 水晶 / 配件進貨更新 ──────────────────
+
+async function runSyncCrystal() {
+  const btn = event.currentTarget;
+  btn.disabled = true; btn.textContent = '更新中...';
+  try {
+    const result = await syncCrystalInventory();
+    if (!result.added.length) {
+      showToast('水晶庫存已是最新，無需更新', 'info');
+    } else {
+      showToast(`已新增 ${result.added.length} 筆水晶庫存項目`, 'success', 6000);
+      if (result.noInitialSetting.length) {
+        showToast(`以下規格尚未設定初始庫存，請至「初始庫存設定」補充：\n${result.noInitialSetting.join('、')}`, 'warning', 10000);
+      }
+      await loadInventory();
+    }
+  } catch(e) {
+    showToast(`更新失敗：${e.message}`, 'danger');
+  } finally {
+    btn.disabled = false; btn.textContent = '水晶進貨更新';
+  }
+}
+
+async function runSyncAccessory() {
+  const btn = event.currentTarget;
+  btn.disabled = true; btn.textContent = '更新中...';
+  try {
+    const result = await syncAccessoryInventory();
+    if (!result.added.length) {
+      showToast('配件庫存已是最新，無需更新', 'info');
+    } else {
+      showToast(`已新增 ${result.added.length} 筆配件庫存項目`, 'success', 6000);
+      await loadInventory();
+    }
+  } catch(e) {
+    showToast(`更新失敗：${e.message}`, 'danger');
+  } finally {
+    btn.disabled = false; btn.textContent = '配件進貨更新';
+  }
+}
+
 // ─── 退貨回庫 ─────────────────────────────
 
 async function submitReturn() {
