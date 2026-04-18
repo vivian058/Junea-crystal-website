@@ -1,15 +1,15 @@
 // =============================================
 // Firebase 設定檔
-// 請至 Firebase Console 取得您的設定後填入
 // =============================================
 
 const firebaseConfig = {
-  apiKey: "YOUR_API_KEY",
-  authDomain: "YOUR_AUTH_DOMAIN",
-  projectId: "YOUR_PROJECT_ID",
-  storageBucket: "YOUR_STORAGE_BUCKET",
-  messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
-  appId: "YOUR_APP_ID"
+  apiKey: "AIzaSyBepGb7dtWrWu6CCKZMwzvtRWlczUUJnt4",
+  authDomain: "junea-crystal.firebaseapp.com",
+  projectId: "junea-crystal",
+  storageBucket: "junea-crystal.firebasestorage.app",
+  messagingSenderId: "1067467501699",
+  appId: "1:1067467501699:web:9b469d9d77f7bea3afabb6",
+  measurementId: "G-3WF2SFYZRT"
 };
 
 // 初始化 Firebase
