@@ -644,21 +644,30 @@ async function confirmSyncCrystal() {
   }
 }
 
-async function runSyncAccessory() {
-  const btn = event.currentTarget;
+function runSyncAccessory() {
+  const today = new Date().toISOString().slice(0, 10);
+  document.getElementById('sync-acc-date').value = today;
+  openModal('syncAccDateModal');
+}
+
+async function confirmSyncAccessory() {
+  const dateStr = document.getElementById('sync-acc-date').value;
+  if (!dateStr) { showToast('請選擇進貨日期', 'warning'); return; }
+  const btn = document.querySelector('#syncAccDateModal .btn-primary');
   btn.disabled = true; btn.textContent = '更新中...';
   try {
-    const result = await syncAccessoryInventory();
-    if (!result.added.length) {
-      showToast('配件庫存已是最新，無需更新', 'info');
+    const result = await syncAccessoryInventoryByDate(dateStr);
+    closeModal('syncAccDateModal');
+    if (!result.updated.length) {
+      showToast(`${dateStr} 無配件進貨紀錄`, 'info');
     } else {
-      showToast(`已新增 ${result.added.length} 筆配件庫存項目`, 'success', 6000);
+      showToast(`已更新 ${result.updated.length} 項配件庫存（${dateStr}）`, 'success', 6000);
       await loadInventory();
     }
   } catch(e) {
     showToast(`更新失敗：${e.message}`, 'danger');
   } finally {
-    btn.disabled = false; btn.textContent = '配件進貨更新';
+    btn.disabled = false; btn.textContent = '確認更新';
   }
 }
 

@@ -339,7 +339,8 @@ function handleExcelUpload(file) {
         pricePerPieceYuan: parseFloat(r[7]) || 0,
         exchangeRate: parseFloat(r[8]) || 0,
         costPerPiece: parseFloat(r[9]) || 0,
-        note: String(r[10] || '').trim()
+        note: String(r[10] || '').trim(),
+        quantity: parseInt(r[11]) || 0
       }));
 
       const invalid = importRows.filter(r => !r.date || !r.vendor || !r.itemCode || !r.exchangeRate);
@@ -361,6 +362,7 @@ function handleExcelUpload(file) {
           <td>${r.pricePerPieceYuan || '-'}</td>
           <td>${r.exchangeRate}</td>
           <td>${r.costPerPiece || '自動'}</td>
+          <td>${r.quantity || '-'}</td>
         </tr>`).join('');
 
       document.getElementById('preview-count').textContent = `共 ${importRows.length} 筆，確認後點「確認匯入」`;
@@ -408,7 +410,7 @@ async function submitImport() {
 }
 
 function downloadAccessoryTemplate() {
-  const header = [['進貨日期(YYYY-MM-DD)','廠家','貨號','商品名稱','賣場連結','顏色','規格','單顆進價¥','匯率','單顆成本$(留空自動計算)','備註']];
+  const header = [['進貨日期(YYYY-MM-DD)','廠家','貨號','商品名稱','賣場連結','顏色','規格','單顆進價¥','匯率','單顆成本$(留空自動計算)','備註','進貨數量']];
   const ws = XLSX.utils.aoa_to_sheet(header);
   const wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, ws, '配件進貨');

@@ -170,6 +170,29 @@
     </div>
   </div>
 
+  <!-- 配件進貨更新日期 Modal -->
+  <div class="modal-overlay" id="syncAccDateModal">
+    <div class="modal" style="max-width:400px">
+      <div class="modal-header">
+        <div class="modal-title">配件進貨更新</div>
+        <button class="modal-close" onclick="closeModal('syncAccDateModal')">✕</button>
+      </div>
+      <div class="modal-body">
+        <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px">
+          選擇進貨日期，系統將依該日期配件成本記錄的進貨數量，累加到對應庫存，並寫入補貨紀錄。
+        </p>
+        <div class="form-group">
+          <label class="required">進貨日期</label>
+          <input class="form-control" id="sync-acc-date" type="date">
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" onclick="closeModal('syncAccDateModal')">取消</button>
+        <button class="btn btn-primary" onclick="confirmSyncAccessory()">確認更新</button>
+      </div>
+    </div>
+  </div>
+
   <!-- 水晶進貨更新日期 Modal -->
   <div class="modal-overlay" id="syncDateModal">
     <div class="modal" style="max-width:400px">
