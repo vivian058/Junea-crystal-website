@@ -527,6 +527,13 @@ async function getInitialStockSettings() {
   return results;
 }
 
+async function checkInitialStockSettingExists(data) {
+  const normalizedSize = String(data.size || '').replace(/mm$/i, '').trim();
+  const specKey = makeCrystalPatternKey(normalizedSize, data.typeA, data.typeB);
+  const doc = await db.collection(COLLECTIONS.INITIAL_STOCK).doc(specKey).get();
+  return doc.exists;
+}
+
 async function setInitialStockSetting(data) {
   const normalizedSize = String(data.size || '').replace(/mm$/i, '').trim();
   const specKey = makeCrystalPatternKey(normalizedSize, data.typeA, data.typeB);
