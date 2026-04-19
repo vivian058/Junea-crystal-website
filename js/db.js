@@ -526,6 +526,42 @@ async function setAccessoryInitialSetting(data) {
 
 // ─── 水晶功效 ─────────────────────────────
 
+// ─── 靈感收藏 ──────────────────────────────
+
+async function addInspiration(data) {
+  const record = { ...data, createdAt: firebase.firestore.FieldValue.serverTimestamp() };
+  const docRef = await db.collection(COLLECTIONS.INSPIRATIONS).add(record);
+  return docRef.id;
+}
+
+async function getInspirations(keyword = '') {
+  const snapshot = await db.collection(COLLECTIONS.INSPIRATIONS).get();
+  let results = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+  results.sort((a, b) => {
+    const ta = a.createdAt ? a.createdAt.toMillis() : 0;
+    const tb = b.createdAt ? b.createdAt.toMillis() : 0;
+    return tb - ta;
+  });
+  if (keyword) {
+    const kw = keyword.toLowerCase();
+    results = results.filter(r =>
+      (r.notes && r.notes.toLowerCase().includes(kw)) ||
+      (r.tags && r.tags.some(t => t.toLowerCase().includes(kw))) ||
+      (r.crystalMaterials && r.crystalMaterials.some(m => (m.displayName || '').toLowerCase().includes(kw))) ||
+      (r.accessoryMaterials && r.accessoryMaterials.some(m => (m.displayName || '').toLowerCase().includes(kw)))
+    );
+  }
+  return results;
+}
+
+async function updateInspiration(id, data) {
+  await db.collection(COLLECTIONS.INSPIRATIONS).doc(id).update({ ...data, updatedAt: firebase.firestore.FieldValue.serverTimestamp() });
+}
+
+async function deleteInspiration(id) {
+  await db.collection(COLLECTIONS.INSPIRATIONS).doc(id).delete();
+}
+
 async function addCrystalEffect(data) {
   const record = { ...data, createdAt: firebase.firestore.FieldValue.serverTimestamp() };
   const docRef = await db.collection(COLLECTIONS.CRYSTAL_EFFECTS).add(record);

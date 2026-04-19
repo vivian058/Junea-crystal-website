@@ -1,5 +1,6 @@
 // =============================================
 // Firebase 設定檔
+// 請至 Firebase Console 取得您的設定後填入
 // =============================================
 
 const firebaseConfig = {
@@ -23,5 +24,6 @@ const COLLECTIONS = {
   BRACELET_DESIGNS: 'braceletDesigns',
   INVENTORY: 'inventory',
   INITIAL_STOCK: 'initialStockSettings',
-  CRYSTAL_EFFECTS: 'crystalEffects'
+  CRYSTAL_EFFECTS: 'crystalEffects',
+  INSPIRATIONS: 'inspirations'
 };
