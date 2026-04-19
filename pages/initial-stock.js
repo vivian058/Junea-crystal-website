@@ -6,7 +6,9 @@
 
 const OPT_DEFAULTS = {
   crystalNames: ['水晶', '珍珠', '米珠'],
-  crystalSizes: ['4', '6', '8', '10', '12', '14']
+  crystalSizes: ['4', '6', '8', '10', '12', '14'],
+  crystalTypeAs: ['條珠', '成品串', '條珠三圈'],
+  crystalTypeBs: ['圓珠', '扁刻面', '算盤珠', '心形', '水滴', '橢圓', '方形']
 };
 
 function getOpts(key) {
@@ -38,8 +40,8 @@ function removeOpt(key, val) {
 }
 
 function refreshOptUI(key) {
-  const datalistMap = { crystalNames: 'dl-is-name', crystalSizes: 'dl-is-size' };
-  const tagsMap     = { crystalNames: 'name-tags',  crystalSizes: 'size-tags' };
+  const datalistMap = { crystalNames: 'dl-is-name', crystalSizes: 'dl-is-size', crystalTypeAs: 'dl-is-typeA', crystalTypeBs: 'dl-is-typeB' };
+  const tagsMap     = { crystalNames: 'name-tags',  crystalSizes: 'size-tags',  crystalTypeAs: 'typeA-tags',  crystalTypeBs: 'typeB-tags' };
   const opts = getOpts(key);
   // datalist
   const dl = document.getElementById(datalistMap[key]);
@@ -61,6 +63,8 @@ function toggleOptManager(id) {
 document.addEventListener('DOMContentLoaded', async () => {
   document.getElementById('navbar-root').innerHTML = renderNav('初始庫存設定');
   refreshOptUI('crystalSizes');
+  refreshOptUI('crystalTypeAs');
+  refreshOptUI('crystalTypeBs');
   await loadSettings();
 });
 

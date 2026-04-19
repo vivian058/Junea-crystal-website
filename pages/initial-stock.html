@@ -75,15 +75,29 @@
           </div>
           <div class="form-group">
             <label class="required">規格 A</label>
-            <select class="form-control" id="s-typeA">
-              <option value="">選擇...</option>
-              <option>條珠</option>
-              <option>成品串</option>
-            </select>
+            <input class="form-control" id="s-typeA" type="text" list="dl-is-typeA" placeholder="選擇或輸入" autocomplete="off">
+            <datalist id="dl-is-typeA"></datalist>
+            <button type="button" class="opt-toggle" onclick="toggleOptManager('typeA-mgr')">編輯選項 ▾</button>
+            <div class="opt-manager" id="typeA-mgr">
+              <div class="opt-tags" id="typeA-tags"></div>
+              <div class="opt-add-row">
+                <input class="form-control" id="typeA-new-opt" type="text" placeholder="新增選項…">
+                <button class="btn btn-secondary btn-sm" onclick="addOpt('crystalTypeAs','typeA-new-opt')">新增</button>
+              </div>
+            </div>
           </div>
           <div class="form-group">
             <label class="required">形狀 / 規格 B</label>
-            <input class="form-control" id="s-typeB" type="text" placeholder="如：圓珠、扁刻面">
+            <input class="form-control" id="s-typeB" type="text" list="dl-is-typeB" placeholder="選擇或輸入" autocomplete="off">
+            <datalist id="dl-is-typeB"></datalist>
+            <button type="button" class="opt-toggle" onclick="toggleOptManager('typeB-mgr')">編輯選項 ▾</button>
+            <div class="opt-manager" id="typeB-mgr">
+              <div class="opt-tags" id="typeB-tags"></div>
+              <div class="opt-add-row">
+                <input class="form-control" id="typeB-new-opt" type="text" placeholder="新增選項…">
+                <button class="btn btn-secondary btn-sm" onclick="addOpt('crystalTypeBs','typeB-new-opt')">新增</button>
+              </div>
+            </div>
           </div>
           <div class="form-group">
             <label class="required">每次進貨預設顆數</label>
