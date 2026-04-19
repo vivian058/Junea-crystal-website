@@ -495,10 +495,9 @@ async function _addInventoryFromCrystalPurchase(specKey, data) {
     lastUpdated: firebase.firestore.FieldValue.serverTimestamp()
   };
 
-  if (invDoc.exists) {
-    await invRef.update({ ...baseData, quantity: firebase.firestore.FieldValue.increment(defaultQty) });
-  } else {
-    await invRef.set({ ...baseData, quantity: defaultQty });
+  if (!invDoc.exists) {
+    // 只建立項目（數量 0），實際累加由「水晶進貨更新」按鈕負責
+    await invRef.set({ ...baseData, quantity: 0 });
   }
   return { hasInitialSetting: true, defaultQty };
 }
