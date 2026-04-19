@@ -10,8 +10,10 @@ function makeCrystalKey(crystalName, size, typeA, typeB) {
 }
 
 // 通用規格鍵（不含水晶名稱），用於初始庫存設定
+// size 無論傳入 "8" 或 "8mm" 都會統一輸出 SIZE_8mm_...
 function makeCrystalPatternKey(size, typeA, typeB) {
-  return `SIZE_${size}mm_${typeA}_${typeB}`.replace(/\s+/g, '_');
+  const s = String(size || '').replace(/mm$/i, '').trim();
+  return `SIZE_${s}mm_${typeA}_${typeB}`.replace(/\s+/g, '_');
 }
 
 function makeAccessoryKey(itemCode) {
@@ -471,15 +473,39 @@ async function getInitialStockSettings() {
 }
 
 async function setInitialStockSetting(data) {
-  const specKey = makeCrystalPatternKey(data.size, data.typeA, data.typeB);
-  const displayName = `${data.size}mm ${data.typeB} ${data.typeA}`;
+  const normalizedSize = String(data.size || '').replace(/mm$/i, '').trim();
+  const specKey = makeCrystalPatternKey(normalizedSize, data.typeA, data.typeB);
+  const displayName = `${normalizedSize}mm ${data.typeB} ${data.typeA}`;
   await db.collection(COLLECTIONS.INITIAL_STOCK).doc(specKey).set({
-    specKey, size: data.size, typeA: data.typeA, typeB: data.typeB,
+    specKey, size: normalizedSize, typeA: data.typeA, typeB: data.typeB,
     displayName,
     defaultQuantity: Number(data.defaultQuantity),
     updatedAt: firebase.firestore.FieldValue.serverTimestamp()
   }, { merge: true });
-  return { specKey, isNewInventory: false };
+
+  // 回填：庫存中符合尺寸+規格+形狀、且數量為 0 的水晶項目 → 更新為 defaultQuantity
+  const invSnap = await db.collection(COLLECTIONS.INVENTORY).get();
+  const defaultQty = Number(data.defaultQuantity);
+  const toUpdate = invSnap.docs.filter(doc => {
+    const d = doc.data();
+    if (d.type !== 'crystal') return false;
+    if ((d.quantity || 0) !== 0) return false;
+    const itemSize = String(d.size || '').replace(/mm$/i, '').trim();
+    return itemSize === normalizedSize && d.typeA === data.typeA && d.typeB === data.typeB;
+  });
+
+  if (toUpdate.length > 0) {
+    const batch = db.batch();
+    toUpdate.forEach(doc => {
+      batch.update(doc.ref, {
+        quantity: defaultQty,
+        lastUpdated: firebase.firestore.FieldValue.serverTimestamp()
+      });
+    });
+    await batch.commit();
+  }
+
+  return { specKey, updatedCount: toUpdate.length };
 }
 
 async function deleteInitialStockSetting(specKey) {
