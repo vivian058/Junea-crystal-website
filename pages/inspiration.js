@@ -251,7 +251,7 @@ function openAddModal() {
   selectedAccessories = [];
   document.getElementById('edit-modal-title').textContent = '＋ 新增收藏';
   document.getElementById('edit-save-btn').textContent = '儲存';
-  ['f-imageUrl','f-sourceUrl','f-tags','f-notes'].forEach(id => document.getElementById(id).value = '');
+  ['f-imageUrl','f-sourceUrl','f-notes'].forEach(id => document.getElementById(id).value = '');
   resetModalInputs();
   openModal('editModal');
 }
