@@ -64,13 +64,16 @@
 
     <!-- 水晶庫存 -->
     <div class="flex-between" style="margin:24px 0 12px">
-      <div class="inventory-section-title" style="margin:0">水晶庫存</div>
+      <button onclick="toggleSection('crystal')" style="background:none;border:none;cursor:pointer;display:flex;align-items:center;gap:6px;padding:0">
+        <span class="inventory-section-title" style="margin:0">水晶庫存</span>
+        <span id="crystal-toggle-icon" style="font-size:13px;color:var(--text-muted)">▾</span>
+      </button>
       <div style="display:flex;gap:8px">
         <button class="btn btn-secondary btn-sm" onclick="openAddCrystalModal()">新增庫存</button>
         <button class="btn btn-secondary btn-sm" onclick="runSyncCrystal()">水晶進貨更新</button>
       </div>
     </div>
-    <div class="card">
+    <div id="crystal-section" class="card">
       <div id="crystal-table">
         <div class="loading"><div class="spinner"></div><div>載入中...</div></div>
       </div>
@@ -78,10 +81,13 @@
 
     <!-- 配件庫存 -->
     <div class="flex-between" style="margin:24px 0 12px">
-      <div class="inventory-section-title" style="margin:0">配件庫存</div>
+      <button onclick="toggleSection('accessory')" style="background:none;border:none;cursor:pointer;display:flex;align-items:center;gap:6px;padding:0">
+        <span class="inventory-section-title" style="margin:0">配件庫存</span>
+        <span id="accessory-toggle-icon" style="font-size:13px;color:var(--text-muted)">▾</span>
+      </button>
       <button class="btn btn-secondary btn-sm" onclick="runSyncAccessory()">配件進貨更新</button>
     </div>
-    <div class="card">
+    <div id="accessory-section" class="card">
       <div id="accessory-table">
         <div style="text-align:center;padding:24px;color:var(--text-muted);font-size:13px">
           配件庫存目前由系統自動追蹤（根據設計款出貨扣除）

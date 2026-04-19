@@ -364,9 +364,9 @@ function buildAccessoryInventoryRows(items) {
         <td style="text-align:center;padding:8px 6px">
           <input type="checkbox" class="inv-check-accessory" value="${item.id}" onchange="updateInvBulkBar('accessory')">
         </td>
-        <td><strong>${item.productName || displayName}</strong></td>
-        <td>${item.itemCode ? `<span class="badge badge-purple">${item.itemCode}</span>` : '-'}</td>
-        <td>${fmtSpec(item.spec)}</td>
+        <td ondblclick="startInlineEdit(event,'${item.id}','productName','${(item.productName||displayName).replace(/'/g,"&apos;")}')" title="雙擊可編輯" style="cursor:text"><strong>${item.productName || displayName}</strong></td>
+        <td ondblclick="startInlineEdit(event,'${item.id}','itemCode','${(item.itemCode||'').replace(/'/g,"&apos;")}')" title="雙擊可編輯" style="cursor:text">${item.itemCode ? `<span class="badge badge-purple">${item.itemCode}</span>` : '-'}</td>
+        <td ondblclick="startInlineEdit(event,'${item.id}','spec','${(item.spec||'').replace(/'/g,"&apos;")}')" title="雙擊可編輯" style="cursor:text">${fmtSpec(item.spec)}</td>
         <td>
           <span class="qty-big ${qtyClass}">${qty}</span>
           <span style="font-size:12px;color:var(--text-muted)"> 個</span>
@@ -421,6 +421,18 @@ function renderAccessoryTable(items) {
   document.getElementById('accessory-table').innerHTML =
     items.length ? buildAccessoryInventoryRows(items)
       : '<div style="text-align:center;padding:24px;color:var(--text-muted);font-size:13px">尚無配件庫存紀錄</div>';
+}
+
+// ─── 區塊收縮 ─────────────────────────────
+
+const _sectionOpen = { crystal: true, accessory: true };
+
+function toggleSection(name) {
+  _sectionOpen[name] = !_sectionOpen[name];
+  const section = document.getElementById(name + '-section');
+  const icon = document.getElementById(name + '-toggle-icon');
+  if (section) section.style.display = _sectionOpen[name] ? '' : 'none';
+  if (icon) icon.textContent = _sectionOpen[name] ? '▾' : '▸';
 }
 
 // ─── 全選 / 批次刪除（庫存）──────────────
