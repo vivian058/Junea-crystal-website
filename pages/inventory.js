@@ -123,7 +123,7 @@ function buildCrystalInventoryRows(items) {
         '<td style="font-size:12px;font-weight:700;padding:5px 12px;color:' + color + '">' + sign + l.amount + '</td>' +
         '<td style="font-size:12px;color:var(--text-muted);padding:5px 12px">' + (l.note || '-') + '</td>' +
         '<td style="padding:5px 12px">' +
-        '<button style="background:none;border:none;cursor:pointer;font-size:12px;font-weight:700;color:var(--danger);padding:2px 6px" onclick="deleteLogEntryUI(\'' + ei + '\',\'' + l.kind + '\',\'' + ek + '\')">刪</button>' +
+        '<button style="background:none;border:none;cursor:pointer;font-size:12px;font-weight:700;color:var(--text-muted);padding:2px 6px" onclick="deleteLogEntryUI(\'' + ei + '\',\'' + l.kind + '\',\'' + ek + '\')">刪</button>' +
         '</td>' +
         '</tr>';
     }).join('');
@@ -139,7 +139,7 @@ function buildCrystalInventoryRows(items) {
         <td><span class="badge badge-purple">${typeA}</span></td>
         <td>
           <span class="qty-big ${qtyClass}">${qty}</span>
-          <span style="font-size:12px;color:var(--text-muted)"> 題</span>
+          <span style="font-size:12px;color:var(--text-muted)"> 顆</span>
           ${needsSetup ? '<span class="badge badge-warning" style="margin-left:6px">初始資料待設定</span>' : ''}
           ${isLow ? '<span class="badge badge-danger" style="margin-left:6px">補貨</span>' : ''}
         </td>
@@ -213,7 +213,7 @@ function buildAccessoryInventoryRows(items) {
         '<td style="font-size:12px;font-weight:700;padding:5px 12px;color:' + color + '">' + sign + l.amount + '</td>' +
         '<td style="font-size:12px;color:var(--text-muted);padding:5px 12px">' + (l.note || '-') + '</td>' +
         '<td style="padding:5px 12px">' +
-        '<button style="background:none;border:none;cursor:pointer;font-size:12px;font-weight:700;color:var(--danger);padding:2px 6px" onclick="deleteLogEntryUI(\'' + ei + '\',\'' + l.kind + '\',\'' + ek + '\')">刪</button>' +
+        '<button style="background:none;border:none;cursor:pointer;font-size:12px;font-weight:700;color:var(--text-muted);padding:2px 6px" onclick="deleteLogEntryUI(\'' + ei + '\',\'' + l.kind + '\',\'' + ek + '\')">刪</button>' +
         '</td>' +
         '</tr>';
     }).join('');
@@ -459,7 +459,7 @@ async function submitAddCrystal() {
     await addCrystalInventoryManual({ crystalName, size, typeB, typeA, quantity: qty });
     showToast('已新增庫存項目', 'success');
     closeModal('addCrystalModal');
-    await renderInventory();
+    await loadInventory();
   } catch(e) {
     errEl.textContent = `新增失敗：${e.message}`;
     errEl.style.display = 'block';
