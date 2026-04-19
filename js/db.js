@@ -414,16 +414,35 @@ async function createInventoryEntry(specKey, data) {
 }
 
 async function logDamage(specKey, amount, note) {
+  return logManualAdjust(specKey, 'damage', amount, note);
+}
+
+async function logManualAdjust(specKey, type, amount, note) {
   const docRef = db.collection(COLLECTIONS.INVENTORY).doc(specKey);
   const doc = await docRef.get();
   if (!doc.exists) throw new Error('找不到此規格庫存');
   const current = doc.data().quantity || 0;
-  const newQty = Math.max(0, current - Number(amount));
-  await docRef.update({
-    quantity: newQty,
-    lastUpdated: firebase.firestore.FieldValue.serverTimestamp(),
-    [`damageLog.${Date.now()}`]: { amount: Number(amount), note: note || '', date: new Date().toISOString().split('T')[0] }
-  });
+  const ts = Date.now();
+  const date = new Date().toISOString().split('T')[0];
+  const update = { lastUpdated: firebase.firestore.FieldValue.serverTimestamp() };
+  let newQty;
+
+  if (type === 'damage') {
+    newQty = Math.max(0, current - Number(amount));
+    update.quantity = newQty;
+    update[`damageLog.${ts}`] = { amount: Number(amount), note: note || '', date };
+  } else if (type === 'restock') {
+    newQty = current + Number(amount);
+    update.quantity = newQty;
+    update[`restockLog.${ts}_add`] = { amount: Number(amount), note: note || '手動補入', date };
+  } else { // set
+    newQty = Number(amount);
+    const diff = newQty - current;
+    update.quantity = newQty;
+    if (diff > 0) update[`restockLog.${ts}_set`] = { amount: diff, note: note || `手動設定（＋${diff}）`, date };
+    else if (diff < 0) update[`damageLog.${ts}`] = { amount: Math.abs(diff), note: note || `手動設定（－${Math.abs(diff)}）`, date };
+  }
+  await docRef.update(update);
   return newQty;
 }
 
