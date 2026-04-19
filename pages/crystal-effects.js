@@ -29,11 +29,15 @@ function renderEffects(effects) {
 
   const cards = effects.map(e => {
     const tags = (e.tags || []).map(t => `<span class="tag">${t}</span>`).join('');
+    const sourceHtml = e.source
+      ? `<div style="margin-top:8px;font-size:12px"><a href="${e.source}" target="_blank" rel="noopener" style="color:var(--primary);word-break:break-all">來源</a></div>`
+      : '';
     return `
       <div class="effect-card">
         <div class="effect-card-name">${e.name}</div>
         <div class="effect-card-tags">${tags || '<span style="color:var(--text-muted);font-size:12px">無標籤</span>'}</div>
         <div class="effect-card-text">${e.effects || ''}</div>
+        ${sourceHtml}
         <div class="effect-card-actions">
           <button class="btn btn-secondary btn-sm" onclick="openEditModal('${e.id}')">編輯</button>
           <button class="btn btn-danger btn-sm" onclick="deleteEffect('${e.id}', '${e.name}')">刪除</button>
@@ -70,6 +74,7 @@ function openAddModal() {
   document.getElementById('save-btn').textContent = '儲存';
   document.getElementById('e-name').value = '';
   document.getElementById('e-tags').value = '';
+  document.getElementById('e-source').value = '';
   document.getElementById('e-effects').value = '';
   openModal('effectModal');
 }
@@ -84,6 +89,7 @@ async function openEditModal(id) {
     document.getElementById('save-btn').textContent = '儲存修改';
     document.getElementById('e-name').value = data.name || '';
     document.getElementById('e-tags').value = (data.tags || []).join(',');
+    document.getElementById('e-source').value = data.source || '';
     document.getElementById('e-effects').value = data.effects || '';
     openModal('effectModal');
   } catch(e) {
@@ -96,13 +102,14 @@ async function openEditModal(id) {
 async function submitEffect() {
   const name = document.getElementById('e-name').value.trim();
   const tagsStr = document.getElementById('e-tags').value.trim();
+  const source = document.getElementById('e-source').value.trim();
   const effects = document.getElementById('e-effects').value.trim();
 
   if (!name) { showToast('請填寫水晶名稱', 'warning'); return; }
   if (!effects) { showToast('請填寫功效說明', 'warning'); return; }
 
   const tags = tagsStr ? tagsStr.split(/[,，]/).map(t => t.trim()).filter(Boolean) : [];
-  const data = { name, effects, tags };
+  const data = { name, effects, tags, source };
 
   const btn = document.getElementById('save-btn');
   btn.disabled = true; btn.textContent = '儲存中...';
