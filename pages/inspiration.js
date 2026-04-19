@@ -89,28 +89,31 @@ async function openDetail(id) {
   if (!snapshot.exists) return;
   const item = { id: snapshot.id, ...snapshot.data() };
 
-  const imgHtml = item.imageUrl
-    ? `<img class="detail-img" src="${item.imageUrl}" alt="靈感圖">`
-    : '';
+  // 左欄：圖片
+  const imgCol = document.getElementById('detail-img-col');
+  imgCol.innerHTML = item.imageUrl
+    ? `<img src="${item.imageUrl}" alt="靈感圖">`
+    : `<div class="detail-img-col-empty">無圖片</div>`;
+
+  // 右欄：資訊
   const sourceHtml = item.sourceUrl
-    ? `<div style="margin-bottom:12px;font-size:13px"><a href="${item.sourceUrl}" target="_blank" rel="noopener" style="color:var(--primary)">查看來源</a></div>`
+    ? `<div style="margin-bottom:10px;font-size:13px"><a href="${item.sourceUrl}" target="_blank" rel="noopener" style="color:var(--primary)">查看來源</a></div>`
     : '';
   const notesHtml = item.notes
-    ? `<div style="font-size:14px;color:var(--text);margin-bottom:12px;white-space:pre-wrap">${item.notes}</div>`
+    ? `<div style="font-size:14px;color:var(--text);margin-bottom:10px;white-space:pre-wrap">${item.notes}</div>`
     : '';
   const tagsHtml = (item.tags || []).length
-    ? `<div style="margin-bottom:12px">${item.tags.map(t => `<span class="tag">${t}</span>`).join(' ')}</div>`
+    ? `<div style="margin-bottom:10px">${item.tags.map(t => `<span class="tag">${t}</span>`).join(' ')}</div>`
     : '';
 
   const crystalHtml = buildMatCompare(item.crystalMaterials || [], 'crystal');
   const accHtml = buildMatCompare(item.accessoryMaterials || [], 'accessory');
-
   const matSection = (crystalHtml || accHtml) ? `
     ${crystalHtml ? `<div class="mat-section-title">水晶材料</div><div class="mat-list">${crystalHtml}</div>` : ''}
     ${accHtml ? `<div class="mat-section-title" style="margin-top:14px">配件材料</div><div class="mat-list">${accHtml}</div>` : ''}
   ` : '<div style="color:var(--text-muted);font-size:13px">未記錄材料</div>';
 
-  document.getElementById('detail-body').innerHTML = imgHtml + sourceHtml + tagsHtml + notesHtml + matSection;
+  document.getElementById('detail-body').innerHTML = sourceHtml + tagsHtml + notesHtml + matSection;
   document.getElementById('detail-edit-btn').onclick = () => { closeModal('detailModal'); openEditById(id); };
   document.getElementById('detail-delete-btn').onclick = () => doDelete(id);
   openModal('detailModal');
