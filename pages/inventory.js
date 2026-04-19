@@ -77,17 +77,24 @@ function renderLowStockAlerts(items) {
 // ─── 渲染表格（水晶）─────────────────────
 
 function buildLogRows(item) {
-  const logs = Object.entries(item.damageLog || {})
-    .map(([ts, v]) => ({ ts: Number(ts), ...v }))
-    .sort((a, b) => b.ts - a.ts);
+  const damageLogs = Object.entries(item.damageLog || {})
+    .map(([ts, v]) => ({ ts: Number(ts), kind: 'damage', ...v }));
+  const restockLogs = Object.entries(item.restockLog || {})
+    .map(([ts, v]) => ({ ts: Number(String(ts).split('_')[0]), kind: 'restock', ...v }));
+  const logs = [...damageLogs, ...restockLogs].sort((a, b) => b.ts - a.ts);
   const html = logs.length
-    ? logs.map(l => `
-        <tr>
-          <td>${l.date || '-'}</td>
-          <td style="color:var(--danger)">－${l.amount}</td>
-          <td>${l.note || '-'}</td>
-        </tr>`).join('')
-    : `<tr><td colspan="3" class="log-empty">尚無耗損紀錄</td></tr>`;
+    ? logs.map(l => l.kind === 'restock'
+        ? `<tr>
+            <td>${l.date || '-'}</td>
+            <td style="color:var(--success)">＋${l.amount}</td>
+            <td style="color:var(--success)">${l.note || '進貨補庫存'}</td>
+          </tr>`
+        : `<tr>
+            <td>${l.date || '-'}</td>
+            <td style="color:var(--danger)">－${l.amount}</td>
+            <td>${l.note || '-'}</td>
+          </tr>`).join('')
+    : `<tr><td colspan="3" class="log-empty">尚無紀錄</td></tr>`;
   return { html, count: logs.length };
 }
 
@@ -390,24 +397,36 @@ async function deleteInv(specKey, displayName) {
 
 // ─── 水晶 / 配件進貨更新 ──────────────────
 
-async function runSyncCrystal() {
-  const btn = event.currentTarget;
+function runSyncCrystal() {
+  // 預設今天
+  const today = new Date().toISOString().slice(0, 10);
+  document.getElementById('sync-date').value = today;
+  openModal('syncDateModal');
+}
+
+async function confirmSyncCrystal() {
+  const dateStr = document.getElementById('sync-date').value;
+  if (!dateStr) { showToast('請選擇進貨日期', 'warning'); return; }
+  const btn = document.querySelector('#syncDateModal .btn-primary');
   btn.disabled = true; btn.textContent = '更新中...';
   try {
-    const result = await syncCrystalInventory();
-    if (!result.added.length) {
-      showToast('水晶庫存已是最新，無需更新', 'info');
+    const result = await syncCrystalInventoryByDate(dateStr);
+    closeModal('syncDateModal');
+    if (!result.updated.length && !result.noSetting.length) {
+      showToast(`${dateStr} 無進貨紀錄`, 'info');
     } else {
-      showToast(`已新增 ${result.added.length} 筆水晶庫存項目`, 'success', 6000);
-      if (result.noInitialSetting.length) {
-        showToast(`以下規格尚未設定初始庫存，請至「初始庫存設定」補充：\n${result.noInitialSetting.join('、')}`, 'warning', 10000);
+      if (result.updated.length) {
+        showToast(`已更新 ${result.updated.length} 項水晶庫存（${dateStr}）`, 'success', 6000);
+      }
+      if (result.noSetting.length) {
+        showToast(`以下規格尚未設定初始庫存：${result.noSetting.join('、')}`, 'warning', 10000);
       }
       await loadInventory();
     }
   } catch(e) {
     showToast(`更新失敗：${e.message}`, 'danger');
   } finally {
-    btn.disabled = false; btn.textContent = '水晶進貨更新';
+    btn.disabled = false; btn.textContent = '確認更新';
   }
 }
 
