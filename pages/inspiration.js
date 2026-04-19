@@ -20,11 +20,22 @@ async function loadAll(keyword = '') {
       getInventory()
     ]);
     allInventory = inventory;
+    fillCrystalDatalist();
     renderCards(inspirations);
   } catch(e) {
     document.getElementById('insp-container').innerHTML =
       `<div class="empty-state"><div class="empty-state-text">${e.message}</div></div>`;
   }
+}
+
+function fillCrystalDatalist() {
+  const crystalInv = allInventory.filter(i => i.type === 'crystal');
+  const names  = [...new Set(crystalInv.map(i => i.crystalName).filter(Boolean))].sort();
+  const sizes  = [...new Set(crystalInv.map(i => i.size ? i.size + 'mm' : '').filter(Boolean))].sort();
+  const shapes = [...new Set(crystalInv.map(i => i.typeB).filter(Boolean))].sort();
+  fillDatalist(document.getElementById('dl-crystal-name'),  names);
+  fillDatalist(document.getElementById('dl-crystal-size'),  sizes);
+  fillDatalist(document.getElementById('dl-crystal-shape'), shapes);
 }
 
 // ─── 渲染卡片 ────────────────────────────────
@@ -174,14 +185,7 @@ function openAddModal() {
   document.getElementById('edit-modal-title').textContent = '＋ 新增收藏';
   document.getElementById('edit-save-btn').textContent = '儲存';
   ['f-imageUrl','f-sourceUrl','f-tags','f-notes'].forEach(id => document.getElementById(id).value = '');
-  document.getElementById('crystal-search').value = '';
-  document.getElementById('acc-search').value = '';
-  document.getElementById('crystal-manual').value = '';
-  document.getElementById('acc-manual').value = '';
-  renderSelectedCrystals();
-  renderSelectedAccessories();
-  document.getElementById('crystal-results').innerHTML = '';
-  document.getElementById('acc-results').innerHTML = '';
+  resetModalInputs();
   openModal('editModal');
 }
 
@@ -198,15 +202,20 @@ async function openEditById(id) {
   document.getElementById('f-sourceUrl').value = item.sourceUrl || '';
   document.getElementById('f-tags').value = (item.tags || []).join(',');
   document.getElementById('f-notes').value = item.notes || '';
-  document.getElementById('crystal-search').value = '';
-  document.getElementById('acc-search').value = '';
-  document.getElementById('crystal-manual').value = '';
-  document.getElementById('acc-manual').value = '';
+  resetModalInputs(false);
+  openModal('editModal');
+}
+
+function resetModalInputs(clearForm = true) {
+  if (clearForm) {
+    ['f-imageUrl','f-sourceUrl','f-tags','f-notes'].forEach(id => document.getElementById(id).value = '');
+  }
+  ['crystal-search','crystal-manual-name','crystal-manual-size','crystal-manual-shape',
+   'acc-search','acc-manual'].forEach(id => document.getElementById(id).value = '');
   renderSelectedCrystals();
   renderSelectedAccessories();
   document.getElementById('crystal-results').innerHTML = '';
   document.getElementById('acc-results').innerHTML = '';
-  openModal('editModal');
 }
 
 async function submitInspiration() {
@@ -291,13 +300,18 @@ function addCrystalFromInv(inv) {
 }
 
 function addManualCrystal() {
-  const val = document.getElementById('crystal-manual').value.trim();
-  if (!val) return;
-  if (selectedCrystals.find(m => m.displayName === val)) {
+  const name  = document.getElementById('crystal-manual-name').value.trim();
+  const size  = document.getElementById('crystal-manual-size').value.trim();
+  const shape = document.getElementById('crystal-manual-shape').value.trim();
+  if (!name) { showToast('請至少填寫水晶名稱', 'warning'); return; }
+  const parts = [name, size, shape].filter(Boolean);
+  const displayName = parts.join(' ');
+  if (selectedCrystals.find(m => m.displayName === displayName)) {
     showToast('已加入', 'warning'); return;
   }
-  selectedCrystals.push({ displayName: val, isManual: true });
-  document.getElementById('crystal-manual').value = '';
+  selectedCrystals.push({ displayName, crystalName: name, isManual: true });
+  ['crystal-manual-name','crystal-manual-size','crystal-manual-shape'].forEach(id =>
+    document.getElementById(id).value = '');
   renderSelectedCrystals();
 }
 

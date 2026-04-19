@@ -108,8 +108,10 @@
       opacity: 0.6;
     }
     .mat-tag-remove:hover { opacity: 1; }
-    .manual-input-row { display: flex; gap: 6px; margin-top: 8px; }
-    .manual-input-row input { flex: 1; }
+    .manual-input-row { display: flex; gap: 6px; margin-top: 8px; align-items: flex-end; flex-wrap: wrap; }
+    .manual-input-row .manual-field { display: flex; flex-direction: column; gap: 4px; flex: 1; min-width: 90px; }
+    .manual-input-row .manual-field label { font-size: 11px; color: var(--text-muted); margin: 0; }
+    .manual-input-row .manual-field input { width: 100%; }
   </style>
 </head>
 <body>
@@ -189,8 +191,22 @@
           <div class="mat-selector-results" id="crystal-results"></div>
           <div class="mat-selected-tags" id="crystal-selected"></div>
           <div class="manual-input-row">
-            <input class="form-control" id="crystal-manual" type="text" placeholder="庫存找不到？手動輸入材料名稱">
-            <button class="btn btn-secondary btn-sm" onclick="addManualCrystal()">新增</button>
+            <div class="manual-field">
+              <label>水晶名稱</label>
+              <input class="form-control" id="crystal-manual-name" type="text" list="dl-crystal-name" placeholder="如：白水晶" autocomplete="off">
+              <datalist id="dl-crystal-name"></datalist>
+            </div>
+            <div class="manual-field" style="max-width:100px">
+              <label>尺寸</label>
+              <input class="form-control" id="crystal-manual-size" type="text" list="dl-crystal-size" placeholder="如：8mm" autocomplete="off">
+              <datalist id="dl-crystal-size"></datalist>
+            </div>
+            <div class="manual-field">
+              <label>形狀</label>
+              <input class="form-control" id="crystal-manual-shape" type="text" list="dl-crystal-shape" placeholder="如：圓珠" autocomplete="off">
+              <datalist id="dl-crystal-shape"></datalist>
+            </div>
+            <button class="btn btn-secondary btn-sm" style="margin-bottom:1px" onclick="addManualCrystal()">新增</button>
           </div>
         </div>
 
