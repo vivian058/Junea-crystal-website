@@ -6,31 +6,15 @@
   <title>玖釀水晶管理系統</title>
   <link rel="stylesheet" href="css/style.css">
   <style>
-    body { background: var(--bg); }
-    .index-nav {
-      background: white;
-      border-bottom: 1px solid var(--border);
-      padding: 0 40px;
-      height: 60px;
-      display: flex;
-      align-items: center;
-    }
-    .index-brand {
-      font-size: 16px;
-      font-weight: 700;
-      color: var(--text);
-      letter-spacing: 2px;
-    }
-    .index-brand span { color: var(--secondary); }
     .hero {
       text-align: center;
-      padding: 64px 20px 44px;
+      padding: 56px 20px 40px;
     }
     .hero-title {
-      font-size: 26px;
+      font-size: 28px;
       font-weight: 700;
       color: var(--text);
-      letter-spacing: 3px;
+      letter-spacing: 4px;
       margin-bottom: 8px;
     }
     .hero-title span { color: var(--secondary); }
@@ -41,9 +25,10 @@
     }
     .nav-cards {
       display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+      grid-template-columns: repeat(3, 1fr);
+      grid-auto-rows: 1fr;
       gap: 16px;
-      max-width: 1080px;
+      max-width: 960px;
       margin: 0 auto;
       padding: 0 24px 72px;
     }
@@ -53,8 +38,10 @@
       border: 1px solid var(--border);
       padding: 28px 24px;
       text-decoration: none;
-      display: block;
+      display: flex;
+      flex-direction: column;
       transition: all 0.2s;
+      box-shadow: var(--shadow);
     }
     .nav-card:hover {
       border-color: var(--primary);
@@ -66,30 +53,30 @@
       font-weight: 600;
       color: var(--primary);
       letter-spacing: 3px;
-      margin-bottom: 10px;
+      margin-bottom: 12px;
     }
     .nav-card-title {
-      font-size: 15px;
+      font-size: 16px;
       font-weight: 700;
       color: var(--text);
-      margin-bottom: 8px;
+      margin-bottom: 10px;
     }
     .nav-card-desc {
       font-size: 13px;
       color: var(--text-muted);
       line-height: 1.7;
+      flex: 1;
     }
-    @media (max-width: 480px) {
+    @media (max-width: 640px) {
+      .nav-cards { grid-template-columns: repeat(2, 1fr); }
+    }
+    @media (max-width: 400px) {
       .nav-cards { grid-template-columns: 1fr; }
-      .hero-title { font-size: 20px; }
+      .hero-title { font-size: 22px; }
     }
   </style>
 </head>
 <body>
-  <nav class="index-nav">
-    <div class="index-brand">玖釀 <span>Crystal</span></div>
-  </nav>
-
   <div class="hero">
     <div class="hero-title">玖釀 <span>水晶管理系統</span></div>
     <div class="hero-sub">成本記錄 · 庫存管理 · 設計款成本計算</div>
@@ -119,7 +106,7 @@
     <a href="pages/initial-stock.html" class="nav-card">
       <div class="nav-card-num">05</div>
       <div class="nav-card-title">初始庫存設定</div>
-      <div class="nav-card-desc">設定各規格水晶每次進貨的預設顆數</div>
+      <div class="nav-card-desc">設定各規格水晶及配件每次進貨的預設數量</div>
     </a>
     <a href="pages/crystal-effects.html" class="nav-card">
       <div class="nav-card-num">06</div>
