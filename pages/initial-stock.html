@@ -105,9 +105,12 @@
           </div>
         </div>
       </div>
-      <div class="modal-footer">
-        <button class="btn btn-secondary" onclick="closeModal('addModal')">取消</button>
-        <button class="btn btn-primary" onclick="submitSetting()">儲存設定</button>
+      <div class="modal-footer" style="flex-direction:column;align-items:stretch;gap:8px">
+        <div id="setting-error" style="display:none;color:var(--danger);font-size:13px;padding:0 2px"></div>
+        <div style="display:flex;justify-content:flex-end;gap:8px">
+          <button class="btn btn-secondary" onclick="closeModal('addModal')">取消</button>
+          <button class="btn btn-primary" onclick="submitSetting()">儲存設定</button>
+        </div>
       </div>
     </div>
   </div>

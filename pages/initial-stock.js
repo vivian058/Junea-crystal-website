@@ -158,11 +158,15 @@ async function submitSetting() {
     showToast('請填寫有效的預設顆數', 'warning'); return;
   }
 
+  const errEl = document.getElementById('setting-error');
+  errEl.style.display = 'none'; errEl.textContent = '';
+
   // 新增模式才做重複檢查
   if (!editingSpecKey) {
     const exists = await checkInitialStockSettingExists(data);
     if (exists) {
-      showToast(`「${data.size}mm ${data.typeB} ${data.typeA}」已存在，請直接編輯該筆設定`, 'warning', 6000);
+      errEl.textContent = `「${data.size}mm ${data.typeB} ${data.typeA}」規格已存在，請直接編輯該筆設定`;
+      errEl.style.display = 'block';
       return;
     }
   }
@@ -192,6 +196,8 @@ function resetForm() {
   });
   document.getElementById('s-typeA').value = '';
   document.getElementById('modal-title').textContent = '＋ 新增規格設定';
+  const errEl = document.getElementById('setting-error');
+  if (errEl) { errEl.style.display = 'none'; errEl.textContent = ''; }
   editingSpecKey = null;
 }
 
