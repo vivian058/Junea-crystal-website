@@ -13,7 +13,7 @@
     <div class="flex-between mb-20">
       <div class="page-title">水晶成本表</div>
       <div style="display:flex;gap:8px">
-        <button class="btn btn-secondary" onclick="openModal('guideModal')">使用說明</button>
+        <button style="background:none;border:1px dashed var(--border);color:var(--text-muted);border-radius:6px;padding:6px 14px;cursor:pointer;font-size:13px" onclick="openModal('guideModal')">使用說明</button>
         <button class="btn btn-secondary" onclick="openModal('uploadModal')">匯入 Excel</button>
         <button class="btn btn-primary" onclick="openAddModal()">＋ 新增進貨</button>
       </div>
@@ -91,19 +91,19 @@
         <p style="color:var(--text-muted);margin-bottom:16px">請依照以下順序操作，確保庫存數量正確。</p>
 
         <div style="margin-bottom:20px">
-          <div style="font-weight:700;color:var(--primary-dark);margin-bottom:8px">① 新增水晶進貨資料（本頁）</div>
+          <div style="font-weight:700;color:var(--primary-dark);margin-bottom:8px">① 確認初始庫存設定（初始庫存設定頁）</div>
           <div style="color:var(--text);padding-left:12px">
-            在此頁點「＋ 新增進貨」，填入水晶名稱、尺寸、形狀、規格、進貨日期與數量。<br>
-            <span style="color:var(--text-muted);font-size:13px">每筆進貨都要記錄，系統才能正確對應。</span>
+            先到「初始庫存設定」頁，確認每個規格（尺寸 ＋ 形狀 ＋ 規格）都有對應的預設顆數設定。<br>
+            若庫存表出現「初始資料待設定」標籤，請先補上再繼續後續步驟。<br>
+            <span style="color:var(--text-muted);font-size:13px">格式範例：6mm ＋ 圓珠 ＋ 條珠 → 預設顆數 47</span>
           </div>
         </div>
 
         <div style="margin-bottom:20px">
-          <div style="font-weight:700;color:var(--primary-dark);margin-bottom:8px">② 確認初始庫存設定（初始庫存設定頁）</div>
+          <div style="font-weight:700;color:var(--primary-dark);margin-bottom:8px">② 匯入進貨資料（本頁）</div>
           <div style="color:var(--text);padding-left:12px">
-            每個規格（尺寸 ＋ 形狀 ＋ 規格）都要有對應的初始設定，才能在庫存更新時正確算量。<br>
-            若庫存表出現「初始資料待設定」標籤，請先到初始庫存設定頁補上對應規格。<br>
-            <span style="color:var(--text-muted);font-size:13px">格式範例：6mm ＋ 圓珠 ＋ 條珠 → 預設顆數 47</span>
+            初始設定確認完畢後，回到本頁點「匯入 Excel」→ 下載範本，填入水晶名稱、尺寸、形狀、規格、進貨日期與數量後上傳。<br>
+            <span style="color:var(--text-muted);font-size:13px">每次進貨都要記錄，系統才能正確對應日期與數量。</span>
           </div>
         </div>
 
@@ -111,7 +111,7 @@
           <div style="font-weight:700;color:var(--primary-dark);margin-bottom:8px">③ 執行水晶進貨更新（庫存表頁）</div>
           <div style="color:var(--text);padding-left:12px">
             到「庫存表」頁，點右上角「水晶進貨更新」，選擇進貨日期後確認。<br>
-            系統會自動找出當天的進貨紀錄，依初始設定的預設顆數累加到對應規格的庫存。<br>
+            系統會自動找出當天進貨紀錄，依初始設定的預設顆數累加到對應規格庫存。<br>
             <span style="color:var(--warning);font-size:13px">⚠ 同一筆進貨不要重複執行更新，會重複加量。</span>
           </div>
         </div>
