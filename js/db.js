@@ -300,8 +300,10 @@ async function syncCrystalInventoryByDate(dateStr) {
   if (!forDate.length) return { updated: [], noSetting: [], notFound: [] };
 
   const settingsSnap = await db.collection(COLLECTIONS.INITIAL_STOCK).get();
+  // 正規化 key，讓 4*6 / 4×6 / 5~6 / 5-6 等字符變異都能匹配
+  const normalizeKey = k => String(k || '').replace(/[×✕*xX]/g, 'X').replace(/[~－—–-]/g, '~').toLowerCase();
   const settingsMap = {};
-  settingsSnap.docs.forEach(d => { settingsMap[d.id] = d.data(); });
+  settingsSnap.docs.forEach(d => { settingsMap[normalizeKey(d.id)] = d.data(); });
 
   const invSnap = await db.collection(COLLECTIONS.INVENTORY).get();
   const invMap = {};
@@ -312,7 +314,7 @@ async function syncCrystalInventoryByDate(dateStr) {
 
   for (const r of forDate) {
     const patternKey = makeCrystalPatternKey(r.size, r.typeA, r.typeB);
-    const setting = settingsMap[patternKey];
+    const setting = settingsMap[normalizeKey(patternKey)];
     const displayName = r.displayName || `${r.crystalName} ${r.size}mm ${r.typeB} ${r.typeA}`;
 
     if (!setting) { noSetting.push(displayName); continue; }
