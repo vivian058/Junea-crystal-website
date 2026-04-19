@@ -21,6 +21,7 @@ async function loadAll(keyword = '') {
     ]);
     allInventory = inventory;
     fillCrystalDatalist();
+    fillAccessoryDatalist();
     renderCards(inspirations);
   } catch(e) {
     document.getElementById('insp-container').innerHTML =
@@ -36,6 +37,14 @@ function fillCrystalDatalist() {
   fillDatalist(document.getElementById('dl-crystal-name'),  names);
   fillDatalist(document.getElementById('dl-crystal-size'),  sizes);
   fillDatalist(document.getElementById('dl-crystal-shape'), shapes);
+}
+
+function fillAccessoryDatalist() {
+  const accInv = allInventory.filter(i => i.type === 'accessory');
+  const names = [...new Set(accInv.map(i => i.productName).filter(Boolean))].sort();
+  const sizes = [...new Set(accInv.map(i => i.spec).filter(Boolean))].sort();
+  fillDatalist(document.getElementById('dl-acc-name'), names);
+  fillDatalist(document.getElementById('dl-acc-size'), sizes);
 }
 
 // ─── 渲染卡片 ────────────────────────────────
@@ -211,7 +220,7 @@ function resetModalInputs(clearForm = true) {
     ['f-imageUrl','f-sourceUrl','f-tags','f-notes'].forEach(id => document.getElementById(id).value = '');
   }
   ['crystal-search','crystal-manual-name','crystal-manual-size','crystal-manual-shape',
-   'acc-search','acc-manual'].forEach(id => document.getElementById(id).value = '');
+   'acc-search','acc-manual-name','acc-manual-size','acc-manual-color'].forEach(id => document.getElementById(id).value = '');
   renderSelectedCrystals();
   renderSelectedAccessories();
   document.getElementById('crystal-results').innerHTML = '';
@@ -366,13 +375,18 @@ function addAccessoryFromInv(inv) {
 }
 
 function addManualAccessory() {
-  const val = document.getElementById('acc-manual').value.trim();
-  if (!val) return;
-  if (selectedAccessories.find(m => m.displayName === val)) {
+  const name  = document.getElementById('acc-manual-name').value.trim();
+  const size  = document.getElementById('acc-manual-size').value.trim();
+  const color = document.getElementById('acc-manual-color').value.trim();
+  if (!name) { showToast('請至少填寫配件名稱', 'warning'); return; }
+  const parts = [name, size, color].filter(Boolean);
+  const displayName = parts.join(' ');
+  if (selectedAccessories.find(m => m.displayName === displayName)) {
     showToast('已加入', 'warning'); return;
   }
-  selectedAccessories.push({ displayName: val, isManual: true });
-  document.getElementById('acc-manual').value = '';
+  selectedAccessories.push({ displayName, productName: name, isManual: true });
+  ['acc-manual-name','acc-manual-size','acc-manual-color'].forEach(id =>
+    document.getElementById(id).value = '');
   renderSelectedAccessories();
 }
 

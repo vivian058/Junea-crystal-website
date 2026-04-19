@@ -45,7 +45,7 @@
     .insp-card-actions { display: flex; gap: 6px; margin-top: 10px; }
 
     /* 詳情 Modal */
-    .detail-img { width: 100%; max-height: 320px; object-fit: contain; border-radius: 8px; background: var(--bg); margin-bottom: 16px; }
+    .detail-img { width: 100%; height: auto; display: block; border-radius: 8px 8px 0 0; margin: -24px -24px 16px; width: calc(100% + 48px); }
     .mat-list { display: flex; flex-direction: column; gap: 8px; }
     .mat-item {
       display: flex;
@@ -141,7 +141,7 @@
 
   <!-- 詳情 Modal -->
   <div class="modal-overlay" id="detailModal">
-    <div class="modal" style="max-width:640px">
+    <div class="modal" style="max-width:480px">
       <div class="modal-header">
         <div class="modal-title" id="detail-title">作品詳情</div>
         <button class="modal-close" onclick="closeModal('detailModal')">✕</button>
@@ -219,8 +219,25 @@
           <div class="mat-selector-results" id="acc-results"></div>
           <div class="mat-selected-tags" id="acc-selected"></div>
           <div class="manual-input-row">
-            <input class="form-control" id="acc-manual" type="text" placeholder="庫存找不到？手動輸入材料名稱">
-            <button class="btn btn-secondary btn-sm" onclick="addManualAccessory()">新增</button>
+            <div class="manual-field">
+              <label>配件名稱</label>
+              <input class="form-control" id="acc-manual-name" type="text" list="dl-acc-name" placeholder="如：彈力繩" autocomplete="off">
+              <datalist id="dl-acc-name"></datalist>
+            </div>
+            <div class="manual-field" style="max-width:100px">
+              <label>尺寸</label>
+              <input class="form-control" id="acc-manual-size" type="text" list="dl-acc-size" placeholder="如：3mm" autocomplete="off">
+              <datalist id="dl-acc-size"></datalist>
+            </div>
+            <div class="manual-field" style="max-width:110px">
+              <label>顏色</label>
+              <input class="form-control" id="acc-manual-color" type="text" list="dl-acc-color" placeholder="如：銀色" autocomplete="off">
+              <datalist id="dl-acc-color">
+                <option value="銀色"><option value="金色"><option value="玫瑰金">
+                <option value="黑色"><option value="白色"><option value="透明">
+              </datalist>
+            </div>
+            <button class="btn btn-secondary btn-sm" style="margin-bottom:1px" onclick="addManualAccessory()">新增</button>
           </div>
         </div>
       </div>
