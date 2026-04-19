@@ -13,7 +13,8 @@ function normalizePatternKey(key) {
     .toLowerCase();
 }
 let editingSpecKey = '';
-let crystalColFilter = { name: '', size: '', typeB: '', typeA: '' };
+let crystalColFilter = { name: [], size: [], typeB: [], typeA: [] };
+let _activeFilterCol = null;
 
 document.addEventListener('DOMContentLoaded', async () => {
   document.getElementById('navbar-root').innerHTML = renderNav('庫存表');
@@ -56,14 +57,14 @@ function filterInventory() {
     .filter(i => i.type === 'crystal' || !i.type)
     .filter(i => {
       const parts = (i.displayName || '').split(' ');
-      const cn = (i.crystalName || parts[0] || '').toLowerCase();
-      const sz = String(i.size || parts[1] || '').replace(/mm$/i, '').toLowerCase();
-      const tb = (i.typeB || parts[2] || '').toLowerCase();
-      const ta = (i.typeA || parts[3] || '').toLowerCase();
-      return (!name || cn.includes(name.toLowerCase()))
-        && (!size || sz.includes(size.toLowerCase()))
-        && (!typeB || tb.includes(typeB.toLowerCase()))
-        && (!typeA || ta.includes(typeA.toLowerCase()));
+      const cn = (i.crystalName || parts[0] || '');
+      const sz = String(i.size || parts[1] || '').replace(/mm$/i, '').trim();
+      const tb = (i.typeB || parts[2] || '');
+      const ta = (i.typeA || parts[3] || '');
+      return (!name.length || name.includes(cn))
+        && (!size.length || size.includes(sz))
+        && (!typeB.length || typeB.includes(tb))
+        && (!typeA.length || typeA.includes(ta));
     });
   const accessories = filtered.filter(i => i.type === 'accessory');
 
@@ -71,13 +72,86 @@ function filterInventory() {
   renderAccessoryTable(accessories);
 }
 
-function onCrystalFilter() {
-  ['name','size','typeB','typeA'].forEach(f => {
-    const el = document.getElementById('cf-' + f);
-    if (el) crystalColFilter[f] = el.value;
+// ─── 欄位下拉篩選 ─────────────────────────
+
+function _getColValues(field) {
+  const vals = new Set();
+  allInventory.filter(i => i.type === 'crystal' || !i.type).forEach(i => {
+    const parts = (i.displayName || '').split(' ');
+    if (field === 'name') vals.add(i.crystalName || parts[0] || '');
+    else if (field === 'size') vals.add(String(i.size || parts[1] || '').replace(/mm$/i,'').trim());
+    else if (field === 'typeB') vals.add(i.typeB || parts[2] || '');
+    else if (field === 'typeA') vals.add(i.typeA || parts[3] || '');
   });
+  return [...vals].filter(Boolean).sort();
+}
+
+function openColFilter(event, field) {
+  event.stopPropagation();
+  const btn = event.currentTarget;
+  const rect = btn.getBoundingClientRect();
+  const dd = document.getElementById('col-filter-dd');
+  _activeFilterCol = field;
+
+  const vals = _getColValues(field);
+  const selected = new Set(crystalColFilter[field]);
+  const allChecked = selected.size === 0;
+
+  document.getElementById('cfd-all').checked = allChecked;
+  document.getElementById('cfd-options').innerHTML = vals.map(v =>
+    `<label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:13px;padding:3px 4px;border-radius:4px" onmouseover="this.style.background='#f5f0ff'" onmouseout="this.style.background=''">
+      <input type="checkbox" value="${v.replace(/"/g,'&quot;')}" ${allChecked || selected.has(v) ? 'checked' : ''}> ${v}
+    </label>`
+  ).join('');
+
+  document.getElementById('cfd-all').onchange = function() {
+    document.querySelectorAll('#cfd-options input[type=checkbox]').forEach(c => c.checked = this.checked);
+  };
+  document.querySelectorAll('#cfd-options input[type=checkbox]').forEach(c => {
+    c.onchange = () => {
+      const all = document.querySelectorAll('#cfd-options input[type=checkbox]');
+      const allCk = [...all].every(x => x.checked);
+      document.getElementById('cfd-all').checked = allCk;
+    };
+  });
+
+  dd.style.display = 'block';
+  const ddW = 180;
+  let left = rect.left + window.scrollX;
+  if (left + ddW > window.innerWidth) left = window.innerWidth - ddW - 8;
+  dd.style.left = left + 'px';
+  dd.style.top = (rect.bottom + window.scrollY + 4) + 'px';
+}
+
+function applyColFilter() {
+  if (!_activeFilterCol) return;
+  const boxes = document.querySelectorAll('#cfd-options input[type=checkbox]');
+  const allChecked = document.getElementById('cfd-all').checked;
+  if (allChecked || [...boxes].every(b => b.checked)) {
+    crystalColFilter[_activeFilterCol] = [];
+  } else {
+    crystalColFilter[_activeFilterCol] = [...boxes].filter(b => b.checked).map(b => b.value);
+  }
+  closeColFilter();
   filterInventory();
 }
+
+function clearColFilter() {
+  if (!_activeFilterCol) return;
+  crystalColFilter[_activeFilterCol] = [];
+  document.getElementById('cfd-all').checked = true;
+  document.querySelectorAll('#cfd-options input[type=checkbox]').forEach(c => c.checked = true);
+}
+
+function closeColFilter() {
+  document.getElementById('col-filter-dd').style.display = 'none';
+  _activeFilterCol = null;
+}
+
+document.addEventListener('click', (e) => {
+  const dd = document.getElementById('col-filter-dd');
+  if (dd && !dd.contains(e.target)) closeColFilter();
+});
 
 
 // ─── 行內編輯 ────────────────────────────
@@ -235,27 +309,15 @@ function buildCrystalInventoryRows(items) {
             <th style="width:40px;text-align:center">
               <input type="checkbox" id="inv-check-all-crystal" onchange="toggleInvSelectAll(this,'crystal')" title="全選">
             </th>
-            <th style="min-width:100px">水晶名稱</th>
-            <th style="min-width:70px">尺寸</th>
-            <th style="min-width:80px">形狀</th>
-            <th style="min-width:80px">規格</th>
+            ${['name','size','typeB','typeA'].map((f, i) => {
+              const labels = ['水晶名稱','尺寸','形狀','規格'];
+              const widths = ['min-width:100px','min-width:70px','min-width:80px','min-width:80px'];
+              const active = crystalColFilter[f].length > 0;
+              return `<th style="${widths[i]}"><span style="display:flex;align-items:center;gap:4px">${labels[i]}<button onclick="openColFilter(event,'${f}')" style="background:none;border:none;cursor:pointer;font-size:14px;padding:0;line-height:1;color:${active ? 'var(--primary)' : 'var(--text-muted)'}" title="篩選">▾</button></span></th>`;
+            }).join('')}
             <th style="min-width:130px">庫存數量</th>
             <th style="min-width:100px">最後更新</th>
             <th style="min-width:360px">操作</th>
-          </tr>
-          <tr style="background:#f5f0ff">
-            <th></th>
-            <th><input id="cf-name" style="width:100%;font-size:12px;border:1px solid var(--border);border-radius:4px;padding:3px 6px;background:#fff;box-sizing:border-box" placeholder="篩選名稱…" oninput="onCrystalFilter()"></th>
-            <th><input id="cf-size" style="width:100%;font-size:12px;border:1px solid var(--border);border-radius:4px;padding:3px 6px;background:#fff;box-sizing:border-box" placeholder="篩選尺寸…" oninput="onCrystalFilter()"></th>
-            <th>
-              <input id="cf-typeB" style="width:100%;font-size:12px;border:1px solid var(--border);border-radius:4px;padding:3px 6px;background:#fff;box-sizing:border-box" list="cf-dl-typeB" placeholder="篩選形狀…" oninput="onCrystalFilter()">
-              <datalist id="cf-dl-typeB"><option value="圓珠"><option value="扁刻面"><option value="算盤珠"><option value="心形"><option value="水滴"><option value="橢圓"><option value="方形"><option value="近圓"><option value="螺紋米珠"><option value="隨行切面"></datalist>
-            </th>
-            <th>
-              <input id="cf-typeA" style="width:100%;font-size:12px;border:1px solid var(--border);border-radius:4px;padding:3px 6px;background:#fff;box-sizing:border-box" list="cf-dl-typeA" placeholder="篩選規格…" oninput="onCrystalFilter()">
-              <datalist id="cf-dl-typeA"><option value="條珠"><option value="成品串"><option value="條珠三圈"></datalist>
-            </th>
-            <th></th><th></th><th></th>
           </tr>
         </thead>
         <tbody>${rows}</tbody>
@@ -353,11 +415,6 @@ function buildAccessoryInventoryRows(items) {
 
 function renderCrystalTable(items) {
   document.getElementById('crystal-table').innerHTML = buildCrystalInventoryRows(items);
-  // 恢復欄位篩選輸入值
-  ['name','size','typeB','typeA'].forEach(f => {
-    const el = document.getElementById('cf-' + f);
-    if (el) el.value = crystalColFilter[f] || '';
-  });
 }
 
 function renderAccessoryTable(items) {

@@ -90,6 +90,18 @@
     </div>
   </div>
 
+  <!-- 欄位篩選下拉 -->
+  <div id="col-filter-dd" style="position:absolute;display:none;background:#fff;border:1px solid var(--border);border-radius:8px;box-shadow:0 4px 16px rgba(0,0,0,0.14);padding:10px;z-index:2000;min-width:160px;max-height:280px;overflow-y:auto">
+    <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:13px;font-weight:600;padding:3px 4px;border-bottom:1px solid var(--border);margin-bottom:6px;padding-bottom:6px">
+      <input type="checkbox" id="cfd-all" checked> 全選
+    </label>
+    <div id="cfd-options"></div>
+    <div style="margin-top:8px;padding-top:6px;border-top:1px solid var(--border);display:flex;gap:6px">
+      <button onclick="applyColFilter()" class="btn btn-primary btn-sm" style="flex:1;font-size:12px">套用</button>
+      <button onclick="clearColFilter()" class="btn btn-secondary btn-sm" style="font-size:12px">清除</button>
+    </div>
+  </div>
+
   <!-- 手動新增水晶庫存 Modal -->
   <div class="modal-overlay" id="addCrystalModal">
     <div class="modal" style="max-width:480px">
