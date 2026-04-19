@@ -3,7 +3,15 @@
 // =============================================
 
 let allInventory = [];
-let initialSettingKeys = new Set(); // 有初始庫存設定的 specKey
+let initialSettingKeys = new Set(); // 有初始庫存設定的 specKey（正規化後）
+
+// 正規化 patternKey，讓 4*6 / 4×6 / 4x6 / 5~6 / 5-6 都能互相匹配
+function normalizePatternKey(key) {
+  return String(key || '')
+    .replace(/[×✕*xX]/g, 'X')
+    .replace(/[~－—–-]/g, '~')
+    .toLowerCase();
+}
 let damagingSpecKey = '';
 let damagingDisplayName = '';
 let editingSpecKey = '';
@@ -25,8 +33,8 @@ async function loadInventory() {
       getInitialStockSettings()
     ]);
     allInventory = inventory;
-    // 只保留通用規格鍵（SIZE_ 開頭），用於 pattern 比對
-    initialSettingKeys = new Set(settings.filter(s => s.specKey && s.specKey.startsWith('SIZE_')).map(s => s.specKey));
+    // 只保留通用規格鍵（SIZE_ 開頭），正規化後存入 Set
+    initialSettingKeys = new Set(settings.filter(s => s.specKey && s.specKey.startsWith('SIZE_')).map(s => normalizePatternKey(s.specKey)));
     renderLowStockAlerts(allInventory);
     filterInventory();
   } catch(e) {
@@ -59,9 +67,9 @@ function renderLowStockAlerts(items) {
     if (qty >= 20) return false;
     if (i.type === 'crystal') {
       const pk = makeCrystalPatternKey(i.size || '', i.typeA || '', i.typeB || '');
-      if (qty === 0 && !initialSettingKeys.has(pk)) return false;
+      if (qty === 0 && !initialSettingKeys.has(normalizePatternKey(pk))) return false;
     } else {
-      if (qty === 0 && !initialSettingKeys.has(i.specKey || i.id)) return false;
+      if (qty === 0 && !initialSettingKeys.has(normalizePatternKey(i.specKey || i.id))) return false;
     }
     return true;
   });
@@ -111,7 +119,7 @@ function buildCrystalInventoryRows(items) {
     const typeB = item.typeB || parts[2] || '-';
     const typeA = item.typeA || parts[3] || '-';
     const patternKey = makeCrystalPatternKey(size, typeA, typeB);
-    const needsSetup = qty === 0 && !initialSettingKeys.has(patternKey);
+    const needsSetup = qty === 0 && !initialSettingKeys.has(normalizePatternKey(patternKey));
     const isLow = !needsSetup && qty < 20;
     const qtyClass = needsSetup ? 'qty-warn' : qty >= 50 ? 'qty-ok' : qty >= 20 ? 'qty-warn' : 'qty-danger';
     const { html: logRowsHtml, count: logCount } = buildLogRows(item);
@@ -191,7 +199,7 @@ function buildAccessoryInventoryRows(items) {
   const rows = items.flatMap(item => {
     const qty = item.quantity || 0;
     const specKey = item.specKey || item.id;
-    const needsSetup = qty === 0 && !initialSettingKeys.has(specKey);
+    const needsSetup = qty === 0 && !initialSettingKeys.has(normalizePatternKey(specKey));
     const isLow = !needsSetup && qty < 20;
     const qtyClass = needsSetup ? 'qty-warn' : qty >= 50 ? 'qty-ok' : qty >= 20 ? 'qty-warn' : 'qty-danger';
     const { html: logRowsHtml, count: logCount } = buildLogRows(item);
