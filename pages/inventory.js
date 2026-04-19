@@ -91,7 +91,7 @@ function buildLogEntries(item) {
 }
 
 function buildCrystalInventoryRows(items) {
-  if (!items.length) return '<div class="empty-state"><div class="empty-state-text">無符合項目</div></div>';
+  if (!items.length) return '<div class="empty-state"><div class="empty-state-text">\u7121\u7b26\u5408\u9805\u76ee</div></div>';
 
   const rows = items.flatMap(item => {
     const qty = item.quantity || 0;
@@ -113,20 +113,111 @@ function buildCrystalInventoryRows(items) {
     const logRows = logs.map(l => {
       const color = l.kind === 'restock' ? 'var(--success)' : 'var(--danger)';
       const sign = l.kind === 'restock' ? '＋' : '－';
-      const ek = l.key.replace(/'/g, "\'");
-      const en = (l.note || '').replace(/'/g, "\'");
-      const ei = item.id.replace(/'/g, "\'");
-      return `<tr class="log-row-${safeId}" style="display:none;background:#faf6ff">
-        <td></td>
-        <td style="font-size:12px;color:var(--text-muted);padding:5px 12px">${l.date || '-'}</td>
-        <td colspan="2"></td>
-        <td style="font-size:12px;font-weight:700;padding:5px 12px;color:${color}">${sign}${l.amount}</td>
-        <td style="font-size:12px;color:var(--text-muted);padding:5px 12px">${l.note || '-'}</td>
-        <td style="padding:5px 12px"><div style="display:flex;gap:4px">
-          <button class="btn btn-secondary btn-sm" style="font-size:11px;padding:2px 8px" onclick="openEditLogModal('${ei}','${l.kind}','${ek}',${l.amount},'${en}')">改</button>
-          <button class="btn btn-danger btn-sm" style="font-size:11px;padding:2px 8px" onclick="deleteLogEntryUI('${ei}','${l.kind}','${ek}')">刪</button>
-        </div></td>
-      </tr>`;
+      const ek = l.key.replace(/'/g, "\\'");
+      const en = (l.note || '').replace(/'/g, "\\'");
+      const ei = item.id.replace(/'/g, "\\'");
+      return '<tr class="log-row-' + safeId + '" style="display:none;background:#faf6ff">' +
+        '<td></td>' +
+        '<td style="font-size:12px;color:var(--text-muted);padding:5px 12px">' + (l.date || '-') + '</td>' +
+        '<td colspan="3"></td>' +
+        '<td style="font-size:12px;font-weight:700;padding:5px 12px;color:' + color + '">' + sign + l.amount + '</td>' +
+        '<td style="font-size:12px;color:var(--text-muted);padding:5px 12px">' + (l.note || '-') + '</td>' +
+        '<td style="padding:5px 12px"><div style="display:flex;gap:4px">' +
+        '<button class="btn btn-secondary btn-sm" style="font-size:11px;padding:2px 8px" onclick="openEditLogModal(\'' + ei + '\',\'' + l.kind + '\',\'' + ek + '\',' + l.amount + ',\'' + en + '\')">改</button>' +
+        '<button class="btn btn-danger btn-sm" style="font-size:11px;padding:2px 8px" onclick="deleteLogEntryUI(\'' + ei + '\',\'' + l.kind + '\',\'' + ek + '\')">刪</button>' +
+        '</div></td>' +
+        '</tr>';
+    }).join('');
+
+    return [
+      `<tr>
+        <td style="text-align:center;padding:8px 6px">
+          <input type="checkbox" class="inv-check-crystal" value="${item.id}" onchange="updateInvBulkBar('crystal')">
+        </td>
+        <td><strong>${crystalName}</strong></td>
+        <td>${size}</td>
+        <td>${typeB}</td>
+        <td><span class="badge badge-purple">${typeA}</span></td>
+        <td>
+          <span class="qty-big ${qtyClass}">${qty}</span>
+          <span style="font-size:12px;color:var(--text-muted)"> 題</span>
+          ${needsSetup ? '<span class="badge badge-warning" style="margin-left:6px">初始資料待設定</span>' : ''}
+          ${isLow ? '<span class="badge badge-danger" style="margin-left:6px">補貨</span>' : ''}
+        </td>
+        <td class="td-muted">${item.lastUpdated ? (item.lastUpdated.toDate ? item.lastUpdated.toDate().toLocaleDateString('zh-TW') : '') : '-'}</td>
+        <td>
+          <div class="action-btns">
+            <button class="btn btn-secondary btn-sm" onclick="openAdjustModal('${item.id}','${dn}',${qty})">調整</button>
+            <button class="btn btn-danger btn-sm" onclick="deleteInv('${item.id}','${dn}')">刪除</button>
+            <button class="log-toggle" onclick="toggleLog('${safeId}')">
+              調整紀錄${logCount ? ` (${logCount})` : ''} ▾
+            </button>
+          </div>
+        </td>
+      </tr>`,
+      logRows
+    ];
+  }).join('');
+
+  return `
+    <div id="inv-bulk-bar-crystal" style="display:none;padding:10px 16px;background:var(--primary-light);border-radius:6px;margin-bottom:8px;align-items:center;gap:12px">
+      <span id="inv-bulk-count-crystal" style="font-size:13px;color:var(--primary-dark);font-weight:600"></span>
+      <button class="btn btn-danger btn-sm" onclick="deleteInvSelected('crystal')">刪除已選</button>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th style="width:40px;text-align:center">
+              <input type="checkbox" id="inv-check-all-crystal" onchange="toggleInvSelectAll(this,'crystal')" title="全選">
+            </th>
+            <th style="min-width:100px">水晶名稱</th>
+            <th style="min-width:70px">尺寸</th>
+            <th style="min-width:80px">形狀</th>
+            <th style="min-width:80px">規格</th>
+            <th style="min-width:130px">庫存數量</th>
+            <th style="min-width:100px">最後更新</th>
+            <th style="min-width:360px">操作</th>
+          </tr>
+        </thead>
+        <tbody>${rows}</tbody>
+      </table>
+    </div>`;
+}
+
+// ─── 渲染表格（配件）─────────────
+
+function buildAccessoryInventoryRows(items) {
+  if (!items.length) return '<div class="empty-state"><div class="empty-state-text">\u7121\u7b26\u5408\u9805\u76ee</div></div>';
+
+  const rows = items.flatMap(item => {
+    const qty = item.quantity || 0;
+    const specKey = item.specKey || item.id;
+    const needsSetup = qty === 0 && !initialSettingKeys.has(normalizePatternKey(specKey));
+    const isLow = !needsSetup && qty < 20;
+    const qtyClass = needsSetup ? 'qty-warn' : qty >= 50 ? 'qty-ok' : qty >= 20 ? 'qty-warn' : 'qty-danger';
+    const logs = buildLogEntries(item);
+    const logCount = logs.length;
+    const safeId = item.id.replace(/[^a-zA-Z0-9_-]/g, '_');
+    const displayName = item.displayName || item.specKey || '';
+    const dn = displayName.replace(/'/g, "\\'");
+    const logRows = logs.map(l => {
+      const color = l.kind === 'restock' ? 'var(--success)' : 'var(--danger)';
+      const sign = l.kind === 'restock' ? '＋' : '－';
+      const ek = l.key.replace(/'/g, "\\'");
+      const en = (l.note || '').replace(/'/g, "\\'");
+      const ei = item.id.replace(/'/g, "\\'");
+      return '<tr class="log-row-' + safeId + '" style="display:none;background:#faf6ff">' +
+        '<td></td>' +
+        '<td style="font-size:12px;color:var(--text-muted);padding:5px 12px">' + (l.date || '-') + '</td>' +
+        '<td colspan="2"></td>' +
+        '<td style="font-size:12px;font-weight:700;padding:5px 12px;color:' + color + '">' + sign + l.amount + '</td>' +
+        '<td style="font-size:12px;color:var(--text-muted);padding:5px 12px">' + (l.note || '-') + '</td>' +
+        '<td style="padding:5px 12px"><div style="display:flex;gap:4px">' +
+        '<button class="btn btn-secondary btn-sm" style="font-size:11px;padding:2px 8px" onclick="openEditLogModal(\'' + ei + '\',\'' + l.kind + '\',\'' + ek + '\',' + l.amount + ',\'' + en + '\')">改</button>' +
+        '<button class="btn btn-danger btn-sm" style="font-size:11px;padding:2px 8px" onclick="deleteLogEntryUI(\'' + ei + '\',\'' + l.kind + '\',\'' + ek + '\')">刪</button>' +
+        '</div></td>' +
+        '</tr>';
     }).join('');
 
     return [
