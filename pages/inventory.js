@@ -122,10 +122,9 @@ function buildCrystalInventoryRows(items) {
         '<td colspan="3"></td>' +
         '<td style="font-size:12px;font-weight:700;padding:5px 12px;color:' + color + '">' + sign + l.amount + '</td>' +
         '<td style="font-size:12px;color:var(--text-muted);padding:5px 12px">' + (l.note || '-') + '</td>' +
-        '<td style="padding:5px 12px"><div style="display:flex;gap:4px">' +
-        '<button class="btn btn-secondary btn-sm" style="font-size:11px;padding:2px 8px" onclick="openEditLogModal(\'' + ei + '\',\'' + l.kind + '\',\'' + ek + '\',' + l.amount + ',\'' + en + '\')">改</button>' +
-        '<button class="btn btn-danger btn-sm" style="font-size:11px;padding:2px 8px" onclick="deleteLogEntryUI(\'' + ei + '\',\'' + l.kind + '\',\'' + ek + '\')">刪</button>' +
-        '</div></td>' +
+        '<td style="padding:5px 12px">' +
+        '<button style="background:none;border:none;cursor:pointer;font-size:12px;font-weight:700;color:var(--danger);padding:2px 6px" onclick="deleteLogEntryUI(\'' + ei + '\',\'' + l.kind + '\',\'' + ek + '\')">刪</button>' +
+        '</td>' +
         '</tr>';
     }).join('');
 
@@ -213,10 +212,9 @@ function buildAccessoryInventoryRows(items) {
         '<td colspan="2"></td>' +
         '<td style="font-size:12px;font-weight:700;padding:5px 12px;color:' + color + '">' + sign + l.amount + '</td>' +
         '<td style="font-size:12px;color:var(--text-muted);padding:5px 12px">' + (l.note || '-') + '</td>' +
-        '<td style="padding:5px 12px"><div style="display:flex;gap:4px">' +
-        '<button class="btn btn-secondary btn-sm" style="font-size:11px;padding:2px 8px" onclick="openEditLogModal(\'' + ei + '\',\'' + l.kind + '\',\'' + ek + '\',' + l.amount + ',\'' + en + '\')">改</button>' +
-        '<button class="btn btn-danger btn-sm" style="font-size:11px;padding:2px 8px" onclick="deleteLogEntryUI(\'' + ei + '\',\'' + l.kind + '\',\'' + ek + '\')">刪</button>' +
-        '</div></td>' +
+        '<td style="padding:5px 12px">' +
+        '<button style="background:none;border:none;cursor:pointer;font-size:12px;font-weight:700;color:var(--danger);padding:2px 6px" onclick="deleteLogEntryUI(\'' + ei + '\',\'' + l.kind + '\',\'' + ek + '\')">刪</button>' +
+        '</td>' +
         '</tr>';
     }).join('');
 
@@ -429,6 +427,44 @@ async function deleteInv(specKey, displayName) {
     await loadInventory();
   } catch(e) {
     showToast(`刪除失敗：${e.message}`, 'danger');
+  }
+}
+
+// ─── 手動新增水晶庫存 ─────────────────────
+
+function openAddCrystalModal() {
+  ['ac-name','ac-size','ac-typeB','ac-typeA'].forEach(id => document.getElementById(id).value = '');
+  document.getElementById('ac-qty').value = '0';
+  document.getElementById('ac-error').style.display = 'none';
+  openModal('addCrystalModal');
+}
+
+async function submitAddCrystal() {
+  const get = id => document.getElementById(id).value.trim();
+  const crystalName = get('ac-name');
+  const size = get('ac-size');
+  const typeB = get('ac-typeB');
+  const typeA = get('ac-typeA');
+  const qty = parseInt(document.getElementById('ac-qty').value) || 0;
+  const errEl = document.getElementById('ac-error');
+  errEl.style.display = 'none';
+  if (!crystalName || !size || !typeB || !typeA) {
+    errEl.textContent = '請填寫所有必填欄位';
+    errEl.style.display = 'block';
+    return;
+  }
+  const btn = document.querySelector('#addCrystalModal .btn-primary');
+  btn.disabled = true; btn.textContent = '新增中...';
+  try {
+    await addCrystalInventoryManual({ crystalName, size, typeB, typeA, quantity: qty });
+    showToast('已新增庫存項目', 'success');
+    closeModal('addCrystalModal');
+    await renderInventory();
+  } catch(e) {
+    errEl.textContent = `新增失敗：${e.message}`;
+    errEl.style.display = 'block';
+  } finally {
+    btn.disabled = false; btn.textContent = '新增';
   }
 }
 

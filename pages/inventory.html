@@ -65,7 +65,10 @@
     <!-- 水晶庫存 -->
     <div class="flex-between" style="margin:24px 0 12px">
       <div class="inventory-section-title" style="margin:0">水晶庫存</div>
-      <button class="btn btn-secondary btn-sm" onclick="runSyncCrystal()">水晶進貨更新</button>
+      <div style="display:flex;gap:8px">
+        <button class="btn btn-secondary btn-sm" onclick="openAddCrystalModal()">新增庫存</button>
+        <button class="btn btn-secondary btn-sm" onclick="runSyncCrystal()">水晶進貨更新</button>
+      </div>
     </div>
     <div class="card">
       <div id="crystal-table">
@@ -83,6 +86,50 @@
         <div style="text-align:center;padding:24px;color:var(--text-muted);font-size:13px">
           配件庫存目前由系統自動追蹤（根據設計款出貨扣除）
         </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 手動新增水晶庫存 Modal -->
+  <div class="modal-overlay" id="addCrystalModal">
+    <div class="modal" style="max-width:480px">
+      <div class="modal-header">
+        <div class="modal-title">新增水晶庫存項目</div>
+        <button class="modal-close" onclick="closeModal('addCrystalModal')">✕</button>
+      </div>
+      <div class="modal-body">
+        <div class="form-group mb-16">
+          <label class="required">水晶名稱</label>
+          <input class="form-control" id="ac-name" type="text" placeholder="如：天河石">
+        </div>
+        <div class="form-group mb-16">
+          <label class="required">尺寸</label>
+          <input class="form-control" id="ac-size" type="text" placeholder="如：6 或 4*6">
+        </div>
+        <div class="form-group mb-16">
+          <label class="required">形狀（規格B）</label>
+          <input class="form-control" id="ac-typeB" type="text" list="dl-ac-typeB" placeholder="如：圓珠">
+          <datalist id="dl-ac-typeB">
+            <option value="圓珠"><option value="扁刻面"><option value="算盤珠">
+            <option value="心形"><option value="水滴"><option value="橢圓"><option value="方形">
+          </datalist>
+        </div>
+        <div class="form-group mb-16">
+          <label class="required">規格（規格A）</label>
+          <input class="form-control" id="ac-typeA" type="text" list="dl-ac-typeA" placeholder="如：條珠">
+          <datalist id="dl-ac-typeA">
+            <option value="條珠"><option value="成品串"><option value="條珠三圈">
+          </datalist>
+        </div>
+        <div class="form-group">
+          <label>初始數量</label>
+          <input class="form-control" id="ac-qty" type="number" min="0" value="0">
+        </div>
+        <div id="ac-error" style="display:none;color:var(--danger);font-size:13px;margin-top:8px"></div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" onclick="closeModal('addCrystalModal')">取消</button>
+        <button class="btn btn-primary" onclick="submitAddCrystal()">新增</button>
       </div>
     </div>
   </div>
