@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>靈感收藏 - 玖釀</title>
+  <link rel="stylesheet" href="../css/style.css">
+  <style>
+    .insp-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+      gap: 16px;
+    }
+    .insp-card {
+      background: white;
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      overflow: hidden;
+      cursor: pointer;
+      transition: all 0.2s;
+      border: 1px solid var(--border);
+    }
+    .insp-card:hover { transform: translateY(-2px); box-shadow: var(--shadow-hover); }
+    .insp-card-img {
+      width: 100%;
+      height: 200px;
+      object-fit: cover;
+      display: block;
+      background: var(--bg);
+    }
+    .insp-card-img-placeholder {
+      width: 100%;
+      height: 200px;
+      background: var(--primary-light);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--primary-dark);
+      font-size: 13px;
+    }
+    .insp-card-body { padding: 12px 14px 14px; }
+    .insp-card-tags { display: flex; flex-wrap: wrap; gap: 4px; margin-bottom: 8px; }
+    .insp-card-notes { font-size: 13px; color: var(--text-muted); line-height: 1.5; }
+    .insp-card-mat-count { font-size: 12px; color: var(--primary-dark); margin-top: 8px; }
+    .insp-card-actions { display: flex; gap: 6px; margin-top: 10px; }
+
+    /* 詳情 Modal */
+    .detail-img { width: 100%; max-height: 320px; object-fit: contain; border-radius: 8px; background: var(--bg); margin-bottom: 16px; }
+    .mat-list { display: flex; flex-direction: column; gap: 8px; }
+    .mat-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 8px 12px;
+      border-radius: 8px;
+      background: var(--bg);
+      font-size: 14px;
+    }
+    .mat-item-name { flex: 1; }
+    .mat-badge {
+      font-size: 11px;
+      font-weight: 700;
+      padding: 2px 8px;
+      border-radius: 20px;
+      white-space: nowrap;
+    }
+    .mat-badge-same { background: #d4edda; color: #2d6a4f; }
+    .mat-badge-similar { background: #fff3cd; color: #856404; }
+    .mat-badge-none { background: #f0f0f0; color: #888; }
+    .mat-badge-zero { background: #fde8e8; color: #c0392b; }
+    .mat-section-title { font-weight: 700; font-size: 13px; color: var(--primary-dark); margin: 14px 0 6px; }
+
+    /* 新增/編輯 Modal 材料選擇區 */
+    .mat-selector { border: 1px solid var(--border); border-radius: 8px; padding: 10px; }
+    .mat-selector-search { display: flex; gap: 6px; margin-bottom: 8px; }
+    .mat-selector-search input { flex: 1; }
+    .mat-selector-results {
+      max-height: 160px;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+    .mat-selector-option {
+      padding: 6px 10px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 13px;
+      transition: background 0.15s;
+    }
+    .mat-selector-option:hover { background: var(--primary-light); }
+    .mat-selected-tags { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; min-height: 28px; }
+    .mat-tag {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      background: var(--primary-light);
+      color: var(--primary-dark);
+      font-size: 12px;
+      padding: 3px 10px 3px 10px;
+      border-radius: 20px;
+    }
+    .mat-tag-manual { background: #fff3cd; color: #856404; }
+    .mat-tag-remove {
+      cursor: pointer;
+      font-size: 14px;
+      line-height: 1;
+      opacity: 0.6;
+    }
+    .mat-tag-remove:hover { opacity: 1; }
+    .manual-input-row { display: flex; gap: 6px; margin-top: 8px; }
+    .manual-input-row input { flex: 1; }
+  </style>
+</head>
+<body>
+  <div id="navbar-root"></div>
+
+  <div class="container">
+    <div class="flex-between mb-20">
+      <div class="page-title">靈感收藏</div>
+      <button class="btn btn-primary" onclick="openAddModal()">＋ 新增收藏</button>
+    </div>
+
+    <div class="search-area" style="margin-bottom:20px">
+      <div class="search-row">
+        <div class="form-group" style="flex:2">
+          <label>搜尋（備註、標籤、材料）</label>
+          <input class="form-control" id="f-keyword" type="text" placeholder="如：粉晶、情侶款…">
+        </div>
+        <button class="btn btn-primary" onclick="doSearch()">查詢</button>
+        <button class="btn btn-secondary" onclick="clearSearch()">清除</button>
+      </div>
+    </div>
+
+    <div id="insp-container">
+      <div class="loading"><div class="spinner"></div><div>載入中...</div></div>
+    </div>
+  </div>
+
+  <!-- 詳情 Modal -->
+  <div class="modal-overlay" id="detailModal">
+    <div class="modal" style="max-width:640px">
+      <div class="modal-header">
+        <div class="modal-title" id="detail-title">作品詳情</div>
+        <button class="modal-close" onclick="closeModal('detailModal')">✕</button>
+      </div>
+      <div class="modal-body" id="detail-body"></div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" onclick="closeModal('detailModal')">關閉</button>
+        <button class="btn btn-secondary" id="detail-edit-btn">編輯</button>
+        <button class="btn btn-danger" id="detail-delete-btn">刪除</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 新增/編輯 Modal -->
+  <div class="modal-overlay" id="editModal">
+    <div class="modal" style="max-width:620px">
+      <div class="modal-header">
+        <div class="modal-title" id="edit-modal-title">＋ 新增收藏</div>
+        <button class="modal-close" onclick="closeModal('editModal')">✕</button>
+      </div>
+      <div class="modal-body">
+        <div class="form-grid">
+          <div class="form-group" style="grid-column:1/-1">
+            <label>圖片網址</label>
+            <input class="form-control" id="f-imageUrl" type="url" placeholder="貼上圖片直連網址（右鍵圖片 → 複製圖片網址）">
+          </div>
+          <div class="form-group" style="grid-column:1/-1">
+            <label>來源連結</label>
+            <input class="form-control" id="f-sourceUrl" type="url" placeholder="作品出處（貼文/帳號網址）">
+          </div>
+          <div class="form-group" style="grid-column:1/-1">
+            <label>標籤 <span style="font-weight:400;color:var(--text-muted)">（逗號分隔，如：情侶款,粉色系）</span></label>
+            <input class="form-control" id="f-tags" type="text" placeholder="情侶款,粉色系,簡約風…">
+          </div>
+          <div class="form-group" style="grid-column:1/-1">
+            <label>備註</label>
+            <textarea class="form-control" id="f-notes" placeholder="配色說明、製作方式、進貨參考等…" style="height:72px"></textarea>
+          </div>
+        </div>
+
+        <!-- 水晶材料 -->
+        <div class="mat-section-title">水晶材料</div>
+        <div class="mat-selector">
+          <div class="mat-selector-search">
+            <input class="form-control" id="crystal-search" type="text" placeholder="搜尋庫存水晶…" oninput="searchCrystal(this.value)">
+          </div>
+          <div class="mat-selector-results" id="crystal-results"></div>
+          <div class="mat-selected-tags" id="crystal-selected"></div>
+          <div class="manual-input-row">
+            <input class="form-control" id="crystal-manual" type="text" placeholder="庫存找不到？手動輸入材料名稱">
+            <button class="btn btn-secondary btn-sm" onclick="addManualCrystal()">新增</button>
+          </div>
+        </div>
+
+        <!-- 配件材料 -->
+        <div class="mat-section-title">配件材料</div>
+        <div class="mat-selector">
+          <div class="mat-selector-search">
+            <input class="form-control" id="acc-search" type="text" placeholder="搜尋庫存配件…" oninput="searchAccessory(this.value)">
+          </div>
+          <div class="mat-selector-results" id="acc-results"></div>
+          <div class="mat-selected-tags" id="acc-selected"></div>
+          <div class="manual-input-row">
+            <input class="form-control" id="acc-manual" type="text" placeholder="庫存找不到？手動輸入材料名稱">
+            <button class="btn btn-secondary btn-sm" onclick="addManualAccessory()">新增</button>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" onclick="closeModal('editModal')">取消</button>
+        <button class="btn btn-primary" id="edit-save-btn" onclick="submitInspiration()">儲存</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+  <script src="../js/firebase-config.js"></script>
+  <script src="../js/db.js"></script>
+  <script src="../js/utils.js"></script>
+  <script src="inspiration.js"></script>
+</body>
+</html>
