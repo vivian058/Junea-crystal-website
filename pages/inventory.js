@@ -100,7 +100,7 @@ function buildCrystalInventoryRows(items) {
     const displayName = item.displayName || item.specKey || '';
     const parts = displayName.split(' ');
     const crystalName = item.crystalName || parts[0] || '-';
-    const size = item.size || parts[1]?.replace('mm','') || '';
+    const size = String(item.size || parts[1] || '').replace(/mm$/i, '').trim();
     const typeB = item.typeB || parts[2] || '-';
     const typeA = item.typeA || parts[3] || '-';
     const patternKey = makeCrystalPatternKey(size, typeA, typeB);

@@ -154,8 +154,11 @@ async function submitSetting() {
   try {
     const btn = document.querySelector('#addModal .btn-primary');
     btn.disabled = true; btn.textContent = '儲存中...';
-    await setInitialStockSetting(data);
-    showToast(`已儲存：${data.size}mm ${data.typeB} ${data.typeA} → ${data.defaultQuantity} 顆`, 'success');
+    const result = await setInitialStockSetting(data);
+    const msg = result.updatedCount > 0
+      ? `已儲存！同時更新庫存中 ${result.updatedCount} 個符合項目的數量為 ${data.defaultQuantity} 顆`
+      : `已儲存：${data.size}mm ${data.typeB} ${data.typeA} → ${data.defaultQuantity} 顆`;
+    showToast(msg, 'success', 6000);
     closeModal('addModal');
     resetForm();
     await loadSettings();
