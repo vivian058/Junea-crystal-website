@@ -110,54 +110,45 @@
     </div>
   </div>
 
-  <!-- 耗損紀錄 Modal -->
-  <div class="modal-overlay" id="damageModal">
+  <!-- 調整庫存 Modal -->
+  <div class="modal-overlay" id="adjustModal">
     <div class="modal" style="max-width:480px">
       <div class="modal-header">
-        <div class="modal-title">記錄耗損</div>
-        <button class="modal-close" onclick="closeModal('damageModal')">✕</button>
+        <div class="modal-title">調整庫存</div>
+        <button class="modal-close" onclick="closeModal('adjustModal')">✕</button>
       </div>
       <div class="modal-body">
-        <div class="form-group mb-20">
+        <div class="form-group mb-16">
           <label>規格</label>
-          <input class="form-control readonly" id="dmg-spec" readonly>
+          <input class="form-control readonly" id="adj-spec" readonly>
         </div>
-        <div class="form-group mb-20">
-          <label class="required">耗損顆數</label>
-          <input class="form-control" id="dmg-amount" type="number" min="1" placeholder="輸入耗損數量">
+        <div id="adj-current" style="font-size:13px;color:var(--text-muted);margin-bottom:16px"></div>
+        <div class="form-group mb-16">
+          <label class="required">調整方式</label>
+          <div style="display:flex;gap:16px;margin-top:6px;flex-wrap:wrap">
+            <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:14px">
+              <input type="radio" name="adj-type" value="damage" onchange="onAdjTypeChange()"> 耗損扣除
+            </label>
+            <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:14px">
+              <input type="radio" name="adj-type" value="restock" onchange="onAdjTypeChange()"> 手動補入
+            </label>
+            <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:14px">
+              <input type="radio" name="adj-type" value="set" onchange="onAdjTypeChange()"> 直接設定總量
+            </label>
+          </div>
+        </div>
+        <div class="form-group mb-16">
+          <label class="required" id="adj-amount-label">扣除顆數</label>
+          <input class="form-control" id="adj-amount" type="number" min="0" placeholder="輸入數量">
         </div>
         <div class="form-group">
           <label>備註</label>
-          <input class="form-control" id="dmg-note" type="text" placeholder="如：破損、遺失…">
+          <input class="form-control" id="adj-note" type="text" placeholder="如：破損、進貨、修正…">
         </div>
       </div>
       <div class="modal-footer">
-        <button class="btn btn-secondary" onclick="closeModal('damageModal')">取消</button>
-        <button class="btn btn-primary" onclick="submitDamage()">確認扣除</button>
-      </div>
-    </div>
-  </div>
-
-  <!-- 編輯庫存 Modal -->
-  <div class="modal-overlay" id="editInvModal">
-    <div class="modal" style="max-width:480px">
-      <div class="modal-header">
-        <div class="modal-title">編輯庫存項目</div>
-        <button class="modal-close" onclick="closeModal('editInvModal')">✕</button>
-      </div>
-      <div class="modal-body">
-        <div class="form-group mb-20">
-          <label class="required">顯示名稱</label>
-          <input class="form-control" id="edit-displayName" type="text">
-        </div>
-        <div class="form-group mb-20">
-          <label class="required">庫存數量（手動修正）</label>
-          <input class="form-control" id="edit-quantity" type="number" min="0">
-        </div>
-      </div>
-      <div class="modal-footer">
-        <button class="btn btn-secondary" onclick="closeModal('editInvModal')">取消</button>
-        <button class="btn btn-primary" onclick="submitEditInv()">儲存修改</button>
+        <button class="btn btn-secondary" onclick="closeModal('adjustModal')">取消</button>
+        <button class="btn btn-primary" onclick="submitAdjust()">確認</button>
       </div>
     </div>
   </div>

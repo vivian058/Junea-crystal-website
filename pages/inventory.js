@@ -12,8 +12,6 @@ function normalizePatternKey(key) {
     .replace(/[~－—–-]/g, '~')
     .toLowerCase();
 }
-let damagingSpecKey = '';
-let damagingDisplayName = '';
 let editingSpecKey = '';
 
 document.addEventListener('DOMContentLoaded', async () => {
@@ -84,26 +82,12 @@ function renderLowStockAlerts(items) {
 
 // ─── 渲染表格（水晶）─────────────────────
 
-function buildLogRows(item) {
+function buildLogEntries(item) {
   const damageLogs = Object.entries(item.damageLog || {})
     .map(([ts, v]) => ({ ts: Number(ts), kind: 'damage', ...v }));
   const restockLogs = Object.entries(item.restockLog || {})
     .map(([ts, v]) => ({ ts: Number(String(ts).split('_')[0]), kind: 'restock', ...v }));
-  const logs = [...damageLogs, ...restockLogs].sort((a, b) => b.ts - a.ts);
-  const html = logs.length
-    ? logs.map(l => l.kind === 'restock'
-        ? `<tr>
-            <td>${l.date || '-'}</td>
-            <td style="color:var(--success)">＋${l.amount}</td>
-            <td style="color:var(--success)">${l.note || '進貨補庫存'}</td>
-          </tr>`
-        : `<tr>
-            <td>${l.date || '-'}</td>
-            <td style="color:var(--danger)">－${l.amount}</td>
-            <td>${l.note || '-'}</td>
-          </tr>`).join('')
-    : `<tr><td colspan="3" class="log-empty">尚無紀錄</td></tr>`;
-  return { html, count: logs.length };
+  return [...damageLogs, ...restockLogs].sort((a, b) => b.ts - a.ts);
 }
 
 function buildCrystalInventoryRows(items) {
@@ -122,8 +106,22 @@ function buildCrystalInventoryRows(items) {
     const needsSetup = qty === 0 && !initialSettingKeys.has(normalizePatternKey(patternKey));
     const isLow = !needsSetup && qty < 20;
     const qtyClass = needsSetup ? 'qty-warn' : qty >= 50 ? 'qty-ok' : qty >= 20 ? 'qty-warn' : 'qty-danger';
-    const { html: logRowsHtml, count: logCount } = buildLogRows(item);
+    const logs = buildLogEntries(item);
+    const logCount = logs.length;
     const safeId = item.id.replace(/[^a-zA-Z0-9_-]/g, '_');
+    const dn = displayName.replace(/'/g, "\\'");
+    const logRows = logs.map(l => {
+      const color = l.kind === 'restock' ? 'var(--success)' : 'var(--danger)';
+      const sign = l.kind === 'restock' ? '＋' : '－';
+      return `<tr class="log-row-${safeId}" style="display:none;background:#faf6ff">
+        <td></td>
+        <td style="font-size:12px;color:var(--text-muted);padding:5px 12px">${l.date || '-'}</td>
+        <td colspan="3"></td>
+        <td style="font-size:12px;font-weight:700;padding:5px 12px;color:${color}">${sign}${l.amount}</td>
+        <td style="font-size:12px;color:var(--text-muted);padding:5px 12px">${l.note || '-'}</td>
+        <td></td>
+      </tr>`;
+    }).join('');
 
     return [
       `<tr>
@@ -143,25 +141,15 @@ function buildCrystalInventoryRows(items) {
         <td class="td-muted">${item.lastUpdated ? (item.lastUpdated.toDate ? item.lastUpdated.toDate().toLocaleDateString('zh-TW') : '') : '-'}</td>
         <td>
           <div class="action-btns">
-            <button class="btn btn-secondary btn-sm" onclick="openDamageModal('${item.id}','${displayName.replace(/'/g, "\\'")}')">記錄耗損</button>
-            <button class="btn btn-secondary btn-sm" onclick="openEditInv('${item.id}','${displayName.replace(/'/g, "\\'")}',${qty})">編輯</button>
-            <button class="btn btn-danger btn-sm" onclick="deleteInv('${item.id}','${displayName.replace(/'/g, "\\'")}')">刪除</button>
-            <button class="log-toggle" onclick="toggleLog('log-${safeId}')">
-              耗損紀錄${logCount ? ` (${logCount})` : ''} ▾
+            <button class="btn btn-secondary btn-sm" onclick="openAdjustModal('${item.id}','${dn}',${qty})">調整</button>
+            <button class="btn btn-danger btn-sm" onclick="deleteInv('${item.id}','${dn}')">刪除</button>
+            <button class="log-toggle" onclick="toggleLog('${safeId}')">
+              調整紀錄${logCount ? ` (${logCount})` : ''} ▾
             </button>
           </div>
         </td>
       </tr>`,
-      `<tr id="log-${safeId}" class="log-sub-row" style="display:none">
-        <td colspan="8">
-          <div class="log-inner">
-            <table>
-              <thead><tr><th>日期</th><th>耗損量</th><th>備註</th></tr></thead>
-              <tbody>${logRowsHtml}</tbody>
-            </table>
-          </div>
-        </td>
-      </tr>`
+      logRows
     ];
   }).join('');
 
@@ -202,9 +190,23 @@ function buildAccessoryInventoryRows(items) {
     const needsSetup = qty === 0 && !initialSettingKeys.has(normalizePatternKey(specKey));
     const isLow = !needsSetup && qty < 20;
     const qtyClass = needsSetup ? 'qty-warn' : qty >= 50 ? 'qty-ok' : qty >= 20 ? 'qty-warn' : 'qty-danger';
-    const { html: logRowsHtml, count: logCount } = buildLogRows(item);
+    const logs = buildLogEntries(item);
+    const logCount = logs.length;
     const safeId = item.id.replace(/[^a-zA-Z0-9_-]/g, '_');
     const displayName = item.displayName || item.specKey || '';
+    const dn = displayName.replace(/'/g, "\\'");
+    const logRows = logs.map(l => {
+      const color = l.kind === 'restock' ? 'var(--success)' : 'var(--danger)';
+      const sign = l.kind === 'restock' ? '＋' : '－';
+      return `<tr class="log-row-${safeId}" style="display:none;background:#faf6ff">
+        <td></td>
+        <td style="font-size:12px;color:var(--text-muted);padding:5px 12px">${l.date || '-'}</td>
+        <td colspan="2"></td>
+        <td style="font-size:12px;font-weight:700;padding:5px 12px;color:${color}">${sign}${l.amount}</td>
+        <td style="font-size:12px;color:var(--text-muted);padding:5px 12px">${l.note || '-'}</td>
+        <td></td>
+      </tr>`;
+    }).join('');
 
     return [
       `<tr>
@@ -223,25 +225,15 @@ function buildAccessoryInventoryRows(items) {
         <td class="td-muted">${item.lastUpdated ? (item.lastUpdated.toDate ? item.lastUpdated.toDate().toLocaleDateString('zh-TW') : '') : '-'}</td>
         <td>
           <div class="action-btns">
-            <button class="btn btn-secondary btn-sm" onclick="openDamageModal('${item.id}','${displayName.replace(/'/g, "\\'")}')">記錄耗損</button>
-            <button class="btn btn-secondary btn-sm" onclick="openEditInv('${item.id}','${displayName.replace(/'/g, "\\'")}',${qty})">編輯</button>
-            <button class="btn btn-danger btn-sm" onclick="deleteInv('${item.id}','${displayName.replace(/'/g, "\\'")}')">刪除</button>
-            <button class="log-toggle" onclick="toggleLog('log-${safeId}')">
-              耗損紀錄${logCount ? ` (${logCount})` : ''} ▾
+            <button class="btn btn-secondary btn-sm" onclick="openAdjustModal('${item.id}','${dn}',${qty})">調整</button>
+            <button class="btn btn-danger btn-sm" onclick="deleteInv('${item.id}','${dn}')">刪除</button>
+            <button class="log-toggle" onclick="toggleLog('${safeId}')">
+              調整紀錄${logCount ? ` (${logCount})` : ''} ▾
             </button>
           </div>
         </td>
       </tr>`,
-      `<tr id="log-${safeId}" class="log-sub-row" style="display:none">
-        <td colspan="7">
-          <div class="log-inner">
-            <table>
-              <thead><tr><th>日期</th><th>耗損量</th><th>備註</th></tr></thead>
-              <tbody>${logRowsHtml}</tbody>
-            </table>
-          </div>
-        </td>
-      </tr>`
+      logRows
     ];
   }).join('');
 
@@ -321,72 +313,55 @@ async function deleteInvSelected(prefix) {
 
 // ─── 展開 / 收合耗損紀錄 ──────────────────
 
-function toggleLog(id) {
-  const el = document.getElementById(id);
-  if (!el) return;
-  const isHidden = el.style.display === 'none';
-  el.style.display = isHidden ? '' : 'none';
+function toggleLog(safeId) {
+  const rows = document.querySelectorAll(`.log-row-${safeId}`);
+  if (!rows.length) return;
+  const isHidden = rows[0].style.display === 'none';
+  rows.forEach(r => r.style.display = isHidden ? '' : 'none');
 }
 
-// ─── 耗損紀錄 ─────────────────────────────
+// ─── 調整庫存 ─────────────────────────────
 
-function openDamageModal(specKey, displayName) {
-  damagingSpecKey = specKey;
-  damagingDisplayName = displayName;
-  document.getElementById('dmg-spec').value = displayName;
-  document.getElementById('dmg-amount').value = '';
-  document.getElementById('dmg-note').value = '';
-  openModal('damageModal');
-}
-
-async function submitDamage() {
-  const amount = parseInt(document.getElementById('dmg-amount').value);
-  const note = document.getElementById('dmg-note').value.trim();
-  if (!amount || amount < 1) { showToast('請填寫耗損顆數', 'warning'); return; }
-
-  try {
-    const btn = document.querySelector('#damageModal .btn-primary');
-    btn.disabled = true; btn.textContent = '處理中...';
-    const newQty = await logDamage(damagingSpecKey, amount, note);
-    showToast(`耗損紀錄完成！${damagingDisplayName} 庫存：${newQty} 顆`, 'success');
-    if (newQty < 20) showToast(`「${damagingDisplayName}」庫存剩 ${newQty} 顆，請注意補貨！`, 'danger', 6000);
-    closeModal('damageModal');
-    await loadInventory();
-  } catch(e) {
-    showToast(`記錄失敗：${e.message}`, 'danger');
-  } finally {
-    const btn = document.querySelector('#damageModal .btn-primary');
-    if (btn) { btn.disabled = false; btn.textContent = '確認扣除'; }
-  }
-}
-
-// ─── 編輯庫存項目 ─────────────────────────
-
-function openEditInv(specKey, displayName, quantity) {
+function openAdjustModal(specKey, displayName, qty) {
   editingSpecKey = specKey;
-  document.getElementById('edit-displayName').value = displayName;
-  document.getElementById('edit-quantity').value = quantity;
-  openModal('editInvModal');
+  document.getElementById('adj-spec').value = displayName;
+  document.getElementById('adj-current').textContent = `目前：${qty} 顆`;
+  document.getElementById('adj-amount').value = '';
+  document.getElementById('adj-note').value = '';
+  document.querySelector('input[name="adj-type"][value="damage"]').checked = true;
+  onAdjTypeChange();
+  openModal('adjustModal');
 }
 
-async function submitEditInv() {
-  const displayName = document.getElementById('edit-displayName').value.trim();
-  const quantity = parseInt(document.getElementById('edit-quantity').value);
-  if (!displayName) { showToast('請填寫顯示名稱', 'warning'); return; }
-  if (isNaN(quantity) || quantity < 0) { showToast('請填寫有效庫存數量', 'warning'); return; }
+function onAdjTypeChange() {
+  const type = document.querySelector('input[name="adj-type"]:checked')?.value;
+  const label = document.getElementById('adj-amount-label');
+  if (type === 'damage') label.textContent = '扣除顆數';
+  else if (type === 'restock') label.textContent = '補入顆數';
+  else label.textContent = '設定總量';
+}
+
+async function submitAdjust() {
+  const type = document.querySelector('input[name="adj-type"]:checked')?.value;
+  const amount = parseInt(document.getElementById('adj-amount').value);
+  const note = document.getElementById('adj-note').value.trim();
+  if (!type) { showToast('請選擇調整方式', 'warning'); return; }
+  if (isNaN(amount) || amount < 0) { showToast('請填寫有效數量', 'warning'); return; }
 
   try {
-    const btn = document.querySelector('#editInvModal .btn-primary');
-    btn.disabled = true; btn.textContent = '儲存中...';
-    await updateInventoryItem(editingSpecKey, { displayName, quantity });
-    showToast('庫存已更新', 'success');
-    closeModal('editInvModal');
+    const btn = document.querySelector('#adjustModal .btn-primary');
+    btn.disabled = true; btn.textContent = '處理中...';
+    const newQty = await logManualAdjust(editingSpecKey, type, amount, note);
+    const typeLabel = type === 'damage' ? '耗損' : type === 'restock' ? '補入' : '設定';
+    showToast(`調整完成（${typeLabel}）→ 庫存現為 ${newQty} 顆`, 'success');
+    if (newQty < 20 && type !== 'set') showToast(`庫存剩 ${newQty} 顆，低於 20，請注意補貨！`, 'danger', 6000);
+    closeModal('adjustModal');
     await loadInventory();
   } catch(e) {
-    showToast(`儲存失敗：${e.message}`, 'danger');
+    showToast(`調整失敗：${e.message}`, 'danger');
   } finally {
-    const btn = document.querySelector('#editInvModal .btn-primary');
-    if (btn) { btn.disabled = false; btn.textContent = '儲存修改'; }
+    const btn = document.querySelector('#adjustModal .btn-primary');
+    if (btn) { btn.disabled = false; btn.textContent = '確認'; }
   }
 }
 
