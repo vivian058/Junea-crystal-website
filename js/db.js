@@ -478,16 +478,14 @@ async function _addInventoryFromCrystalPurchase(specKey, data) {
   const patternKey = makeCrystalPatternKey(data.size, data.typeA, data.typeB);
   const settingDoc = await db.collection(COLLECTIONS.INITIAL_STOCK).doc(patternKey).get();
   const hasInitialSetting = settingDoc.exists;
+  const defaultQty = hasInitialSetting ? (settingDoc.data().defaultQuantity || 0) : 0;
 
-  // 沒有初始庫存設定 → 不建立庫存，只回傳提醒旗標
-  if (!hasInitialSetting) return { hasInitialSetting: false, defaultQty: 0 };
-
-  const defaultQty = settingDoc.data().defaultQuantity || 0;
   const invRef = db.collection(COLLECTIONS.INVENTORY).doc(specKey);
   const invDoc = await invRef.get();
+  const sizeStr = String(data.size || '');
+  const displayName = `${data.crystalName} ${sizeStr.includes('mm') ? sizeStr : sizeStr + 'mm'} ${data.typeB} ${data.typeA}`;
   const baseData = {
-    specKey, type: 'crystal',
-    displayName: `${data.crystalName} ${data.size}mm ${data.typeB} ${data.typeA}`,
+    specKey, type: 'crystal', displayName,
     crystalName: data.crystalName,
     size: data.size,
     typeA: data.typeA,
@@ -496,10 +494,10 @@ async function _addInventoryFromCrystalPurchase(specKey, data) {
   };
 
   if (!invDoc.exists) {
-    // 只建立項目（數量 0），實際累加由「水晶進貨更新」按鈕負責
+    // 無論有無初始設定都建立項目（數量 0），實際累加由「水晶進貨更新」負責
     await invRef.set({ ...baseData, quantity: 0 });
   }
-  return { hasInitialSetting: true, defaultQty };
+  return { hasInitialSetting, defaultQty };
 }
 
 async function _ensureAccessoryInventory(specKey, data) {
