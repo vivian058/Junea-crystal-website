@@ -484,6 +484,20 @@ async function updateLogEntry(specKey, logType, logKey, amount, note) {
   });
 }
 
+async function addCrystalInventoryManual({ crystalName, size, typeB, typeA, quantity }) {
+  const specKey = makeCrystalKey(crystalName, size, typeA, typeB);
+  const sizeStr = String(size || '');
+  const displayName = `${crystalName} ${sizeStr.includes('mm') ? sizeStr : sizeStr + 'mm'} ${typeB} ${typeA}`;
+  const invRef = db.collection(COLLECTIONS.INVENTORY).doc(specKey);
+  const invDoc = await invRef.get();
+  if (invDoc.exists) throw new Error(`「${displayName}」已存在於庫存表`);
+  await invRef.set({
+    specKey, type: 'crystal', displayName, crystalName, size, typeA, typeB,
+    quantity: Number(quantity) || 0,
+    lastUpdated: firebase.firestore.FieldValue.serverTimestamp()
+  });
+}
+
 async function processShipment(braceletName, quantity = 1) {
   const snapshot = await db.collection(COLLECTIONS.BRACELET_DESIGNS)
     .where('name', '==', braceletName).get();
