@@ -13,6 +13,7 @@ function normalizePatternKey(key) {
     .toLowerCase();
 }
 let editingSpecKey = '';
+let crystalColFilter = { name: '', size: '', typeB: '', typeA: '' };
 
 document.addEventListener('DOMContentLoaded', async () => {
   document.getElementById('navbar-root').innerHTML = renderNav('庫存表');
@@ -45,15 +46,79 @@ async function loadInventory() {
 
 function filterInventory() {
   const kw = (document.getElementById('f-keyword').value || '').toLowerCase();
-  const filtered = kw
+  const { name, size, typeB, typeA } = crystalColFilter;
+
+  let filtered = kw
     ? allInventory.filter(i => (i.displayName || '').toLowerCase().includes(kw) || (i.specKey || '').toLowerCase().includes(kw))
     : allInventory;
 
-  const crystals = filtered.filter(i => i.type === 'crystal' || !i.type);
+  const crystals = filtered
+    .filter(i => i.type === 'crystal' || !i.type)
+    .filter(i => {
+      const parts = (i.displayName || '').split(' ');
+      const cn = (i.crystalName || parts[0] || '').toLowerCase();
+      const sz = String(i.size || parts[1] || '').replace(/mm$/i, '').toLowerCase();
+      const tb = (i.typeB || parts[2] || '').toLowerCase();
+      const ta = (i.typeA || parts[3] || '').toLowerCase();
+      return (!name || cn.includes(name.toLowerCase()))
+        && (!size || sz.includes(size.toLowerCase()))
+        && (!typeB || tb.includes(typeB.toLowerCase()))
+        && (!typeA || ta.includes(typeA.toLowerCase()));
+    });
   const accessories = filtered.filter(i => i.type === 'accessory');
 
   renderCrystalTable(crystals);
   renderAccessoryTable(accessories);
+}
+
+function onCrystalFilter() {
+  ['name','size','typeB','typeA'].forEach(f => {
+    const el = document.getElementById('cf-' + f);
+    if (el) crystalColFilter[f] = el.value;
+  });
+  filterInventory();
+}
+
+
+// ─── 行內編輯 ────────────────────────────
+
+function startInlineEdit(event, specKey, field, currentVal, optionsStr) {
+  event.stopPropagation();
+  const td = event.currentTarget;
+  if (td.querySelector('input')) return; // 已在編輯中
+  const original = td.innerHTML;
+  td.innerHTML = '';
+
+  const dlId = 'ie-dl-' + field;
+  if (optionsStr) {
+    const dl = document.createElement('datalist');
+    dl.id = dlId;
+    optionsStr.split(',').forEach(o => { const opt = document.createElement('option'); opt.value = o.trim(); dl.appendChild(opt); });
+    td.appendChild(dl);
+  }
+
+  const input = document.createElement('input');
+  input.value = currentVal;
+  if (optionsStr) input.setAttribute('list', dlId);
+  input.style.cssText = 'width:90%;font-size:13px;border:1px solid var(--primary);border-radius:4px;padding:2px 6px;outline:none';
+  input.onblur = async () => {
+    const val = input.value.trim();
+    if (!val || val === currentVal) { td.innerHTML = original; return; }
+    try {
+      await updateInventoryField(specKey, field, val);
+      await loadInventory();
+    } catch(e) {
+      showToast('儲存失敗：' + e.message, 'danger');
+      td.innerHTML = original;
+    }
+  };
+  input.onkeydown = (e) => {
+    if (e.key === 'Enter') input.blur();
+    if (e.key === 'Escape') { td.innerHTML = original; }
+  };
+  td.appendChild(input);
+  input.focus();
+  input.select();
 }
 
 // ─── 低庫存警示 ───────────────────────────
@@ -133,10 +198,10 @@ function buildCrystalInventoryRows(items) {
         <td style="text-align:center;padding:8px 6px">
           <input type="checkbox" class="inv-check-crystal" value="${item.id}" onchange="updateInvBulkBar('crystal')">
         </td>
-        <td><strong>${crystalName}</strong></td>
-        <td>${size}</td>
-        <td>${typeB}</td>
-        <td><span class="badge badge-purple">${typeA}</span></td>
+        <td ondblclick="startInlineEdit(event,'${item.id}','crystalName','${crystalName.replace(/'/g,"&apos;")}')" title="雙擊可編輯" style="cursor:text"><strong>${crystalName}</strong></td>
+        <td ondblclick="startInlineEdit(event,'${item.id}','size','${size}')" title="雙擊可編輯" style="cursor:text">${size}</td>
+        <td ondblclick="startInlineEdit(event,'${item.id}','typeB','${typeB}','圓珠,扁刻面,算盤珠,心形,水滴,橢圓,方形,近圓,螺紋米珠')" title="雙擊可編輯" style="cursor:text">${typeB}</td>
+        <td ondblclick="startInlineEdit(event,'${item.id}','typeA','${typeA}','條珠,成品串,條珠三圈')" title="雙擊可編輯" style="cursor:text"><span class="badge badge-purple">${typeA}</span></td>
         <td>
           <span class="qty-big ${qtyClass}">${qty}</span>
           <span style="font-size:12px;color:var(--text-muted)"> 顆</span>
@@ -177,6 +242,20 @@ function buildCrystalInventoryRows(items) {
             <th style="min-width:130px">庫存數量</th>
             <th style="min-width:100px">最後更新</th>
             <th style="min-width:360px">操作</th>
+          </tr>
+          <tr style="background:#f5f0ff">
+            <th></th>
+            <th><input id="cf-name" style="width:100%;font-size:12px;border:1px solid var(--border);border-radius:4px;padding:3px 6px;background:#fff;box-sizing:border-box" placeholder="篩選名稱…" oninput="onCrystalFilter()"></th>
+            <th><input id="cf-size" style="width:100%;font-size:12px;border:1px solid var(--border);border-radius:4px;padding:3px 6px;background:#fff;box-sizing:border-box" placeholder="篩選尺寸…" oninput="onCrystalFilter()"></th>
+            <th>
+              <input id="cf-typeB" style="width:100%;font-size:12px;border:1px solid var(--border);border-radius:4px;padding:3px 6px;background:#fff;box-sizing:border-box" list="cf-dl-typeB" placeholder="篩選形狀…" oninput="onCrystalFilter()">
+              <datalist id="cf-dl-typeB"><option value="圓珠"><option value="扁刻面"><option value="算盤珠"><option value="心形"><option value="水滴"><option value="橢圓"><option value="方形"><option value="近圓"><option value="螺紋米珠"><option value="隨行切面"></datalist>
+            </th>
+            <th>
+              <input id="cf-typeA" style="width:100%;font-size:12px;border:1px solid var(--border);border-radius:4px;padding:3px 6px;background:#fff;box-sizing:border-box" list="cf-dl-typeA" placeholder="篩選規格…" oninput="onCrystalFilter()">
+              <datalist id="cf-dl-typeA"><option value="條珠"><option value="成品串"><option value="條珠三圈"></datalist>
+            </th>
+            <th></th><th></th><th></th>
           </tr>
         </thead>
         <tbody>${rows}</tbody>
@@ -274,6 +353,11 @@ function buildAccessoryInventoryRows(items) {
 
 function renderCrystalTable(items) {
   document.getElementById('crystal-table').innerHTML = buildCrystalInventoryRows(items);
+  // 恢復欄位篩選輸入值
+  ['name','size','typeB','typeA'].forEach(f => {
+    const el = document.getElementById('cf-' + f);
+    if (el) el.value = crystalColFilter[f] || '';
+  });
 }
 
 function renderAccessoryTable(items) {
