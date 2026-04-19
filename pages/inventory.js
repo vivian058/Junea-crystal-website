@@ -107,6 +107,8 @@ function buildCrystalInventoryRows(items) {
     const needsSetup = qty === 0 && !initialSettingKeys.has(patternKey);
     const isLow = !needsSetup && qty < 20;
     const qtyClass = needsSetup ? 'qty-warn' : qty >= 50 ? 'qty-ok' : qty >= 20 ? 'qty-warn' : 'qty-danger';
+    const { html: logRowsHtml, count: logCount } = buildLogRows(item);
+    const safeId = item.id.replace(/[^a-zA-Z0-9_-]/g, '_');
 
     return [
       `<tr>
