@@ -484,6 +484,25 @@ async function updateLogEntry(specKey, logType, logKey, amount, note) {
   });
 }
 
+
+async function updateInventoryField(specKey, field, value) {
+  const invRef = db.collection(COLLECTIONS.INVENTORY).doc(specKey);
+  const doc = await invRef.get();
+  if (!doc.exists) throw new Error('找不到此規格庫存');
+  const d = doc.data();
+  const crystalName = field === 'crystalName' ? value : (d.crystalName || '');
+  const size        = field === 'size'        ? value : (d.size || '');
+  const typeB       = field === 'typeB'       ? value : (d.typeB || '');
+  const typeA       = field === 'typeA'       ? value : (d.typeA || '');
+  const sizeStr = String(size);
+  const updates = {
+    [field]: value,
+    displayName: `${crystalName} ${sizeStr.includes('mm') ? sizeStr : sizeStr + 'mm'} ${typeB} ${typeA}`,
+    lastUpdated: firebase.firestore.FieldValue.serverTimestamp()
+  };
+  await invRef.update(updates);
+}
+
 async function addCrystalInventoryManual({ crystalName, size, typeB, typeA, quantity }) {
   const specKey = makeCrystalKey(crystalName, size, typeA, typeB);
   const sizeStr = String(size || '');
