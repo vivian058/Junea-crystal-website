@@ -35,6 +35,7 @@ async function loadInventory() {
     allInventory = inventory;
     // 只保留通用規格鍵（SIZE_ 開頭），正規化後存入 Set
     initialSettingKeys = new Set(settings.filter(s => s.specKey && s.specKey.startsWith('SIZE_')).map(s => normalizePatternKey(s.specKey)));
+    console.log('[庫存設定 Keys]', [...initialSettingKeys]);
     renderLowStockAlerts(allInventory);
     filterInventory();
   } catch(e) {
@@ -119,7 +120,9 @@ function buildCrystalInventoryRows(items) {
     const typeB = item.typeB || parts[2] || '-';
     const typeA = item.typeA || parts[3] || '-';
     const patternKey = makeCrystalPatternKey(size, typeA, typeB);
-    const needsSetup = qty === 0 && !initialSettingKeys.has(normalizePatternKey(patternKey));
+    const normalizedPK = normalizePatternKey(patternKey);
+    if (qty === 0) console.log(`[比對] ${displayName} → ${normalizedPK} → 找到:`, initialSettingKeys.has(normalizedPK));
+    const needsSetup = qty === 0 && !initialSettingKeys.has(normalizedPK);
     const isLow = !needsSetup && qty < 20;
     const qtyClass = needsSetup ? 'qty-warn' : qty >= 50 ? 'qty-ok' : qty >= 20 ? 'qty-warn' : 'qty-danger';
     const { html: logRowsHtml, count: logCount } = buildLogRows(item);
