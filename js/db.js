@@ -283,6 +283,64 @@ async function deleteInventoryItem(specKey) {
   await db.collection(COLLECTIONS.INVENTORY).doc(specKey).delete();
 }
 
+// 依指定日期的進貨紀錄累加庫存（並寫入補貨紀錄）
+async function syncCrystalInventoryByDate(dateStr) {
+  const costsSnap = await db.collection(COLLECTIONS.CRYSTAL_COSTS).get();
+  const all = costsSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+  // 篩選指定日期，取不重複 specKey
+  const seen = new Set();
+  const forDate = all.filter(r => {
+    if (!r.specKey) return false;
+    const recDate = r.date ? String(r.date).slice(0, 10) : '';
+    if (recDate !== dateStr) return false;
+    if (seen.has(r.specKey)) return false;
+    seen.add(r.specKey);
+    return true;
+  });
+  if (!forDate.length) return { updated: [], noSetting: [], notFound: [] };
+
+  const settingsSnap = await db.collection(COLLECTIONS.INITIAL_STOCK).get();
+  const settingsMap = {};
+  settingsSnap.docs.forEach(d => { settingsMap[d.id] = d.data(); });
+
+  const invSnap = await db.collection(COLLECTIONS.INVENTORY).get();
+  const invMap = {};
+  invSnap.docs.forEach(d => { invMap[d.id] = { ref: d.ref, data: d.data() }; });
+
+  const updated = [], noSetting = [], notFound = [];
+  const ts = Date.now();
+
+  for (const r of forDate) {
+    const patternKey = makeCrystalPatternKey(r.size, r.typeA, r.typeB);
+    const setting = settingsMap[patternKey];
+    const displayName = r.displayName || `${r.crystalName} ${r.size}mm ${r.typeB} ${r.typeA}`;
+
+    if (!setting) { noSetting.push(displayName); continue; }
+
+    const defaultQty = setting.defaultQuantity || 0;
+    const inv = invMap[r.specKey];
+
+    if (!inv) {
+      // 庫存項目不存在，先建立
+      await db.collection(COLLECTIONS.INVENTORY).doc(r.specKey).set({
+        specKey: r.specKey, type: 'crystal', displayName,
+        crystalName: r.crystalName, size: r.size, typeA: r.typeA, typeB: r.typeB,
+        quantity: defaultQty,
+        lastUpdated: firebase.firestore.FieldValue.serverTimestamp(),
+        [`restockLog.${ts}_${r.specKey.slice(-4)}`]: { amount: defaultQty, date: dateStr, note: '進貨更新' }
+      });
+    } else {
+      await inv.ref.update({
+        quantity: firebase.firestore.FieldValue.increment(defaultQty),
+        lastUpdated: firebase.firestore.FieldValue.serverTimestamp(),
+        [`restockLog.${ts}_${r.specKey.slice(-4)}`]: { amount: defaultQty, date: dateStr, note: '進貨更新' }
+      });
+    }
+    updated.push({ displayName, qty: defaultQty });
+  }
+  return { updated, noSetting, notFound };
+}
+
 async function syncCrystalInventory() {
   // 讀取所有水晶成本紀錄，取得不重複的 specKey
   const costsSnap = await db.collection(COLLECTIONS.CRYSTAL_COSTS).get();
