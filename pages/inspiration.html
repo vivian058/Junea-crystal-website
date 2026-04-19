@@ -121,7 +121,26 @@
     }
     .mat-tag-remove:hover { opacity: 1; }
 
-    /* 色系多選下拉 */
+    /* 頁面色系篩選標籤 */
+    .filter-bar { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 20px; }
+    .filter-tag {
+      padding: 5px 14px;
+      border-radius: 20px;
+      border: 1.5px solid var(--border);
+      background: white;
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text-muted);
+      cursor: pointer;
+      transition: all 0.15s;
+      user-select: none;
+    }
+    .filter-tag:hover { border-color: var(--primary); color: var(--primary-dark); }
+    .filter-tag.active { background: var(--primary); border-color: var(--primary); color: white; }
+    .filter-clear { padding: 5px 14px; border-radius: 20px; border: 1.5px solid var(--border); background: none; font-size: 13px; color: var(--text-muted); cursor: pointer; }
+    .filter-clear:hover { border-color: var(--danger); color: var(--danger); }
+
+    /* 色系多選下拉（新增modal用） */
     .color-picker-wrap { position: relative; }
     .color-picker-trigger {
       width: 100%;
@@ -136,12 +155,9 @@
       gap: 4px;
       align-items: center;
       font-size: 14px;
-      color: var(--text-muted);
     }
-    .color-picker-trigger:focus-within,
-    .color-picker-trigger.open { border-color: var(--primary); outline: none; }
+    .color-picker-trigger.open { border-color: var(--primary); }
     .color-picker-dropdown {
-      display: none;
       position: absolute;
       top: calc(100% + 4px);
       left: 0; right: 0;
@@ -152,7 +168,7 @@
       z-index: 200;
       padding: 10px;
       display: none;
-      grid-template-columns: repeat(3, 1fr);
+      grid-template-columns: repeat(4, 1fr);
       gap: 4px;
     }
     .color-picker-dropdown.open { display: grid; }
@@ -168,13 +184,7 @@
     }
     .color-opt:hover { background: var(--primary-light); }
     .color-opt input[type=checkbox] { accent-color: var(--primary); width: 14px; height: 14px; cursor: pointer; }
-    .color-selected-tag {
-      font-size: 12px;
-      font-weight: 700;
-      color: var(--text);
-      background: none;
-      padding: 0;
-    }
+    .color-selected-tag { font-size: 12px; font-weight: 700; color: var(--text); background: none; padding: 0; }
     .manual-input-row { display: flex; gap: 6px; margin-top: 8px; align-items: flex-end; flex-wrap: wrap; }
     .manual-input-row .manual-field { display: flex; flex-direction: column; gap: 4px; flex: 1; min-width: 90px; }
     .manual-input-row .manual-field label { font-size: 11px; color: var(--text-muted); margin: 0; }
@@ -193,16 +203,7 @@
       </div>
     </div>
 
-    <div class="search-area" style="margin-bottom:20px">
-      <div class="search-row">
-        <div class="form-group" style="flex:2">
-          <label>搜尋（備註、標籤、材料）</label>
-          <input class="form-control" id="f-keyword" type="text" placeholder="如：粉晶、情侶款…">
-        </div>
-        <button class="btn btn-primary" onclick="doSearch()">查詢</button>
-        <button class="btn btn-secondary" onclick="clearSearch()">清除</button>
-      </div>
-    </div>
+    <div class="filter-bar" id="filter-bar"></div>
 
     <div id="insp-container">
       <div class="loading"><div class="spinner"></div><div>載入中...</div></div>
@@ -264,10 +265,13 @@
                 <label class="color-opt"><input type="checkbox" value="白色系"> 白色系</label>
                 <label class="color-opt"><input type="checkbox" value="黑色系"> 黑色系</label>
                 <label class="color-opt"><input type="checkbox" value="棕色系"> 棕色系</label>
-                <label class="color-opt"><input type="checkbox" value="金色系"> 金色系</label>
-                <label class="color-opt"><input type="checkbox" value="銀色系"> 銀色系</label>
+                <label class="color-opt"><input type="checkbox" value="灰色系"> 灰色系</label>
                 <label class="color-opt"><input type="checkbox" value="透明系"> 透明系</label>
                 <label class="color-opt"><input type="checkbox" value="多色系"> 多色系</label>
+                <label class="color-opt"><input type="checkbox" value="珍珠"> 珍珠</label>
+                <label class="color-opt"><input type="checkbox" value="米珠"> 米珠</label>
+                <label class="color-opt"><input type="checkbox" value="深色系"> 深色系</label>
+                <label class="color-opt"><input type="checkbox" value="淺色系"> 淺色系</label>
               </div>
             </div>
           </div>

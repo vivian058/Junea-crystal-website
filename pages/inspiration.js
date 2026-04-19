@@ -2,10 +2,14 @@
 // 靈感收藏
 // =============================================
 
-let allInventory = [];       // 全部庫存 (crystal + accessory)
-let selectedCrystals = [];   // 目前編輯中的水晶材料 [{specKey?, displayName, crystalName?, isManual?}]
-let selectedAccessories = []; // 目前編輯中的配件材料
+let allInventory = [];
+let allInspirations = [];    // 全部靈感（客戶端篩選用）
+let selectedFilters = new Set(); // 已選色系篩選
+let selectedCrystals = [];
+let selectedAccessories = [];
 let editingId = null;
+
+const ALL_COLORS = ['紅色系','橙色系','黃色系','綠色系','藍色系','紫色系','粉色系','白色系','黑色系','棕色系','灰色系','透明系','多色系','珍珠','米珠','深色系','淺色系'];
 
 document.addEventListener('DOMContentLoaded', async () => {
   document.getElementById('navbar-root').innerHTML = renderNav('靈感收藏');
@@ -65,21 +69,57 @@ document.addEventListener('change', e => {
   if (e.target.closest('#color-dropdown')) updateColorTrigger();
 });
 
-async function loadAll(keyword = '') {
+async function loadAll() {
   document.getElementById('insp-container').innerHTML = loadingState();
   try {
     const [inspirations, inventory] = await Promise.all([
-      getInspirations(keyword),
+      getInspirations(),
       getInventory()
     ]);
     allInventory = inventory;
+    allInspirations = inspirations;
     fillCrystalDatalist();
     fillAccessoryDatalist();
-    renderCards(inspirations);
+    renderFilterBar();
+    applyFilter();
   } catch(e) {
     document.getElementById('insp-container').innerHTML =
       `<div class="empty-state"><div class="empty-state-text">${e.message}</div></div>`;
   }
+}
+
+function renderFilterBar() {
+  const bar = document.getElementById('filter-bar');
+  const tags = ALL_COLORS.map(c => `
+    <span class="filter-tag ${selectedFilters.has(c) ? 'active' : ''}" onclick="toggleFilter('${c}')">${c}</span>
+  `).join('');
+  const clearBtn = selectedFilters.size
+    ? `<button class="filter-clear" onclick="clearFilter()">清除篩選</button>` : '';
+  bar.innerHTML = tags + clearBtn;
+}
+
+function toggleFilter(color) {
+  if (selectedFilters.has(color)) selectedFilters.delete(color);
+  else selectedFilters.add(color);
+  renderFilterBar();
+  applyFilter();
+}
+
+function clearFilter() {
+  selectedFilters.clear();
+  renderFilterBar();
+  applyFilter();
+}
+
+function applyFilter() {
+  if (!selectedFilters.size) {
+    renderCards(allInspirations);
+    return;
+  }
+  const filtered = allInspirations.filter(item =>
+    (item.tags || []).some(t => selectedFilters.has(t))
+  );
+  renderCards(filtered);
 }
 
 function fillCrystalDatalist() {
@@ -229,19 +269,6 @@ function getInventoryBadge(mat, type) {
   return `<span class="mat-badge mat-badge-none">庫存沒有</span>`;
 }
 
-// ─── 查詢 ────────────────────────────────────
-
-function doSearch() {
-  loadAll(document.getElementById('f-keyword').value.trim());
-}
-function clearSearch() {
-  document.getElementById('f-keyword').value = '';
-  loadAll();
-}
-document.addEventListener('DOMContentLoaded', () => {
-  const input = document.getElementById('f-keyword');
-  if (input) input.addEventListener('keydown', e => { if (e.key === 'Enter') doSearch(); });
-});
 
 // ─── 新增/編輯 Modal ─────────────────────────
 
@@ -308,7 +335,7 @@ async function submitInspiration() {
       showToast('新增成功！', 'success');
     }
     closeModal('editModal');
-    await loadAll(document.getElementById('f-keyword').value.trim());
+    await loadAll();
   } catch(e) {
     showToast(`儲存失敗：${e.message}`, 'danger');
   } finally {
@@ -325,7 +352,7 @@ async function doDelete(id) {
     await deleteInspiration(id);
     showToast('已刪除', 'success');
     closeModal('detailModal');
-    await loadAll(document.getElementById('f-keyword').value.trim());
+    await loadAll();
   } catch(e) {
     showToast(`刪除失敗：${e.message}`, 'danger');
   }
