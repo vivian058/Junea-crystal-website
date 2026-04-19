@@ -376,7 +376,6 @@ async function syncCrystalInventory() {
 }
 
 async function syncAccessoryInventory() {
-  // 讀取所有配件成本紀錄，取得不重複的 specKey
   const costsSnap = await db.collection(COLLECTIONS.ACCESSORY_COSTS).get();
   const all = costsSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
   const seen = new Set();
@@ -386,21 +385,65 @@ async function syncAccessoryInventory() {
   const existingKeys = new Set(invSnap.docs.map(d => d.id));
 
   const added = [];
-
   for (const r of unique) {
     if (existingKeys.has(r.specKey)) continue;
     const displayName = r.productName || r.itemCode || r.specKey;
     await db.collection(COLLECTIONS.INVENTORY).doc(r.specKey).set({
       specKey: r.specKey, type: 'accessory', displayName,
-      itemCode: r.itemCode || '',
-      productName: r.productName || '',
-      spec: r.spec || '',
-      quantity: 0,
-      lastUpdated: firebase.firestore.FieldValue.serverTimestamp()
+      itemCode: r.itemCode || '', productName: r.productName || '', spec: r.spec || '',
+      quantity: 0, lastUpdated: firebase.firestore.FieldValue.serverTimestamp()
     });
     added.push(displayName);
   }
   return { added };
+}
+
+async function syncAccessoryInventoryByDate(dateStr) {
+  const costsSnap = await db.collection(COLLECTIONS.ACCESSORY_COSTS).get();
+  const all = costsSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+
+  // 篩選指定日期，取不重複 specKey（同一 specKey 當天多筆就只取第一筆）
+  const seen = new Set();
+  const forDate = all.filter(r => {
+    if (!r.specKey) return false;
+    const recDate = r.date ? String(r.date).slice(0, 10) : '';
+    if (recDate !== dateStr) return false;
+    if (seen.has(r.specKey)) return false;
+    seen.add(r.specKey);
+    return true;
+  });
+  if (!forDate.length) return { updated: [] };
+
+  const invSnap = await db.collection(COLLECTIONS.INVENTORY).get();
+  const invMap = {};
+  invSnap.docs.forEach(d => { invMap[d.id] = { ref: d.ref, data: d.data() }; });
+
+  const updated = [];
+  const ts = Date.now();
+
+  for (const r of forDate) {
+    const qty = Number(r.quantity) || 0;
+    if (!qty) continue; // 沒有進貨數量就跳過
+    const displayName = r.productName || r.itemCode || r.specKey;
+    const inv = invMap[r.specKey];
+
+    if (!inv) {
+      await db.collection(COLLECTIONS.INVENTORY).doc(r.specKey).set({
+        specKey: r.specKey, type: 'accessory', displayName,
+        itemCode: r.itemCode || '', productName: r.productName || '', spec: r.spec || '',
+        quantity: qty, lastUpdated: firebase.firestore.FieldValue.serverTimestamp(),
+        [`restockLog.${ts}_${r.specKey.slice(-4)}`]: { amount: qty, date: dateStr, note: '進貨更新' }
+      });
+    } else {
+      await inv.ref.update({
+        quantity: firebase.firestore.FieldValue.increment(qty),
+        lastUpdated: firebase.firestore.FieldValue.serverTimestamp(),
+        [`restockLog.${ts}_${r.specKey.slice(-4)}`]: { amount: qty, date: dateStr, note: '進貨更新' }
+      });
+    }
+    updated.push({ displayName, qty });
+  }
+  return { updated };
 }
 
 async function createInventoryEntry(specKey, data) {
