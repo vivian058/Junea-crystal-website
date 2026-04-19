@@ -130,7 +130,10 @@ function renderTable(settings) {
     </div>`;
 }
 
+let editingSpecKey = null;
+
 function openEditModal(specKey, size, typeA, typeB, defaultQty) {
+  editingSpecKey = specKey;
   document.getElementById('modal-title').textContent = '編輯規格設定';
   document.getElementById('s-size').value = size;
   document.getElementById('s-typeA').value = typeA;
@@ -153,6 +156,15 @@ async function submitSetting() {
   }
   if (!data.defaultQuantity || data.defaultQuantity < 1) {
     showToast('請填寫有效的預設顆數', 'warning'); return;
+  }
+
+  // 新增模式才做重複檢查
+  if (!editingSpecKey) {
+    const exists = await checkInitialStockSettingExists(data);
+    if (exists) {
+      showToast(`「${data.size}mm ${data.typeB} ${data.typeA}」已存在，請直接編輯該筆設定`, 'warning', 6000);
+      return;
+    }
   }
 
   try {
@@ -180,6 +192,7 @@ function resetForm() {
   });
   document.getElementById('s-typeA').value = '';
   document.getElementById('modal-title').textContent = '＋ 新增規格設定';
+  editingSpecKey = null;
 }
 
 async function deleteSetting(specKey, displayName) {
