@@ -430,7 +430,7 @@ async function logManualAdjust(specKey, type, amount, note) {
   if (type === 'damage') {
     newQty = Math.max(0, current - Number(amount));
     update.quantity = newQty;
-    update[`damageLog.${ts}`] = { amount: Number(amount), note: note || '', date };
+    update[`damageLog.${ts}`] = { amount: Number(amount), note: note || '耗損扣除', date };
   } else if (type === 'restock') {
     newQty = current + Number(amount);
     update.quantity = newQty;
@@ -444,6 +444,26 @@ async function logManualAdjust(specKey, type, amount, note) {
   }
   await docRef.update(update);
   return newQty;
+}
+
+async function deleteLogEntry(specKey, logType, logKey) {
+  const field = logType === 'damage' ? `damageLog.${logKey}` : `restockLog.${logKey}`;
+  await db.collection(COLLECTIONS.INVENTORY).doc(specKey).update({
+    [field]: firebase.firestore.FieldValue.delete(),
+    lastUpdated: firebase.firestore.FieldValue.serverTimestamp()
+  });
+}
+
+async function updateLogEntry(specKey, logType, logKey, amount, note) {
+  const field = logType === 'damage' ? `damageLog.${logKey}` : `restockLog.${logKey}`;
+  const doc = await db.collection(COLLECTIONS.INVENTORY).doc(specKey).get();
+  if (!doc.exists) throw new Error('找不到此規格庫存');
+  const logMap = logType === 'damage' ? doc.data().damageLog : doc.data().restockLog;
+  const existing = (logMap || {})[logKey] || {};
+  await db.collection(COLLECTIONS.INVENTORY).doc(specKey).update({
+    [field]: { ...existing, amount: Number(amount), note },
+    lastUpdated: firebase.firestore.FieldValue.serverTimestamp()
+  });
 }
 
 async function processShipment(braceletName, quantity = 1) {
