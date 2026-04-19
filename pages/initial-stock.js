@@ -60,7 +60,6 @@ function toggleOptManager(id) {
 
 document.addEventListener('DOMContentLoaded', async () => {
   document.getElementById('navbar-root').innerHTML = renderNav('初始庫存設定');
-  refreshOptUI('crystalNames');
   refreshOptUI('crystalSizes');
   await loadSettings();
 });
@@ -88,9 +87,13 @@ function renderTable(settings) {
     return;
   }
 
-  const rows = settings.map(s => `
+  const newSettings = settings.filter(s => s.specKey && s.specKey.startsWith('SIZE_'));
+  if (!newSettings.length) {
+    container.innerHTML = emptyState('', '尚未設定任何規格，點右上角「新增水晶設定」開始');
+    return;
+  }
+  const rows = newSettings.map(s => `
     <tr>
-      <td><strong>${s.crystalName || '-'}</strong></td>
       <td>${s.size ? s.size + 'mm' : '-'}</td>
       <td>${s.typeB || '-'}</td>
       <td><span class="badge badge-purple">${s.typeA || '-'}</span></td>
@@ -100,8 +103,8 @@ function renderTable(settings) {
       </td>
       <td>
         <div class="btn-group">
-          <button class="btn btn-secondary btn-sm" onclick="openEditModal('${s.specKey}', '${s.crystalName}', '${s.size}', '${s.typeA}', '${s.typeB}', ${s.defaultQuantity})">編輯</button>
-          <button class="btn btn-danger btn-sm" onclick="deleteSetting('${s.specKey}', '${s.displayName}')">刪除</button>
+          <button class="btn btn-secondary btn-sm" onclick="openEditModal('${s.specKey}','${s.size}','${s.typeA}','${s.typeB}',${s.defaultQuantity})">編輯</button>
+          <button class="btn btn-danger btn-sm" onclick="deleteSetting('${s.specKey}','${s.displayName}')">刪除</button>
         </div>
       </td>
     </tr>`).join('');
@@ -111,7 +114,6 @@ function renderTable(settings) {
       <table>
         <thead>
           <tr>
-            <th>水晶名稱</th>
             <th>尺寸</th>
             <th>形狀</th>
             <th>規格</th>
@@ -124,9 +126,8 @@ function renderTable(settings) {
     </div>`;
 }
 
-function openEditModal(specKey, crystalName, size, typeA, typeB, defaultQty) {
+function openEditModal(specKey, size, typeA, typeB, defaultQty) {
   document.getElementById('modal-title').textContent = '編輯規格設定';
-  document.getElementById('s-crystalName').value = crystalName;
   document.getElementById('s-size').value = size;
   document.getElementById('s-typeA').value = typeA;
   document.getElementById('s-typeB').value = typeB;
@@ -137,14 +138,13 @@ function openEditModal(specKey, crystalName, size, typeA, typeB, defaultQty) {
 async function submitSetting() {
   const get = id => document.getElementById(id).value.trim();
   const data = {
-    crystalName: get('s-crystalName'),
     size: get('s-size'),
     typeA: get('s-typeA'),
     typeB: get('s-typeB'),
     defaultQuantity: parseInt(get('s-defaultQty')) || 0
   };
 
-  if (!data.crystalName || !data.size || !data.typeA || !data.typeB) {
+  if (!data.size || !data.typeA || !data.typeB) {
     showToast('請填寫所有必填欄位', 'warning'); return;
   }
   if (!data.defaultQuantity || data.defaultQuantity < 1) {
@@ -154,12 +154,8 @@ async function submitSetting() {
   try {
     const btn = document.querySelector('#addModal .btn-primary');
     btn.disabled = true; btn.textContent = '儲存中...';
-    const result = await setInitialStockSetting(data);
-    if (result.isNewInventory) {
-      showToast(`設定已儲存！已自動在庫存表新增「${data.crystalName} ${data.size}mm ${data.typeB} ${data.typeA}」（初始數量 0）`, 'success', 7000);
-    } else {
-      showToast('設定已儲存！', 'success');
-    }
+    await setInitialStockSetting(data);
+    showToast(`已儲存：${data.size}mm ${data.typeB} ${data.typeA} → ${data.defaultQuantity} 顆`, 'success');
     closeModal('addModal');
     resetForm();
     await loadSettings();
@@ -172,7 +168,7 @@ async function submitSetting() {
 }
 
 function resetForm() {
-  ['s-crystalName','s-size','s-typeB','s-defaultQty'].forEach(id => {
+  ['s-size','s-typeB','s-defaultQty'].forEach(id => {
     document.getElementById(id).value = '';
   });
   document.getElementById('s-typeA').value = '';

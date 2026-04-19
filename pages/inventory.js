@@ -25,7 +25,8 @@ async function loadInventory() {
       getInitialStockSettings()
     ]);
     allInventory = inventory;
-    initialSettingKeys = new Set(settings.map(s => s.specKey));
+    // 只保留通用規格鍵（SIZE_ 開頭），用於 pattern 比對
+    initialSettingKeys = new Set(settings.filter(s => s.specKey && s.specKey.startsWith('SIZE_')).map(s => s.specKey));
     renderLowStockAlerts(allInventory);
     filterInventory();
   } catch(e) {
@@ -56,7 +57,12 @@ function renderLowStockAlerts(items) {
   const lowItems = items.filter(i => {
     const qty = i.quantity || 0;
     if (qty >= 20) return false;
-    if (qty === 0 && !initialSettingKeys.has(i.specKey || i.id)) return false;
+    if (i.type === 'crystal') {
+      const pk = makeCrystalPatternKey(i.size || '', i.typeA || '', i.typeB || '');
+      if (qty === 0 && !initialSettingKeys.has(pk)) return false;
+    } else {
+      if (qty === 0 && !initialSettingKeys.has(i.specKey || i.id)) return false;
+    }
     return true;
   });
   const alertsEl = document.getElementById('low-stock-alerts');
@@ -91,17 +97,16 @@ function buildCrystalInventoryRows(items) {
   const rows = items.flatMap(item => {
     const qty = item.quantity || 0;
     const specKey = item.specKey || item.id;
-    const needsSetup = qty === 0 && !initialSettingKeys.has(specKey);
-    const isLow = !needsSetup && qty < 20;
-    const qtyClass = needsSetup ? 'qty-warn' : qty >= 50 ? 'qty-ok' : qty >= 20 ? 'qty-warn' : 'qty-danger';
-    const { html: logRowsHtml, count: logCount } = buildLogRows(item);
-    const safeId = item.id.replace(/[^a-zA-Z0-9_-]/g, '_');
     const displayName = item.displayName || item.specKey || '';
     const parts = displayName.split(' ');
     const crystalName = item.crystalName || parts[0] || '-';
-    const size = item.size ? item.size + 'mm' : (parts[1] || '-');
+    const size = item.size || parts[1]?.replace('mm','') || '';
     const typeB = item.typeB || parts[2] || '-';
     const typeA = item.typeA || parts[3] || '-';
+    const patternKey = makeCrystalPatternKey(size, typeA, typeB);
+    const needsSetup = qty === 0 && !initialSettingKeys.has(patternKey);
+    const isLow = !needsSetup && qty < 20;
+    const qtyClass = needsSetup ? 'qty-warn' : qty >= 50 ? 'qty-ok' : qty >= 20 ? 'qty-warn' : 'qty-danger';
 
     return [
       `<tr>
