@@ -5,6 +5,18 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>初始庫存設定 - 玖釀</title>
   <link rel="stylesheet" href="../css/style.css">
+  <style>
+    .opt-manager { margin-top: 6px; background: var(--bg); border: 1px solid var(--border); border-radius: 8px; padding: 10px 12px; display: none; }
+    .opt-manager.open { display: block; }
+    .opt-tags { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 8px; min-height: 24px; }
+    .opt-tag { display: inline-flex; align-items: center; gap: 4px; background: var(--primary-light); color: var(--primary-dark); font-size: 12px; padding: 3px 10px; border-radius: 20px; }
+    .opt-tag-del { cursor: pointer; opacity: 0.6; font-size: 14px; line-height: 1; }
+    .opt-tag-del:hover { opacity: 1; }
+    .opt-add-row { display: flex; gap: 6px; }
+    .opt-add-row input { flex: 1; }
+    .opt-toggle { font-size: 11px; color: var(--primary); cursor: pointer; margin-top: 4px; display: inline-block; background: none; border: none; padding: 0; }
+    .opt-toggle:hover { text-decoration: underline; }
+  </style>
 </head>
 <body>
   <div id="navbar-root"></div>
@@ -50,11 +62,29 @@
         <div class="form-grid">
           <div class="form-group">
             <label class="required">水晶名稱</label>
-            <input class="form-control" id="s-crystalName" type="text" placeholder="如：白水晶">
+            <input class="form-control" id="s-crystalName" type="text" list="dl-is-name" placeholder="選擇或輸入" autocomplete="off">
+            <datalist id="dl-is-name"></datalist>
+            <button type="button" class="opt-toggle" onclick="toggleOptManager('name-mgr')">編輯選項 ▾</button>
+            <div class="opt-manager" id="name-mgr">
+              <div class="opt-tags" id="name-tags"></div>
+              <div class="opt-add-row">
+                <input class="form-control" id="name-new-opt" type="text" placeholder="新增選項…">
+                <button class="btn btn-secondary btn-sm" onclick="addOpt('crystalNames','name-new-opt')">新增</button>
+              </div>
+            </div>
           </div>
           <div class="form-group">
             <label class="required">尺寸 (mm)</label>
-            <input class="form-control" id="s-size" type="text" placeholder="如：6、8、10">
+            <input class="form-control" id="s-size" type="text" list="dl-is-size" placeholder="選擇或輸入" autocomplete="off">
+            <datalist id="dl-is-size"></datalist>
+            <button type="button" class="opt-toggle" onclick="toggleOptManager('size-mgr')">編輯選項 ▾</button>
+            <div class="opt-manager" id="size-mgr">
+              <div class="opt-tags" id="size-tags"></div>
+              <div class="opt-add-row">
+                <input class="form-control" id="size-new-opt" type="text" placeholder="新增選項…">
+                <button class="btn btn-secondary btn-sm" onclick="addOpt('crystalSizes','size-new-opt')">新增</button>
+              </div>
+            </div>
           </div>
           <div class="form-group">
             <label class="required">規格 A</label>

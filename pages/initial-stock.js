@@ -2,8 +2,66 @@
 // 初始庫存設定
 // =============================================
 
+// ─── 可編輯選項（localStorage）────────────────
+
+const OPT_DEFAULTS = {
+  crystalNames: ['水晶', '珍珠', '米珠'],
+  crystalSizes: ['4', '6', '8', '10', '12', '14']
+};
+
+function getOpts(key) {
+  try {
+    const raw = localStorage.getItem('jn_' + key);
+    return raw ? JSON.parse(raw) : [...OPT_DEFAULTS[key]];
+  } catch { return [...OPT_DEFAULTS[key]]; }
+}
+
+function saveOpts(key, arr) {
+  localStorage.setItem('jn_' + key, JSON.stringify(arr));
+}
+
+function addOpt(key, inputId) {
+  const val = document.getElementById(inputId).value.trim();
+  if (!val) return;
+  const opts = getOpts(key);
+  if (opts.includes(val)) { showToast('選項已存在', 'warning'); return; }
+  opts.push(val);
+  saveOpts(key, opts);
+  document.getElementById(inputId).value = '';
+  refreshOptUI(key);
+}
+
+function removeOpt(key, val) {
+  const opts = getOpts(key).filter(o => o !== val);
+  saveOpts(key, opts);
+  refreshOptUI(key);
+}
+
+function refreshOptUI(key) {
+  const datalistMap = { crystalNames: 'dl-is-name', crystalSizes: 'dl-is-size' };
+  const tagsMap     = { crystalNames: 'name-tags',  crystalSizes: 'size-tags' };
+  const opts = getOpts(key);
+  // datalist
+  const dl = document.getElementById(datalistMap[key]);
+  if (dl) fillDatalist(dl, opts);
+  // 管理面板 tags
+  const tagsEl = document.getElementById(tagsMap[key]);
+  if (tagsEl) {
+    tagsEl.innerHTML = opts.map(o => `
+      <span class="opt-tag">${o}
+        <span class="opt-tag-del" onclick="removeOpt('${key}','${o.replace(/'/g,"\\'")}')">×</span>
+      </span>`).join('');
+  }
+}
+
+function toggleOptManager(id) {
+  document.getElementById(id).classList.toggle('open');
+}
+
 document.addEventListener('DOMContentLoaded', async () => {
   document.getElementById('navbar-root').innerHTML = renderNav('初始庫存設定');
+  refreshOptUI('crystalNames');
+  refreshOptUI('crystalSizes');
   await loadSettings();
 });
 
