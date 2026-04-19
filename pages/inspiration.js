@@ -9,7 +9,60 @@ let editingId = null;
 
 document.addEventListener('DOMContentLoaded', async () => {
   document.getElementById('navbar-root').innerHTML = renderNav('靈感收藏');
+  // 點外部關閉色系下拉
+  document.addEventListener('click', e => {
+    if (!e.target.closest('.color-picker-wrap')) closeColorPicker();
+  });
   await loadAll();
+});
+
+// ─── 色系多選下拉 ────────────────────────────
+
+function toggleColorPicker() {
+  const dd = document.getElementById('color-dropdown');
+  dd.classList.toggle('open');
+  document.getElementById('color-trigger').classList.toggle('open', dd.classList.contains('open'));
+}
+
+function closeColorPicker() {
+  document.getElementById('color-dropdown').classList.remove('open');
+  document.getElementById('color-trigger').classList.remove('open');
+}
+
+function getSelectedColors() {
+  return [...document.querySelectorAll('#color-dropdown input[type=checkbox]:checked')].map(c => c.value);
+}
+
+function setSelectedColors(tags) {
+  document.querySelectorAll('#color-dropdown input[type=checkbox]').forEach(cb => {
+    cb.checked = tags.includes(cb.value);
+  });
+  updateColorTrigger();
+}
+
+function updateColorTrigger() {
+  const selected = getSelectedColors();
+  const trigger = document.getElementById('color-trigger');
+  const placeholder = document.getElementById('color-trigger-placeholder');
+  if (selected.length) {
+    placeholder.style.display = 'none';
+    // 移除舊 tag span，重新插入
+    trigger.querySelectorAll('.color-selected-tag').forEach(el => el.remove());
+    selected.forEach(s => {
+      const span = document.createElement('span');
+      span.className = 'color-selected-tag';
+      span.textContent = s;
+      trigger.appendChild(span);
+    });
+  } else {
+    placeholder.style.display = '';
+    trigger.querySelectorAll('.color-selected-tag').forEach(el => el.remove());
+  }
+}
+
+// 勾選時即時更新 trigger 顯示
+document.addEventListener('change', e => {
+  if (e.target.closest('#color-dropdown')) updateColorTrigger();
 });
 
 async function loadAll(keyword = '') {
@@ -56,7 +109,9 @@ function renderCards(list) {
     return;
   }
   const cards = list.map(item => {
-    const tags = (item.tags || []).map(t => `<span class="tag">${t}</span>`).join('');
+    const tags = (item.tags || []).length
+      ? `<div style="font-size:13px;font-weight:700;color:var(--text);margin-bottom:6px">${(item.tags).join('・')}</div>`
+      : '';
     const cCount = (item.crystalMaterials || []).length;
     const aCount = (item.accessoryMaterials || []).length;
     const matText = [cCount ? `水晶 ${cCount} 項` : '', aCount ? `配件 ${aCount} 項` : ''].filter(Boolean).join('、');
@@ -103,7 +158,7 @@ async function openDetail(id) {
     ? `<div style="font-size:14px;color:var(--text);margin-bottom:10px;white-space:pre-wrap">${item.notes}</div>`
     : '';
   const tagsHtml = (item.tags || []).length
-    ? `<div style="margin-bottom:10px">${item.tags.map(t => `<span class="tag">${t}</span>`).join(' ')}</div>`
+    ? `<div style="font-size:13px;font-weight:700;color:var(--text);margin-bottom:10px">${item.tags.join('・')}</div>`
     : '';
 
   const crystalHtml = buildMatCompare(item.crystalMaterials || [], 'crystal');
@@ -212,7 +267,7 @@ async function openEditById(id) {
   document.getElementById('edit-save-btn').textContent = '儲存修改';
   document.getElementById('f-imageUrl').value = item.imageUrl || '';
   document.getElementById('f-sourceUrl').value = item.sourceUrl || '';
-  document.getElementById('f-tags').value = (item.tags || []).join(',');
+  setSelectedColors(item.tags || []);
   document.getElementById('f-notes').value = item.notes || '';
   resetModalInputs(false);
   openModal('editModal');
@@ -220,7 +275,8 @@ async function openEditById(id) {
 
 function resetModalInputs(clearForm = true) {
   if (clearForm) {
-    ['f-imageUrl','f-sourceUrl','f-tags','f-notes'].forEach(id => document.getElementById(id).value = '');
+    ['f-imageUrl','f-sourceUrl','f-notes'].forEach(id => document.getElementById(id).value = '');
+    setSelectedColors([]);
   }
   ['crystal-search','crystal-manual-name','crystal-manual-size','crystal-manual-shape',
    'acc-search','acc-manual-name','acc-manual-size','acc-manual-color'].forEach(id => document.getElementById(id).value = '');
@@ -232,11 +288,10 @@ function resetModalInputs(clearForm = true) {
 
 async function submitInspiration() {
   const get = id => document.getElementById(id).value.trim();
-  const tagsStr = get('f-tags');
   const data = {
     imageUrl: get('f-imageUrl'),
     sourceUrl: get('f-sourceUrl'),
-    tags: tagsStr ? tagsStr.split(/[,，]/).map(t => t.trim()).filter(Boolean) : [],
+    tags: getSelectedColors(),
     notes: get('f-notes'),
     crystalMaterials: selectedCrystals,
     accessoryMaterials: selectedAccessories

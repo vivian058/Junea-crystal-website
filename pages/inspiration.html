@@ -120,6 +120,61 @@
       opacity: 0.6;
     }
     .mat-tag-remove:hover { opacity: 1; }
+
+    /* 色系多選下拉 */
+    .color-picker-wrap { position: relative; }
+    .color-picker-trigger {
+      width: 100%;
+      min-height: 40px;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: 6px 12px;
+      cursor: pointer;
+      background: white;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 4px;
+      align-items: center;
+      font-size: 14px;
+      color: var(--text-muted);
+    }
+    .color-picker-trigger:focus-within,
+    .color-picker-trigger.open { border-color: var(--primary); outline: none; }
+    .color-picker-dropdown {
+      display: none;
+      position: absolute;
+      top: calc(100% + 4px);
+      left: 0; right: 0;
+      background: white;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      box-shadow: var(--shadow-hover);
+      z-index: 200;
+      padding: 10px;
+      display: none;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 4px;
+    }
+    .color-picker-dropdown.open { display: grid; }
+    .color-opt {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 5px 8px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 13px;
+      transition: background 0.15s;
+    }
+    .color-opt:hover { background: var(--primary-light); }
+    .color-opt input[type=checkbox] { accent-color: var(--primary); width: 14px; height: 14px; cursor: pointer; }
+    .color-selected-tag {
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--text);
+      background: none;
+      padding: 0;
+    }
     .manual-input-row { display: flex; gap: 6px; margin-top: 8px; align-items: flex-end; flex-wrap: wrap; }
     .manual-input-row .manual-field { display: flex; flex-direction: column; gap: 4px; flex: 1; min-width: 90px; }
     .manual-input-row .manual-field label { font-size: 11px; color: var(--text-muted); margin: 0; }
@@ -193,8 +248,28 @@
             <input class="form-control" id="f-sourceUrl" type="url" placeholder="作品出處（貼文/帳號網址）">
           </div>
           <div class="form-group" style="grid-column:1/-1">
-            <label>標籤 <span style="font-weight:400;color:var(--text-muted)">（逗號分隔，如：情侶款,粉色系）</span></label>
-            <input class="form-control" id="f-tags" type="text" placeholder="情侶款,粉色系,簡約風…">
+            <label>色系</label>
+            <div class="color-picker-wrap">
+              <div class="color-picker-trigger" id="color-trigger" onclick="toggleColorPicker()">
+                <span id="color-trigger-placeholder" style="color:var(--text-muted)">點擊選擇色系（可多選）</span>
+              </div>
+              <div class="color-picker-dropdown" id="color-dropdown">
+                <label class="color-opt"><input type="checkbox" value="紅色系"> 紅色系</label>
+                <label class="color-opt"><input type="checkbox" value="橙色系"> 橙色系</label>
+                <label class="color-opt"><input type="checkbox" value="黃色系"> 黃色系</label>
+                <label class="color-opt"><input type="checkbox" value="綠色系"> 綠色系</label>
+                <label class="color-opt"><input type="checkbox" value="藍色系"> 藍色系</label>
+                <label class="color-opt"><input type="checkbox" value="紫色系"> 紫色系</label>
+                <label class="color-opt"><input type="checkbox" value="粉色系"> 粉色系</label>
+                <label class="color-opt"><input type="checkbox" value="白色系"> 白色系</label>
+                <label class="color-opt"><input type="checkbox" value="黑色系"> 黑色系</label>
+                <label class="color-opt"><input type="checkbox" value="棕色系"> 棕色系</label>
+                <label class="color-opt"><input type="checkbox" value="金色系"> 金色系</label>
+                <label class="color-opt"><input type="checkbox" value="銀色系"> 銀色系</label>
+                <label class="color-opt"><input type="checkbox" value="透明系"> 透明系</label>
+                <label class="color-opt"><input type="checkbox" value="多色系"> 多色系</label>
+              </div>
+            </div>
           </div>
           <div class="form-group" style="grid-column:1/-1">
             <label>備註</label>
