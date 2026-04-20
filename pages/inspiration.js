@@ -9,6 +9,7 @@ let selectedCrystals = [];
 let selectedMyPlanCrystals = [];
 let selectedAccessories = [];
 let editingId = null;
+let currentDetailItemId = null;
 
 const ALL_COLORS = ['紅色系','橙色系','黃色系','綠色系','藍色系','紫色系','粉色系','白色系','黑色系','棕色系','灰色系','透明系','多色系','珍珠','米珠','深色系','淺色系'];
 
@@ -202,22 +203,12 @@ async function openDetail(id) {
     ? `<div style="font-size:13px;font-weight:700;color:var(--text);margin-bottom:10px">${item.tags.join('・')}</div>`
     : '';
 
-  const crystalHtml = buildMatCompare(item.crystalMaterials || [], 'crystal');
-  const myPlanHtml = buildMatCompare(item.myPlanCrystals || [], 'crystal');
+  currentDetailItemId = id;
+  const authorCrystals = item.crystalMaterials || [];
+  const myPlanCrystals = item.myPlanCrystals || [];
   const accHtml = buildMatCompare(item.accessoryMaterials || [], 'accessory');
-  const hasCrystal = crystalHtml || myPlanHtml;
-  const crystalSection = hasCrystal ? `
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:4px">
-      <div>
-        <div class="mat-section-title">原作者的水晶</div>
-        ${crystalHtml ? `<div class="mat-list">${crystalHtml}</div>` : '<div style="color:var(--text-muted);font-size:12px;padding:4px 0">未記錄</div>'}
-      </div>
-      <div>
-        <div class="mat-section-title" style="color:var(--primary)">我預計要用的水晶</div>
-        ${myPlanHtml ? `<div class="mat-list">${myPlanHtml}</div>` : '<div style="color:var(--text-muted);font-size:12px;padding:4px 0">未記錄</div>'}
-      </div>
-    </div>` : '';
-  const matSection = (hasCrystal || accHtml) ? `
+  const crystalSection = buildAlignedCrystalRows(authorCrystals, myPlanCrystals, id);
+  const matSection = (authorCrystals.length || myPlanCrystals.length || accHtml) ? `
     ${crystalSection}
     ${accHtml ? `<div class="mat-section-title" style="margin-top:14px">配件材料</div><div class="mat-list">${accHtml}</div>` : ''}
   ` : '<div style="color:var(--text-muted);font-size:13px">未記錄材料</div>';
@@ -240,45 +231,120 @@ function buildMatCompare(materials, type) {
   }).join('');
 }
 
+
+// ─── 對齊水晶行 ──────────────────────────────
+
+function buildAlignedCrystalRows(authorCrystals, myPlanCrystals, itemId) {
+  const maxLen = Math.max(authorCrystals.length, (myPlanCrystals || []).filter(x=>x).length
+    ? Math.max(...(myPlanCrystals||[]).map((_,i)=>i+1), authorCrystals.length)
+    : authorCrystals.length);
+  if (!maxLen) return '';
+
+  const bg = i => i % 2 === 0 ? '#faf6ff' : '#fff';
+  const cellStyle = i => `background:${bg(i)};padding:6px 10px;border-radius:6px;min-height:40px`;
+
+  const header = `
+    <div style="font-weight:700;font-size:12px;color:var(--text-muted);padding:0 10px 6px;border-bottom:1px solid var(--border)">原作者的水晶</div>
+    <div style="font-weight:700;font-size:12px;color:var(--primary);padding:0 10px 6px;border-bottom:1px solid var(--border)">我預計要用的水晶</div>`;
+
+  let rows = '';
+  for (let i = 0; i < maxLen; i++) {
+    const author = (authorCrystals || [])[i];
+    const plan = (myPlanCrystals || [])[i];
+
+    // 左欄
+    if (author) {
+      const badge = getInventoryBadge(author, 'crystal');
+      rows += `<div class="mat-item" style="${cellStyle(i)}"><div class="mat-item-name">${author.displayName}</div>${badge}</div>`;
+    } else {
+      rows += `<div style="${cellStyle(i)}"></div>`;
+    }
+
+    // 右欄
+    if (plan) {
+      const badge = getInventoryBadge(plan, 'crystal');
+      rows += `<div class="mat-item" style="${cellStyle(i)};position:relative">
+        <div class="mat-item-name">${plan.displayName}</div>${badge}
+        <button onclick="removePlanAtIdx('${itemId}',${i})" style="position:absolute;top:4px;right:6px;background:none;border:none;cursor:pointer;font-size:13px;color:var(--text-muted);line-height:1">×</button>
+      </div>`;
+    } else {
+      rows += `<div id="plan-slot-${i}" style="${cellStyle(i)};border:1px dashed var(--border)">
+        <button onclick="showPlanAddForm('${itemId}',${i})" style="background:none;border:none;cursor:pointer;font-size:12px;color:var(--primary)">＋ 新增</button>
+      </div>`;
+    }
+  }
+
+  return `<div style="display:grid;grid-template-columns:1fr 1fr;gap:4px 8px;margin-bottom:8px">${header}${rows}</div>`;
+}
+
+function showPlanAddForm(itemId, idx) {
+  const slot = document.getElementById(`plan-slot-${idx}`);
+  if (!slot) return;
+  slot.innerHTML = `
+    <div style="display:flex;flex-direction:column;gap:4px">
+      <input id="pad-name-${idx}" class="form-control" style="font-size:12px;padding:3px 6px" placeholder="水晶名稱" list="dl-crystal-name">
+      <div style="display:flex;gap:4px">
+        <input id="pad-size-${idx}" class="form-control" style="font-size:12px;padding:3px 6px" placeholder="尺寸">
+        <input id="pad-shape-${idx}" class="form-control" style="font-size:12px;padding:3px 6px" placeholder="形狀">
+      </div>
+      <div style="display:flex;gap:4px">
+        <button onclick="savePlanAtIdx('${itemId}',${idx})" class="btn btn-primary btn-sm" style="font-size:11px;flex:1">確認</button>
+        <button onclick="openDetail('${itemId}')" class="btn btn-secondary btn-sm" style="font-size:11px">取消</button>
+      </div>
+    </div>`;
+  document.getElementById(`pad-name-${idx}`).focus();
+}
+
+async function savePlanAtIdx(itemId, idx) {
+  const name  = (document.getElementById(`pad-name-${idx}`)?.value || '').trim();
+  const size  = (document.getElementById(`pad-size-${idx}`)?.value || '').trim();
+  const shape = (document.getElementById(`pad-shape-${idx}`)?.value || '').trim();
+  if (!name) { showToast('請填寫水晶名稱', 'warning'); return; }
+  const displayName = [name, size, shape].filter(Boolean).join(' ');
+  const crystal = { displayName, crystalName: name, isManual: true };
+  try {
+    const snap = await db.collection(COLLECTIONS.INSPIRATIONS).doc(itemId).get();
+    if (!snap.exists) return;
+    const myPlan = [...(snap.data().myPlanCrystals || [])];
+    while (myPlan.length <= idx) myPlan.push(null);
+    myPlan[idx] = crystal;
+    await db.collection(COLLECTIONS.INSPIRATIONS).doc(itemId).update({ myPlanCrystals: myPlan });
+    await openDetail(itemId);
+  } catch(e) { showToast('儲存失敗：' + e.message, 'danger'); }
+}
+
+async function removePlanAtIdx(itemId, idx) {
+  try {
+    const snap = await db.collection(COLLECTIONS.INSPIRATIONS).doc(itemId).get();
+    if (!snap.exists) return;
+    const myPlan = [...(snap.data().myPlanCrystals || [])];
+    myPlan[idx] = null;
+    await db.collection(COLLECTIONS.INSPIRATIONS).doc(itemId).update({ myPlanCrystals: myPlan });
+    await openDetail(itemId);
+  } catch(e) { showToast('刪除失敗：' + e.message, 'danger'); }
+}
+
 function getInventoryBadge(mat, type) {
   const inv = allInventory.filter(i => i.type === type);
+  const unit = type === 'crystal' ? '顆' : '個';
 
   if (!mat.isManual && mat.specKey) {
-    // 從庫存選出的：直接比對 specKey
     const exact = inv.find(i => i.specKey === mat.specKey);
     if (exact) {
-      if (exact.quantity > 0) return `<span class="mat-badge mat-badge-same">庫存有同款（${exact.quantity}${type === 'crystal' ? '顆' : '個'}）</span>`;
-      return `<span class="mat-badge mat-badge-zero">同款庫存為 0</span>`;
-    }
-    // specKey 不在庫存，但同名水晶/配件有其他規格
-    if (type === 'crystal' && mat.crystalName) {
-      const similar = inv.filter(i => i.crystalName === mat.crystalName);
-      if (similar.length) {
-        const names = similar.map(i => i.displayName).join('、');
-        return `<span class="mat-badge mat-badge-similar">類似款：${names}</span>`;
-      }
-    }
-    if (type === 'accessory' && mat.productName) {
-      const similar = inv.filter(i => i.productName === mat.productName);
-      if (similar.length) {
-        const names = similar.map(i => i.displayName).join('、');
-        return `<span class="mat-badge mat-badge-similar">類似款：${names}</span>`;
-      }
+      if (exact.quantity > 0) return `<span class="mat-badge mat-badge-same">庫存有（${exact.quantity}${unit}）</span>`;
+      return `<span class="mat-badge mat-badge-zero">庫存 0</span>`;
     }
     return `<span class="mat-badge mat-badge-none">庫存沒有</span>`;
   }
 
-  // 手動輸入：關鍵字比對
-  const kw = (mat.displayName || '').toLowerCase();
-  let match = null;
-  if (type === 'crystal') {
-    match = inv.find(i => (i.crystalName || '').toLowerCase().includes(kw) || (i.displayName || '').toLowerCase().includes(kw));
-  } else {
-    match = inv.find(i => (i.productName || '').toLowerCase().includes(kw) || (i.displayName || '').toLowerCase().includes(kw));
-  }
-  if (match) {
-    if (match.quantity > 0) return `<span class="mat-badge mat-badge-similar">可能類似款：${match.displayName}（${match.quantity}${type === 'crystal' ? '顆' : '個'}）</span>`;
-    return `<span class="mat-badge mat-badge-zero">可能類似款（庫存為 0）：${match.displayName}</span>`;
+  // 手動輸入：只比對水晶名稱（精確）
+  const kw = (mat.crystalName || '').toLowerCase();
+  if (kw) {
+    const match = inv.find(i => (i.crystalName || i.productName || '').toLowerCase() === kw);
+    if (match) {
+      if (match.quantity > 0) return `<span class="mat-badge mat-badge-same">庫存有（${match.quantity}${unit}）</span>`;
+      return `<span class="mat-badge mat-badge-zero">庫存 0</span>`;
+    }
   }
   return `<span class="mat-badge mat-badge-none">庫存沒有</span>`;
 }
