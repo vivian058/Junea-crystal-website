@@ -281,31 +281,60 @@
           </div>
         </div>
 
-        <!-- 水晶材料 -->
-        <div class="mat-section-title">水晶材料</div>
-        <div class="mat-selector">
-          <div class="mat-selector-search">
-            <input class="form-control" id="crystal-search" type="text" placeholder="搜尋庫存水晶…" oninput="searchCrystal(this.value)">
+        <!-- 水晶材料：兩欄並排 -->
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:4px">
+          <div>
+            <div class="mat-section-title">原作者的水晶</div>
+            <div class="mat-selector">
+              <div class="mat-selector-search">
+                <input class="form-control" id="crystal-search" type="text" placeholder="搜尋庫存水晶…" oninput="searchCrystal(this.value)">
+              </div>
+              <div class="mat-selector-results" id="crystal-results"></div>
+              <div class="mat-selected-tags" id="crystal-selected"></div>
+              <div class="manual-input-row" style="flex-wrap:wrap">
+                <div class="manual-field">
+                  <label>水晶名稱</label>
+                  <input class="form-control" id="crystal-manual-name" type="text" list="dl-crystal-name" placeholder="如：白水晶" autocomplete="off">
+                  <datalist id="dl-crystal-name"></datalist>
+                </div>
+                <div class="manual-field" style="max-width:80px">
+                  <label>尺寸</label>
+                  <input class="form-control" id="crystal-manual-size" type="text" list="dl-crystal-size" placeholder="8mm" autocomplete="off">
+                  <datalist id="dl-crystal-size"></datalist>
+                </div>
+                <div class="manual-field">
+                  <label>形狀</label>
+                  <input class="form-control" id="crystal-manual-shape" type="text" list="dl-crystal-shape" placeholder="圓珠" autocomplete="off">
+                  <datalist id="dl-crystal-shape"></datalist>
+                </div>
+                <button class="btn btn-secondary btn-sm" style="margin-bottom:1px" onclick="addManualCrystal()">新增</button>
+              </div>
+            </div>
           </div>
-          <div class="mat-selector-results" id="crystal-results"></div>
-          <div class="mat-selected-tags" id="crystal-selected"></div>
-          <div class="manual-input-row">
-            <div class="manual-field">
-              <label>水晶名稱</label>
-              <input class="form-control" id="crystal-manual-name" type="text" list="dl-crystal-name" placeholder="如：白水晶" autocomplete="off">
-              <datalist id="dl-crystal-name"></datalist>
+          <div>
+            <div class="mat-section-title" style="color:var(--primary)">我預計要用的水晶</div>
+            <div class="mat-selector">
+              <div class="mat-selector-search">
+                <input class="form-control" id="myplan-search" type="text" placeholder="搜尋庫存水晶…" oninput="searchMyPlanCrystal(this.value)">
+              </div>
+              <div class="mat-selector-results" id="myplan-results"></div>
+              <div class="mat-selected-tags" id="myplan-selected"></div>
+              <div class="manual-input-row" style="flex-wrap:wrap">
+                <div class="manual-field">
+                  <label>水晶名稱</label>
+                  <input class="form-control" id="myplan-manual-name" type="text" list="dl-crystal-name" placeholder="如：白水晶" autocomplete="off">
+                </div>
+                <div class="manual-field" style="max-width:80px">
+                  <label>尺寸</label>
+                  <input class="form-control" id="myplan-manual-size" type="text" list="dl-crystal-size" placeholder="8mm" autocomplete="off">
+                </div>
+                <div class="manual-field">
+                  <label>形狀</label>
+                  <input class="form-control" id="myplan-manual-shape" type="text" list="dl-crystal-shape" placeholder="圓珠" autocomplete="off">
+                </div>
+                <button class="btn btn-secondary btn-sm" style="margin-bottom:1px" onclick="addManualMyPlanCrystal()">新增</button>
+              </div>
             </div>
-            <div class="manual-field" style="max-width:100px">
-              <label>尺寸</label>
-              <input class="form-control" id="crystal-manual-size" type="text" list="dl-crystal-size" placeholder="如：8mm" autocomplete="off">
-              <datalist id="dl-crystal-size"></datalist>
-            </div>
-            <div class="manual-field">
-              <label>形狀</label>
-              <input class="form-control" id="crystal-manual-shape" type="text" list="dl-crystal-shape" placeholder="如：圓珠" autocomplete="off">
-              <datalist id="dl-crystal-shape"></datalist>
-            </div>
-            <button class="btn btn-secondary btn-sm" style="margin-bottom:1px" onclick="addManualCrystal()">新增</button>
           </div>
         </div>
 

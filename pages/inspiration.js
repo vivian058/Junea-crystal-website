@@ -6,6 +6,7 @@ let allInventory = [];
 let allInspirations = [];    // 全部靈感（客戶端篩選用）
 let selectedFilters = new Set(); // 已選色系篩選
 let selectedCrystals = [];
+let selectedMyPlanCrystals = [];
 let selectedAccessories = [];
 let editingId = null;
 
@@ -202,9 +203,22 @@ async function openDetail(id) {
     : '';
 
   const crystalHtml = buildMatCompare(item.crystalMaterials || [], 'crystal');
+  const myPlanHtml = buildMatCompare(item.myPlanCrystals || [], 'crystal');
   const accHtml = buildMatCompare(item.accessoryMaterials || [], 'accessory');
-  const matSection = (crystalHtml || accHtml) ? `
-    ${crystalHtml ? `<div class="mat-section-title">水晶材料</div><div class="mat-list">${crystalHtml}</div>` : ''}
+  const hasCrystal = crystalHtml || myPlanHtml;
+  const crystalSection = hasCrystal ? `
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:4px">
+      <div>
+        <div class="mat-section-title">原作者的水晶</div>
+        ${crystalHtml ? `<div class="mat-list">${crystalHtml}</div>` : '<div style="color:var(--text-muted);font-size:12px;padding:4px 0">未記錄</div>'}
+      </div>
+      <div>
+        <div class="mat-section-title" style="color:var(--primary)">我預計要用的水晶</div>
+        ${myPlanHtml ? `<div class="mat-list">${myPlanHtml}</div>` : '<div style="color:var(--text-muted);font-size:12px;padding:4px 0">未記錄</div>'}
+      </div>
+    </div>` : '';
+  const matSection = (hasCrystal || accHtml) ? `
+    ${crystalSection}
     ${accHtml ? `<div class="mat-section-title" style="margin-top:14px">配件材料</div><div class="mat-list">${accHtml}</div>` : ''}
   ` : '<div style="color:var(--text-muted);font-size:13px">未記錄材料</div>';
 
@@ -275,6 +289,7 @@ function getInventoryBadge(mat, type) {
 function openAddModal() {
   editingId = null;
   selectedCrystals = [];
+  selectedMyPlanCrystals = [];
   selectedAccessories = [];
   document.getElementById('edit-modal-title').textContent = '＋ 新增收藏';
   document.getElementById('edit-save-btn').textContent = '儲存';
@@ -289,6 +304,7 @@ async function openEditById(id) {
   const item = snapshot.data();
   editingId = id;
   selectedCrystals = item.crystalMaterials || [];
+  selectedMyPlanCrystals = item.myPlanCrystals || [];
   selectedAccessories = item.accessoryMaterials || [];
   document.getElementById('edit-modal-title').textContent = '編輯收藏';
   document.getElementById('edit-save-btn').textContent = '儲存修改';
@@ -306,10 +322,15 @@ function resetModalInputs(clearForm = true) {
     setSelectedColors([]);
   }
   ['crystal-search','crystal-manual-name','crystal-manual-size','crystal-manual-shape',
-   'acc-search','acc-manual-name','acc-manual-size','acc-manual-color'].forEach(id => document.getElementById(id).value = '');
+   'myplan-search','myplan-manual-name','myplan-manual-size','myplan-manual-shape',
+   'acc-search','acc-manual-name','acc-manual-size','acc-manual-color'].forEach(id => {
+    const el = document.getElementById(id); if (el) el.value = '';
+  });
   renderSelectedCrystals();
+  renderSelectedMyPlanCrystals();
   renderSelectedAccessories();
   document.getElementById('crystal-results').innerHTML = '';
+  document.getElementById('myplan-results').innerHTML = '';
   document.getElementById('acc-results').innerHTML = '';
 }
 
@@ -321,6 +342,7 @@ async function submitInspiration() {
     tags: getSelectedColors(),
     notes: get('f-notes'),
     crystalMaterials: selectedCrystals,
+    myPlanCrystals: selectedMyPlanCrystals,
     accessoryMaterials: selectedAccessories
   };
 
@@ -419,6 +441,64 @@ function renderSelectedCrystals() {
     `<span class="mat-tag ${m.isManual ? 'mat-tag-manual' : ''}">
       ${m.displayName}
       <span class="mat-tag-remove" onclick="removeCrystal(${i})">×</span>
+    </span>`
+  ).join('');
+}
+
+// ─── 材料選擇：我預計要用的水晶 ──────────────
+
+function searchMyPlanCrystal(kw) {
+  const results = document.getElementById('myplan-results');
+  if (!kw.trim()) { results.innerHTML = ''; return; }
+  const crystalInv = allInventory.filter(i => i.type === 'crystal');
+  const matches = crystalInv.filter(i =>
+    (i.crystalName || '').includes(kw) || (i.displayName || '').includes(kw)
+  ).slice(0, 10);
+  if (!matches.length) {
+    results.innerHTML = `<div style="font-size:13px;color:var(--text-muted);padding:6px 10px">找不到，可在下方手動輸入</div>`;
+    return;
+  }
+  results.innerHTML = matches.map(i => `
+    <div class="mat-selector-option" onclick="addMyPlanCrystalFromInv(${JSON.stringify(i).replace(/"/g,'&quot;')})">
+      ${i.displayName} <span style="color:var(--text-muted);font-size:12px">（庫存 ${i.quantity ?? 0} 顆）</span>
+    </div>`).join('');
+}
+
+function addMyPlanCrystalFromInv(inv) {
+  if (selectedMyPlanCrystals.find(m => m.specKey === inv.specKey)) {
+    showToast('已加入', 'warning'); return;
+  }
+  selectedMyPlanCrystals.push({ specKey: inv.specKey, displayName: inv.displayName, crystalName: inv.crystalName, isManual: false });
+  renderSelectedMyPlanCrystals();
+  document.getElementById('myplan-search').value = '';
+  document.getElementById('myplan-results').innerHTML = '';
+}
+
+function addManualMyPlanCrystal() {
+  const name  = document.getElementById('myplan-manual-name').value.trim();
+  const size  = document.getElementById('myplan-manual-size').value.trim();
+  const shape = document.getElementById('myplan-manual-shape').value.trim();
+  if (!name) { showToast('請至少填寫水晶名稱', 'warning'); return; }
+  const displayName = [name, size, shape].filter(Boolean).join(' ');
+  if (selectedMyPlanCrystals.find(m => m.displayName === displayName)) {
+    showToast('已加入', 'warning'); return;
+  }
+  selectedMyPlanCrystals.push({ displayName, crystalName: name, isManual: true });
+  ['myplan-manual-name','myplan-manual-size','myplan-manual-shape'].forEach(id =>
+    document.getElementById(id).value = '');
+  renderSelectedMyPlanCrystals();
+}
+
+function removeMyPlanCrystal(idx) {
+  selectedMyPlanCrystals.splice(idx, 1);
+  renderSelectedMyPlanCrystals();
+}
+
+function renderSelectedMyPlanCrystals() {
+  document.getElementById('myplan-selected').innerHTML = selectedMyPlanCrystals.map((m, i) =>
+    `<span class="mat-tag ${m.isManual ? 'mat-tag-manual' : ''}">
+      ${m.displayName}
+      <span class="mat-tag-remove" onclick="removeMyPlanCrystal(${i})">×</span>
     </span>`
   ).join('');
 }
