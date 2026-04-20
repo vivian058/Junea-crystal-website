@@ -246,9 +246,10 @@ function buildAlignedCrystalRows(authorCrystals, myPlanCrystals, itemId) {
   const cellBase = 'padding:6px 10px;border-radius:6px;min-height:40px';
 
   const headerRow = `
-    <div style="display:grid;grid-template-columns:18px 1fr 1fr;gap:0 8px;padding:0 10px 6px;border-bottom:1px solid var(--border)">
+    <div style="display:grid;grid-template-columns:18px 1fr 18px 1fr;gap:0 8px;padding:0 10px 6px;border-bottom:1px solid var(--border)">
       <div></div>
       <div style="font-weight:700;font-size:12px;color:var(--text-muted)">原作者的水晶</div>
+      <div></div>
       <div style="font-weight:700;font-size:12px;color:var(--primary)">我預計要用的水晶</div>
     </div>`;
 
@@ -277,9 +278,10 @@ function buildAlignedCrystalRows(authorCrystals, myPlanCrystals, itemId) {
         ondragleave="onRowDragLeave(event)"
         ondrop="onRowDrop(event,'${itemId}')"
         ondragend="onRowDragEnd(event)"
-        style="display:grid;grid-template-columns:18px 1fr 1fr;gap:0 8px;background:${bg(i)};border-radius:6px">
+        style="display:grid;grid-template-columns:18px 1fr 18px 1fr;gap:0 8px;background:${bg(i)};border-radius:6px">
         <div style="display:flex;align-items:center;justify-content:center;color:#ccc;font-size:13px;cursor:grab;user-select:none">⠿</div>
         ${leftCell}
+        <div style="display:flex;align-items:center;justify-content:center;color:#ccc;font-size:13px;cursor:grab;user-select:none">⠿</div>
         ${rightCell}
       </div>`;
   }
