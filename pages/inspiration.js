@@ -235,6 +235,7 @@ function buildMatCompare(materials, type) {
 // ─── 對齊水晶行 ──────────────────────────────
 
 let _dragRowIdx = null;
+let _dragCol    = null; // 'author' | 'plan'
 
 function buildAlignedCrystalRows(authorCrystals, myPlanCrystals, itemId) {
   const plans = myPlanCrystals || [];
@@ -273,15 +274,19 @@ function buildAlignedCrystalRows(authorCrystals, myPlanCrystals, itemId) {
 
     rows += `
       <div class="aligned-row" draggable="true" data-idx="${i}"
-        ondragstart="onRowDragStart(event,${i})"
         ondragover="onRowDragOver(event)"
         ondragleave="onRowDragLeave(event)"
         ondrop="onRowDrop(event,'${itemId}')"
-        ondragend="onRowDragEnd(event)"
         style="display:grid;grid-template-columns:18px 1fr 18px 1fr;gap:0 8px;background:${bg(i)};border-radius:6px">
-        <div style="display:flex;align-items:center;justify-content:center;color:#ccc;font-size:13px;cursor:grab;user-select:none">⠿</div>
+        <div draggable="true"
+          ondragstart="onColDragStart(event,'author',${i})"
+          ondragend="onColDragEnd(event)"
+          style="display:flex;align-items:center;justify-content:center;color:#ccc;font-size:13px;cursor:grab;user-select:none">⠿</div>
         ${leftCell}
-        <div style="display:flex;align-items:center;justify-content:center;color:#ccc;font-size:13px;cursor:grab;user-select:none">⠿</div>
+        <div draggable="true"
+          ondragstart="onColDragStart(event,'plan',${i})"
+          ondragend="onColDragEnd(event)"
+          style="display:flex;align-items:center;justify-content:center;color:#ccc;font-size:13px;cursor:grab;user-select:none">⠿</div>
         ${rightCell}
       </div>`;
   }
@@ -289,13 +294,28 @@ function buildAlignedCrystalRows(authorCrystals, myPlanCrystals, itemId) {
   return `<div style="display:flex;flex-direction:column;gap:4px;margin-bottom:8px">${headerRow}${rows}</div>`;
 }
 
-function onRowDragStart(event, idx) {
+function onColDragStart(event, col, idx) {
+  _dragCol    = col;
   _dragRowIdx = idx;
   event.dataTransfer.effectAllowed = 'move';
-  setTimeout(() => { event.target.style.opacity = '0.4'; }, 0);
+  event.stopPropagation();
+  setTimeout(() => {
+    const row = event.target.closest('.aligned-row');
+    if (row) row.style.opacity = '0.4';
+  }, 0);
+}
+
+function onColDragEnd(event) {
+  document.querySelectorAll('.aligned-row').forEach(r => {
+    r.style.opacity = '';
+    r.style.outline = '';
+  });
+  _dragCol = null;
+  _dragRowIdx = null;
 }
 
 function onRowDragOver(event) {
+  if (!_dragCol) return;
   event.preventDefault();
   event.dataTransfer.dropEffect = 'move';
   event.currentTarget.style.outline = '2px solid var(--primary)';
@@ -308,44 +328,38 @@ function onRowDragLeave(event) {
   }
 }
 
-function onRowDragEnd(event) {
-  document.querySelectorAll('.aligned-row').forEach(r => {
-    r.style.opacity = '';
-    r.style.outline = '';
-  });
-}
-
 async function onRowDrop(event, itemId) {
   event.preventDefault();
   const row = event.currentTarget;
   row.style.outline = '';
-  const toIdx = parseInt(row.dataset.idx);
+  const toIdx   = parseInt(row.dataset.idx);
   const fromIdx = _dragRowIdx;
+  const col     = _dragCol;
+  _dragCol = null;
   _dragRowIdx = null;
-  if (fromIdx === null || fromIdx === toIdx) return;
+  if (fromIdx === null || fromIdx === toIdx || !col) return;
 
   try {
     const snap = await db.collection(COLLECTIONS.INSPIRATIONS).doc(itemId).get();
     if (!snap.exists) return;
     const data = snap.data();
-    const maxLen = Math.max((data.crystalMaterials||[]).length, (data.myPlanCrystals||[]).length);
-    const authors = [...(data.crystalMaterials || [])];
-    const plans   = [...(data.myPlanCrystals   || [])];
-    while (authors.length < maxLen) authors.push(null);
-    while (plans.length   < maxLen) plans.push(null);
 
-    const [rA] = authors.splice(fromIdx, 1);
-    const [rP] = plans.splice(fromIdx, 1);
-    authors.splice(toIdx, 0, rA);
-    plans.splice(toIdx, 0, rP);
+    if (col === 'author') {
+      const authors = [...(data.crystalMaterials || [])];
+      const [removed] = authors.splice(fromIdx, 1);
+      authors.splice(toIdx, 0, removed);
+      while (authors.length && authors[authors.length-1] == null) authors.pop();
+      await db.collection(COLLECTIONS.INSPIRATIONS).doc(itemId).update({ crystalMaterials: authors });
+    } else {
+      const maxLen = Math.max((data.crystalMaterials||[]).length, (data.myPlanCrystals||[]).length);
+      const plans = [...(data.myPlanCrystals || [])];
+      while (plans.length < maxLen) plans.push(null);
+      const [removed] = plans.splice(fromIdx, 1);
+      plans.splice(toIdx, 0, removed);
+      while (plans.length && plans[plans.length-1] == null) plans.pop();
+      await db.collection(COLLECTIONS.INSPIRATIONS).doc(itemId).update({ myPlanCrystals: plans });
+    }
 
-    while (authors.length && authors[authors.length-1] == null) authors.pop();
-    while (plans.length   && plans[plans.length-1]   == null) plans.pop();
-
-    await db.collection(COLLECTIONS.INSPIRATIONS).doc(itemId).update({
-      crystalMaterials: authors,
-      myPlanCrystals: plans
-    });
     await openDetail(itemId);
   } catch(e) {
     showToast('移動失敗：' + e.message, 'danger');
