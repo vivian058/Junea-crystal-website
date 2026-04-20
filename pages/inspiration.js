@@ -234,47 +234,120 @@ function buildMatCompare(materials, type) {
 
 // ─── 對齊水晶行 ──────────────────────────────
 
+let _dragRowIdx = null;
+
 function buildAlignedCrystalRows(authorCrystals, myPlanCrystals, itemId) {
-  const maxLen = Math.max(authorCrystals.length, (myPlanCrystals || []).filter(x=>x).length
-    ? Math.max(...(myPlanCrystals||[]).map((_,i)=>i+1), authorCrystals.length)
-    : authorCrystals.length);
+  const plans = myPlanCrystals || [];
+  const planMaxIdx = plans.reduce((m, _, i) => Math.max(m, i + 1), 0);
+  const maxLen = Math.max(authorCrystals.length, planMaxIdx);
   if (!maxLen) return '';
 
   const bg = i => i % 2 === 0 ? '#faf6ff' : '#fff';
-  const cellStyle = i => `background:${bg(i)};padding:6px 10px;border-radius:6px;min-height:40px`;
+  const cellBase = 'padding:6px 10px;border-radius:6px;min-height:40px';
 
-  const header = `
-    <div style="font-weight:700;font-size:12px;color:var(--text-muted);padding:0 10px 6px;border-bottom:1px solid var(--border)">原作者的水晶</div>
-    <div style="font-weight:700;font-size:12px;color:var(--primary);padding:0 10px 6px;border-bottom:1px solid var(--border)">我預計要用的水晶</div>`;
+  const headerRow = `
+    <div style="display:grid;grid-template-columns:18px 1fr 1fr;gap:0 8px;padding:0 10px 6px;border-bottom:1px solid var(--border)">
+      <div></div>
+      <div style="font-weight:700;font-size:12px;color:var(--text-muted)">原作者的水晶</div>
+      <div style="font-weight:700;font-size:12px;color:var(--primary)">我預計要用的水晶</div>
+    </div>`;
 
   let rows = '';
   for (let i = 0; i < maxLen; i++) {
-    const author = (authorCrystals || [])[i];
-    const plan = (myPlanCrystals || [])[i];
+    const author = authorCrystals[i];
+    const plan   = plans[i];
 
-    // 左欄
-    if (author) {
-      const badge = getInventoryBadge(author, 'crystal');
-      rows += `<div class="mat-item" style="${cellStyle(i)}"><div class="mat-item-name">${author.displayName}</div>${badge}</div>`;
-    } else {
-      rows += `<div style="${cellStyle(i)}"></div>`;
-    }
+    const leftCell = author
+      ? `<div class="mat-item" style="${cellBase}"><div class="mat-item-name">${author.displayName}</div>${getInventoryBadge(author,'crystal')}</div>`
+      : `<div style="${cellBase}"></div>`;
 
-    // 右欄
-    if (plan) {
-      const badge = getInventoryBadge(plan, 'crystal');
-      rows += `<div class="mat-item" style="${cellStyle(i)};position:relative">
-        <div class="mat-item-name">${plan.displayName}</div>${badge}
-        <button onclick="removePlanAtIdx('${itemId}',${i})" style="position:absolute;top:4px;right:6px;background:none;border:none;cursor:pointer;font-size:13px;color:var(--text-muted);line-height:1">×</button>
+    const rightCell = plan
+      ? `<div class="mat-item" style="${cellBase};position:relative">
+           <div class="mat-item-name">${plan.displayName}</div>${getInventoryBadge(plan,'crystal')}
+           <button onclick="removePlanAtIdx('${itemId}',${i})" style="position:absolute;top:4px;right:6px;background:none;border:none;cursor:pointer;font-size:13px;color:var(--text-muted);line-height:1">×</button>
+         </div>`
+      : `<div id="plan-slot-${i}" style="${cellBase};border:1px dashed var(--border)">
+           <button onclick="showPlanAddForm('${itemId}',${i})" style="background:none;border:none;cursor:pointer;font-size:12px;color:var(--primary)">＋ 新增</button>
+         </div>`;
+
+    rows += `
+      <div class="aligned-row" draggable="true" data-idx="${i}"
+        ondragstart="onRowDragStart(event,${i})"
+        ondragover="onRowDragOver(event)"
+        ondragleave="onRowDragLeave(event)"
+        ondrop="onRowDrop(event,'${itemId}')"
+        ondragend="onRowDragEnd(event)"
+        style="display:grid;grid-template-columns:18px 1fr 1fr;gap:0 8px;background:${bg(i)};border-radius:6px">
+        <div style="display:flex;align-items:center;justify-content:center;color:#ccc;font-size:13px;cursor:grab;user-select:none">⠿</div>
+        ${leftCell}
+        ${rightCell}
       </div>`;
-    } else {
-      rows += `<div id="plan-slot-${i}" style="${cellStyle(i)};border:1px dashed var(--border)">
-        <button onclick="showPlanAddForm('${itemId}',${i})" style="background:none;border:none;cursor:pointer;font-size:12px;color:var(--primary)">＋ 新增</button>
-      </div>`;
-    }
   }
 
-  return `<div style="display:grid;grid-template-columns:1fr 1fr;gap:4px 8px;margin-bottom:8px">${header}${rows}</div>`;
+  return `<div style="display:flex;flex-direction:column;gap:4px;margin-bottom:8px">${headerRow}${rows}</div>`;
+}
+
+function onRowDragStart(event, idx) {
+  _dragRowIdx = idx;
+  event.dataTransfer.effectAllowed = 'move';
+  setTimeout(() => { event.target.style.opacity = '0.4'; }, 0);
+}
+
+function onRowDragOver(event) {
+  event.preventDefault();
+  event.dataTransfer.dropEffect = 'move';
+  event.currentTarget.style.outline = '2px solid var(--primary)';
+  event.currentTarget.style.outlineOffset = '-2px';
+}
+
+function onRowDragLeave(event) {
+  if (!event.currentTarget.contains(event.relatedTarget)) {
+    event.currentTarget.style.outline = '';
+  }
+}
+
+function onRowDragEnd(event) {
+  document.querySelectorAll('.aligned-row').forEach(r => {
+    r.style.opacity = '';
+    r.style.outline = '';
+  });
+}
+
+async function onRowDrop(event, itemId) {
+  event.preventDefault();
+  const row = event.currentTarget;
+  row.style.outline = '';
+  const toIdx = parseInt(row.dataset.idx);
+  const fromIdx = _dragRowIdx;
+  _dragRowIdx = null;
+  if (fromIdx === null || fromIdx === toIdx) return;
+
+  try {
+    const snap = await db.collection(COLLECTIONS.INSPIRATIONS).doc(itemId).get();
+    if (!snap.exists) return;
+    const data = snap.data();
+    const maxLen = Math.max((data.crystalMaterials||[]).length, (data.myPlanCrystals||[]).length);
+    const authors = [...(data.crystalMaterials || [])];
+    const plans   = [...(data.myPlanCrystals   || [])];
+    while (authors.length < maxLen) authors.push(null);
+    while (plans.length   < maxLen) plans.push(null);
+
+    const [rA] = authors.splice(fromIdx, 1);
+    const [rP] = plans.splice(fromIdx, 1);
+    authors.splice(toIdx, 0, rA);
+    plans.splice(toIdx, 0, rP);
+
+    while (authors.length && authors[authors.length-1] == null) authors.pop();
+    while (plans.length   && plans[plans.length-1]   == null) plans.pop();
+
+    await db.collection(COLLECTIONS.INSPIRATIONS).doc(itemId).update({
+      crystalMaterials: authors,
+      myPlanCrystals: plans
+    });
+    await openDetail(itemId);
+  } catch(e) {
+    showToast('移動失敗：' + e.message, 'danger');
+  }
 }
 
 function showPlanAddForm(itemId, idx) {
