@@ -504,9 +504,10 @@ function handleExcelUpload(file) {
         productName: String(r[6] || '').trim(),
         shopLink: String(r[7] || '').trim(),
         pricePerStrand: parseFloat(r[8]) || 0,
-        exchangeRate: parseFloat(r[9]) || 0,
-        costPerBead: parseFloat(r[10]) || 0,
-        note: String(r[11] || '').trim()
+        // r[9] = 單條進貨成本$（自動計算欄，略過）
+        exchangeRate: parseFloat(r[10]) || 0,
+        costPerBead: parseFloat(r[11]) || 0,
+        note: String(r[12] || '').trim()
       }));
 
       const invalid = importRows.filter(r => !r.crystalName || !r.date || !r.size || !r.typeA || !r.typeB || !r.exchangeRate);
@@ -577,10 +578,10 @@ async function submitImport() {
 
 function downloadCrystalTemplate() {
   const data = [
-    ['日期(YYYY-MM-DD)','水晶名稱','尺寸mm','形狀','規格','廠家','商品名稱','賣場連結','單條¥','匯率','單顆成本$(留空自動計算)','備註'],
-    ['2026-03-25','海洋碧玉','4*6','算盤珠','條珠','東海信實水晶','','','36','4.73','',''],
-    ['2026-03-25','綠東陵','2.5*6','算盤珠','條珠','東海信實水晶','','','30','4.73','',''],
-    ['2026-03-25','白水晶','6*8','扁刻面','條珠','東海信實水晶','','','40','4.73','',''],
+    ['日期(YYYY-MM-DD)','水晶名稱','尺寸mm','形狀','規格','廠家','商品名稱','賣場連結','單條¥','單條進貨成本$(留空自動計算)','匯率','單顆成本$(留空自動計算)','備註'],
+    ['2026-03-25','海洋碧玉','4*6','算盤珠','條珠','東海信實水晶','','','36','','4.73','',''],
+    ['2026-03-25','綠東陵','2.5*6','算盤珠','條珠','東海信實水晶','','','30','','4.73','',''],
+    ['2026-03-25','白水晶','6*8','扁刻面','條珠','東海信實水晶','','','40','','4.73','',''],
   ];
   const ws = XLSX.utils.aoa_to_sheet(data);
   const wb = XLSX.utils.book_new();
