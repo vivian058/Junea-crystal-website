@@ -4,7 +4,9 @@
 
 let allRecords = [];
 let importRows = [];
-let editingRecordId = null; // null = 新增；有值 = 編輯
+let editingRecordId = null;
+let costColFilter = { crystalName: [], size: [], typeB: [], typeA: [], vendor: [] };
+let _activeFilterCol = null;
 
 document.addEventListener('DOMContentLoaded', async () => {
   document.getElementById('navbar-root').innerHTML = renderNav('水晶成本');
@@ -34,11 +36,114 @@ async function loadRecords(filters = {}) {
   container.innerHTML = loadingState();
   try {
     allRecords = await getCrystalCosts(filters);
-    renderTable(allRecords);
+    filterAndRender();
     renderSummary(allRecords, filters);
   } catch(e) {
     container.innerHTML = `<div class="empty-state"><div class="empty-state-text">載入失敗：${e.message}</div></div>`;
   }
+}
+
+// ─── 欄位下拉篩選 ─────────────────────────
+
+function _getColValues(field) {
+  const vals = new Set();
+  allRecords.forEach(r => {
+    if (field === 'crystalName') vals.add(r.crystalName || '');
+    else if (field === 'size') vals.add(r.size ? r.size + 'mm' : '');
+    else if (field === 'typeB') vals.add(r.typeB || '');
+    else if (field === 'typeA') vals.add(r.typeA || '');
+    else if (field === 'vendor') vals.add(r.vendor || '');
+  });
+  return [...vals].filter(Boolean).sort();
+}
+
+function openColFilter(event, field) {
+  event.stopPropagation();
+  const btn = event.currentTarget;
+  const rect = btn.getBoundingClientRect();
+  const dd = document.getElementById('col-filter-dd');
+  _activeFilterCol = field;
+
+  const vals = _getColValues(field);
+  const selected = new Set(costColFilter[field]);
+  const allChecked = selected.size === 0;
+
+  document.getElementById('cfd-all').checked = allChecked;
+  document.getElementById('cfd-options').innerHTML = vals.map(v =>
+    `<label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:13px;padding:3px 4px;border-radius:4px" onmouseover="this.style.background='#f5f0ff'" onmouseout="this.style.background=''">
+      <input type="checkbox" value="${v.replace(/"/g,'&quot;')}" ${allChecked || selected.has(v) ? 'checked' : ''}> ${v}
+    </label>`
+  ).join('');
+
+  document.getElementById('cfd-all').onchange = function() {
+    document.querySelectorAll('#cfd-options input[type=checkbox]').forEach(c => c.checked = this.checked);
+  };
+  document.querySelectorAll('#cfd-options input[type=checkbox]').forEach(c => {
+    c.onchange = () => {
+      const all = document.querySelectorAll('#cfd-options input[type=checkbox]');
+      document.getElementById('cfd-all').checked = [...all].every(x => x.checked);
+    };
+  });
+
+  dd.style.display = 'block';
+  const ddW = 180;
+  let left = rect.left + window.scrollX;
+  if (left + ddW > window.innerWidth) left = window.innerWidth - ddW - 8;
+  dd.style.left = left + 'px';
+  dd.style.top = (rect.bottom + window.scrollY + 4) + 'px';
+}
+
+function applyColFilter() {
+  if (!_activeFilterCol) return;
+  const boxes = document.querySelectorAll('#cfd-options input[type=checkbox]');
+  const allChecked = document.getElementById('cfd-all').checked;
+  costColFilter[_activeFilterCol] = (allChecked || [...boxes].every(b => b.checked))
+    ? [] : [...boxes].filter(b => b.checked).map(b => b.value);
+  closeColFilter();
+  filterAndRender();
+}
+
+function clearColFilter() {
+  if (!_activeFilterCol) return;
+  costColFilter[_activeFilterCol] = [];
+  document.getElementById('cfd-all').checked = true;
+  document.querySelectorAll('#cfd-options input[type=checkbox]').forEach(c => c.checked = true);
+}
+
+function closeColFilter() {
+  document.getElementById('col-filter-dd').style.display = 'none';
+  _activeFilterCol = null;
+}
+
+document.addEventListener('click', e => {
+  const dd = document.getElementById('col-filter-dd');
+  if (dd && !dd.contains(e.target)) closeColFilter();
+});
+
+function filterAndRender() {
+  const { crystalName, size, typeB, typeA, vendor } = costColFilter;
+  const filtered = allRecords.filter(r => {
+    const sz = r.size ? r.size + 'mm' : '';
+    return (!crystalName.length || crystalName.includes(r.crystalName || ''))
+      && (!size.length || size.includes(sz))
+      && (!typeB.length || typeB.includes(r.typeB || ''))
+      && (!typeA.length || typeA.includes(r.typeA || ''))
+      && (!vendor.length || vendor.includes(r.vendor || ''));
+  });
+  renderTable(filtered);
+}
+
+function _filterActive(field) {
+  return costColFilter[field] && costColFilter[field].length > 0;
+}
+
+function _thBtn(field, label, minW) {
+  const active = _filterActive(field);
+  return `<th style="min-width:${minW}px">
+    <button onclick="openColFilter(event,'${field}')" style="background:none;border:none;cursor:pointer;font-size:13px;font-weight:600;color:inherit;display:flex;align-items:center;gap:3px;padding:0;white-space:nowrap">
+      ${label}<span style="color:${active ? 'var(--primary)' : 'var(--text-muted)'}">▾</span>
+    </button>
+  </th>`;
 }
 
 // ─── 渲染表格 ─────────────────────────────
@@ -88,11 +193,11 @@ function renderTable(records) {
               <input type="checkbox" id="check-all" onchange="toggleSelectAll(this)" title="全選">
             </th>
             <th style="min-width:90px">日期</th>
-            <th style="min-width:90px">水晶</th>
-            <th style="min-width:60px">尺寸</th>
-            <th style="min-width:90px">形狀</th>
-            <th style="min-width:70px">規格</th>
-            <th style="min-width:90px">廠家</th>
+            ${_thBtn('crystalName','水晶',90)}
+            ${_thBtn('size','尺寸',60)}
+            ${_thBtn('typeB','形狀',90)}
+            ${_thBtn('typeA','規格',70)}
+            ${_thBtn('vendor','廠家',90)}
             <th style="min-width:60px">賣場</th>
             <th style="min-width:80px">單條¥</th>
             <th style="min-width:100px">單條進貨成本$</th>
