@@ -576,8 +576,13 @@ async function submitImport() {
 }
 
 function downloadCrystalTemplate() {
-  const header = [['水晶名稱','進貨日期(YYYY-MM-DD)','尺寸mm','規格A(條珠/成品串)','形狀規格B','廠家','商品名稱','賣場連結','單條進價¥','匯率','單顆成本$(留空自動計算)','備註']];
-  const ws = XLSX.utils.aoa_to_sheet(header);
+  const data = [
+    ['水晶名稱','進貨日期(YYYY-MM-DD)','尺寸mm','規格A(條珠/成品串)','形狀規格B','廠家','商品名稱','賣場連結','單條進價¥','匯率','單顆成本$(留空自動計算)','備註'],
+    ['海洋碧玉','2026-03-25','4*6','條珠','算盤珠','東海信實水晶','','','36','4.73','',''],
+    ['綠東陵','2026-03-25','2.5*6','條珠','算盤珠','東海信實水晶','','','30','4.73','',''],
+    ['白水晶','2026-03-25','6*8','條珠','扁刻面','東海信實水晶','','','40','4.73','',''],
+  ];
+  const ws = XLSX.utils.aoa_to_sheet(data);
   const wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, ws, '水晶進貨');
   XLSX.writeFile(wb, '水晶進貨範本.xlsx');
