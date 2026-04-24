@@ -89,7 +89,8 @@ const NAV_PAGES = [
   { href: '../pages/crystal-cost.html', label: '水晶成本' },
   { href: '../pages/accessory-cost.html', label: '配件成本' },
   { href: '../pages/bracelet-design.html', label: '設計款手鍊' },
-  { href: '../pages/inventory.html', label: '庫存表' },
+  { href: '../pages/inventory.html', label: '水晶庫存' },
+  { href: '../pages/accessory-inventory.html', label: '配件庫存' },
   { href: '../pages/initial-stock.html', label: '初始庫存設定' },
   { href: '../pages/crystal-effects.html', label: '水晶功效' },
   { href: '../pages/inspiration.html', label: '靈感收藏' }
