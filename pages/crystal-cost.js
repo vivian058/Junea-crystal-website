@@ -50,7 +50,7 @@ function updateDynamicDatalist() {
 
   const uniq = (arr) => [...new Set(arr.filter(Boolean))].sort();
   fillDatalist(document.getElementById('list-crystalName'), uniq(matches.map(r => r.crystalName)));
-  fillDatalist(document.getElementById('list-size'),        uniq(matches.map(r => r.size ? r.size + 'mm' : '')));
+  fillDatalist(document.getElementById('list-size'),        uniq(matches.map(r => String(r.size || ''))));
   fillDatalist(document.getElementById('list-typeA'),       uniq(matches.map(r => r.typeA)));
   fillDatalist(document.getElementById('list-typeB'),       uniq(matches.map(r => r.typeB)));
 }
@@ -304,7 +304,7 @@ function renderSummary(records, filters) {
 function doSearch() {
   const filters = {
     crystalName: document.getElementById('f-crystalName').value,
-    size: document.getElementById('f-size').value,
+    size: document.getElementById('f-size').value.replace(/mm$/i, '').trim(),
     typeA: document.getElementById('f-typeA').value,
     typeB: document.getElementById('f-typeB').value,
     keyword: document.getElementById('f-keyword').value.trim()
