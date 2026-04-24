@@ -57,6 +57,9 @@ function renderTable(records) {
       <td>${r.color || '-'}</td>
       <td>${fmtSpec(r.spec)}</td>
       <td class="td-link">${r.shopLink ? `<a href="${r.shopLink}" target="_blank">連結 ↗</a>` : '-'}</td>
+      <td>${r.lotQty != null && r.lotQty !== '' ? r.lotQty : '-'}</td>
+      <td>${r.piecesPerLot != null && r.piecesPerLot !== '' ? r.piecesPerLot : '-'}</td>
+      <td><strong>${r.costPerLot ? fmtCurrency(r.costPerLot) : '-'}</strong></td>
       <td>${fmtYuan(r.pricePerPieceYuan)}</td>
       <td>${r.exchangeRate || '-'}</td>
       <td><strong style="color:var(--primary-dark)">${fmtCurrency(r.costPerPiece)}</strong></td>
@@ -88,6 +91,9 @@ function renderTable(records) {
             <th style="min-width:70px">顏色</th>
             <th style="min-width:80px">規格</th>
             <th style="min-width:60px">賣場</th>
+            <th style="min-width:80px">一份數量</th>
+            <th style="min-width:80px">一份顆數</th>
+            <th style="min-width:110px">單份進貨成本$</th>
             <th style="min-width:80px">單顆¥</th>
             <th style="min-width:60px">匯率</th>
             <th style="min-width:100px">單顆成本$</th>
@@ -190,6 +196,9 @@ function openEditRecord(id) {
   document.getElementById('a-shopLink').value = record.shopLink || '';
   document.getElementById('a-color').value = record.color || '';
   document.getElementById('a-spec').value = record.spec || '';
+  document.getElementById('a-lotQty').value = record.lotQty != null ? record.lotQty : '';
+  document.getElementById('a-piecesPerLot').value = record.piecesPerLot != null ? record.piecesPerLot : '';
+  document.getElementById('a-costPerLot').value = record.costPerLot || '';
   document.getElementById('a-pricePerPieceYuan').value = record.pricePerPieceYuan || '';
   document.getElementById('a-exchangeRate').value = record.exchangeRate || '';
   document.getElementById('a-costPerPiece').value = record.costPerPiece || '';
@@ -212,6 +221,9 @@ async function submitAdd() {
     shopLink: get('a-shopLink'),
     color: get('a-color'),
     spec: get('a-spec'),
+    lotQty: parseInt(get('a-lotQty')) || 0,
+    piecesPerLot: parseInt(get('a-piecesPerLot')) || 0,
+    costPerLot: parseFloat(get('a-costPerLot')) || 0,
     pricePerPieceYuan: parseFloat(get('a-pricePerPieceYuan')) || 0,
     exchangeRate: parseFloat(get('a-exchangeRate')) || 0,
     costPerPiece: parseFloat(get('a-costPerPiece')) || 0,
@@ -230,6 +242,9 @@ async function submitAdd() {
     return;
   }
 
+  if (!data.costPerLot && data.piecesPerLot && data.pricePerPieceYuan && data.exchangeRate) {
+    data.costPerLot = Math.round(data.piecesPerLot * data.pricePerPieceYuan * data.exchangeRate * 100) / 100;
+  }
   if (!data.costPerPiece) {
     data.costPerPiece = calcAccessoryCostPerPiece(data);
   }
@@ -265,6 +280,7 @@ async function submitAdd() {
 
 function resetAddForm() {
   ['a-vendor','a-itemCode','a-productName','a-shopLink','a-color','a-spec',
+   'a-lotQty','a-piecesPerLot','a-costPerLot',
    'a-pricePerPieceYuan','a-exchangeRate','a-costPerPiece','a-note'].forEach(id => {
     document.getElementById(id).value = '';
   });
@@ -336,11 +352,14 @@ function handleExcelUpload(file) {
         shopLink: String(r[4] || '').trim(),
         color: String(r[5] || '').trim(),
         spec: String(r[6] || '').trim(),
-        pricePerPieceYuan: parseFloat(r[7]) || 0,
-        exchangeRate: parseFloat(r[8]) || 0,
-        costPerPiece: parseFloat(r[9]) || 0,
-        note: String(r[10] || '').trim(),
-        quantity: parseInt(r[11]) || 0
+        lotQty: parseInt(r[7]) || 0,
+        piecesPerLot: parseInt(r[8]) || 0,
+        costPerLot: parseFloat(r[9]) || 0,
+        pricePerPieceYuan: parseFloat(r[10]) || 0,
+        exchangeRate: parseFloat(r[11]) || 0,
+        costPerPiece: parseFloat(r[12]) || 0,
+        note: String(r[13] || '').trim(),
+        quantity: parseInt(r[14]) || 0
       }));
 
       const invalid = importRows.filter(r => !r.date || !r.vendor || !r.itemCode || !r.exchangeRate);
@@ -359,6 +378,9 @@ function handleExcelUpload(file) {
           <td>${r.productName || '-'}</td>
           <td>${r.color || '-'}</td>
           <td>${fmtSpec(r.spec)}</td>
+          <td>${r.lotQty || '-'}</td>
+          <td>${r.piecesPerLot || '-'}</td>
+          <td>${r.costPerLot || '自動'}</td>
           <td>${r.pricePerPieceYuan || '-'}</td>
           <td>${r.exchangeRate}</td>
           <td>${r.costPerPiece || '自動'}</td>
@@ -410,8 +432,13 @@ async function submitImport() {
 }
 
 function downloadAccessoryTemplate() {
-  const header = [['進貨日期(YYYY-MM-DD)','廠家','貨號','商品名稱','賣場連結','顏色','規格','單顆進價¥','匯率','單顆成本$(留空自動計算)','備註','進貨數量']];
-  const ws = XLSX.utils.aoa_to_sheet(header);
+  const data = [
+    ['進貨日期(YYYY-MM-DD)','廠家','貨號','商品名稱','賣場連結','顏色','規格','一份數量','一份顆數','單份進貨成本$(留空自動計算)','單顆進價¥','匯率','單顆成本$(留空自動計算)','備註','進貨數量'],
+    ['2026-03-25','广州腾龙饰品配件','JDZ210726','喇叭大孔珠','','14K金','8mm','1','50','','0.48','4.612','','','50'],
+    ['2026-03-25','广州腾龙饰品配件','JDZ2005281','大孔桶珠','','14K金','4*6mm','1','50','','0.41','4.612','','','50'],
+    ['2026-03-25','广州腾龙饰品配件','JDZ945331','切面空心西瓜珠','','14K金','4mm','1','100','','0.16','4.612','','','100'],
+  ];
+  const ws = XLSX.utils.aoa_to_sheet(data);
   const wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, ws, '配件進貨');
   XLSX.writeFile(wb, '配件進貨範本.xlsx');

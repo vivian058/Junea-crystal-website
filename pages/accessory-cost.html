@@ -117,6 +117,18 @@
             </datalist>
           </div>
           <div class="form-group">
+            <label>一份數量</label>
+            <input class="form-control" id="a-lotQty" type="number" min="0" step="1" placeholder="每份幾條/包">
+          </div>
+          <div class="form-group">
+            <label>一份顆數</label>
+            <input class="form-control" id="a-piecesPerLot" type="number" min="0" step="1" placeholder="每份幾顆">
+          </div>
+          <div class="form-group">
+            <label>單份進貨成本 ($) <span style="font-weight:400;color:var(--text-muted)">(留空自動計算)</span></label>
+            <input class="form-control" id="a-costPerLot" type="number" step="0.01" placeholder="自動計算或手動填入">
+          </div>
+          <div class="form-group">
             <label>單顆進價 (¥)</label>
             <input class="form-control" id="a-pricePerPieceYuan" type="number" step="0.001" placeholder="0.000">
           </div>
@@ -151,7 +163,7 @@
       <div class="modal-body">
         <div id="upload-alert"></div>
         <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px">
-          欄位順序（A→L）：<strong>進貨日期(YYYY-MM-DD) / 廠家 / 貨號 / 商品名稱 / 賣場連結 / 顏色 / 規格 / 單顆進價¥ / 匯率 / 單顆成本$(留空自動計算) / 備註 / 進貨數量</strong><br>
+          欄位順序（A→O）：<strong>進貨日期(YYYY-MM-DD) / 廠家 / 貨號 / 商品名稱 / 賣場連結 / 顏色 / 規格 / 一份數量 / 一份顆數 / 單份進貨成本$(留空自動計算) / 單顆進價¥ / 匯率 / 單顆成本$(留空自動計算) / 備註 / 進貨數量</strong><br>
           第一列為標題列，系統自動跳過。
           <a href="#" onclick="downloadAccessoryTemplate();return false;" style="color:var(--primary);margin-left:8px">下載範本</a>
         </p>
@@ -170,7 +182,7 @@
               <thead>
                 <tr>
                   <th>日期</th><th>廠家</th><th>貨號</th><th>商品名稱</th>
-                  <th>顏色</th><th>規格</th><th>單顆¥</th><th>匯率</th><th>單顆$</th><th>進貨數量</th>
+                  <th>顏色</th><th>規格</th><th>一份數量</th><th>一份顆數</th><th>單份成本$</th><th>單顆¥</th><th>匯率</th><th>單顆$</th><th>進貨數量</th>
                 </tr>
               </thead>
               <tbody id="preview-tbody"></tbody>
