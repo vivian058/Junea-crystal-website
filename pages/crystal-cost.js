@@ -62,9 +62,8 @@ function renderTable(records) {
       <td><span class="badge badge-purple">${r.typeA || '-'}</span></td>
       <td>${r.vendor || '-'}</td>
       <td class="td-link">${r.shopLink ? `<a href="${r.shopLink}" target="_blank">連結 ↗</a>` : '-'}</td>
-      <td>${fmtYuan(r.pricePerGram)}</td>
-      <td>${r.weightPerStrand ? r.weightPerStrand + 'g' : '-'}</td>
       <td>${fmtYuan(r.pricePerStrand)}</td>
+      <td><strong>${(r.pricePerStrand && r.exchangeRate) ? '$' + (r.pricePerStrand * r.exchangeRate).toFixed(1) : '-'}</strong></td>
       <td>${r.exchangeRate || '-'}</td>
       <td><strong style="color:var(--primary-dark)">${fmtCurrency(r.costPerBead)}</strong></td>
       <td style="min-width:120px;color:var(--text-muted);font-size:12px">${r.note || '-'}</td>
@@ -95,9 +94,8 @@ function renderTable(records) {
             <th style="min-width:70px">規格</th>
             <th style="min-width:90px">廠家</th>
             <th style="min-width:60px">賣場</th>
-            <th style="min-width:80px">克價¥</th>
-            <th style="min-width:70px">重量</th>
             <th style="min-width:80px">單條¥</th>
+            <th style="min-width:100px">單條進貨成本$</th>
             <th style="min-width:60px">匯率</th>
             <th style="min-width:100px">單顆成本$</th>
             <th style="min-width:160px">備註</th>
@@ -209,8 +207,6 @@ function openEditRecord(id) {
   document.getElementById('a-vendor').value = record.vendor || '';
   document.getElementById('a-productName').value = record.productName || '';
   document.getElementById('a-shopLink').value = record.shopLink || '';
-  document.getElementById('a-pricePerGram').value = record.pricePerGram || '';
-  document.getElementById('a-weightPerStrand').value = record.weightPerStrand || '';
   document.getElementById('a-pricePerStrand').value = record.pricePerStrand || '';
   document.getElementById('a-exchangeRate').value = record.exchangeRate || '';
   document.getElementById('a-costPerBead').value = record.costPerBead || '';
@@ -234,8 +230,6 @@ async function submitAdd() {
     vendor: get('a-vendor'),
     productName: get('a-productName'),
     shopLink: get('a-shopLink'),
-    pricePerGram: parseFloat(get('a-pricePerGram')) || 0,
-    weightPerStrand: parseFloat(get('a-weightPerStrand')) || 0,
     pricePerStrand: parseFloat(get('a-pricePerStrand')) || 0,
     exchangeRate: parseFloat(get('a-exchangeRate')) || 0,
     costPerBead: parseFloat(get('a-costPerBead')) || 0,
@@ -304,7 +298,7 @@ async function submitAdd() {
 
 function resetAddForm() {
   ['a-crystalName','a-vendor','a-productName','a-shopLink','a-size','a-typeB',
-   'a-pricePerGram','a-weightPerStrand','a-pricePerStrand','a-exchangeRate','a-costPerBead','a-note'].forEach(id => {
+   'a-pricePerStrand','a-exchangeRate','a-costPerBead','a-note'].forEach(id => {
     document.getElementById(id).value = '';
   });
   document.getElementById('a-typeA').value = '';
@@ -377,12 +371,10 @@ function handleExcelUpload(file) {
         vendor: String(r[5] || '').trim(),
         productName: String(r[6] || '').trim(),
         shopLink: String(r[7] || '').trim(),
-        pricePerGram: parseFloat(r[8]) || 0,
-        weightPerStrand: parseFloat(r[9]) || 0,
-        pricePerStrand: parseFloat(r[10]) || 0,
-        exchangeRate: parseFloat(r[11]) || 0,
-        costPerBead: parseFloat(r[12]) || 0,
-        note: String(r[13] || '').trim()
+        pricePerStrand: parseFloat(r[8]) || 0,
+        exchangeRate: parseFloat(r[9]) || 0,
+        costPerBead: parseFloat(r[10]) || 0,
+        note: String(r[11] || '').trim()
       }));
 
       const invalid = importRows.filter(r => !r.crystalName || !r.date || !r.size || !r.typeA || !r.typeB || !r.exchangeRate);
@@ -402,8 +394,6 @@ function handleExcelUpload(file) {
           <td>${r.typeB}</td>
           <td>${r.vendor || '-'}</td>
           <td>${r.productName || '-'}</td>
-          <td>${r.pricePerGram || '-'}</td>
-          <td>${r.weightPerStrand || '-'}</td>
           <td>${r.pricePerStrand || '-'}</td>
           <td>${r.exchangeRate}</td>
           <td>${r.costPerBead || '自動'}</td>
@@ -454,7 +444,7 @@ async function submitImport() {
 }
 
 function downloadCrystalTemplate() {
-  const header = [['水晶名稱','進貨日期(YYYY-MM-DD)','尺寸mm','規格A(條珠/成品串)','形狀規格B','廠家','商品名稱','賣場連結','克價¥','重量g','單條進價¥','匯率','單顆成本$(留空自動計算)','備註']];
+  const header = [['水晶名稱','進貨日期(YYYY-MM-DD)','尺寸mm','規格A(條珠/成品串)','形狀規格B','廠家','商品名稱','賣場連結','單條進價¥','匯率','單顆成本$(留空自動計算)','備註']];
   const ws = XLSX.utils.aoa_to_sheet(header);
   const wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, ws, '水晶進貨');
