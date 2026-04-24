@@ -3,6 +3,7 @@
 // =============================================
 
 let allRecords = [];
+let _baseRecords = []; // 全量紀錄，用於動態 datalist
 let importRows = [];
 let editingRecordId = null;
 let costColFilter = { crystalName: [], size: [], typeB: [], typeA: [], vendor: [] };
@@ -13,6 +14,9 @@ document.addEventListener('DOMContentLoaded', async () => {
   document.getElementById('a-date').value = new Date().toISOString().split('T')[0];
   await loadFilterOptions();
   await loadRecords();
+  ['f-crystalName','f-size','f-typeA','f-typeB'].forEach(id =>
+    document.getElementById(id).addEventListener('input', updateDynamicDatalist)
+  );
 });
 
 // ─── 載入篩選選項 ─────────────────────────
@@ -29,6 +33,28 @@ async function loadFilterOptions() {
   }
 }
 
+// ─── 動態 Datalist（根據其他欄位過濾）────────
+
+function updateDynamicDatalist() {
+  const cn = document.getElementById('f-crystalName').value.trim();
+  const sz = document.getElementById('f-size').value.trim().replace(/mm$/i, '');
+  const ta = document.getElementById('f-typeA').value.trim();
+  const tb = document.getElementById('f-typeB').value.trim();
+
+  const matches = _baseRecords.filter(r =>
+    (!cn || (r.crystalName || '').includes(cn)) &&
+    (!sz || String(r.size || '').includes(sz)) &&
+    (!ta || (r.typeA || '') === ta) &&
+    (!tb || (r.typeB || '') === tb)
+  );
+
+  const uniq = (arr) => [...new Set(arr.filter(Boolean))].sort();
+  fillDatalist(document.getElementById('list-crystalName'), uniq(matches.map(r => r.crystalName)));
+  fillDatalist(document.getElementById('list-size'),        uniq(matches.map(r => r.size ? r.size + 'mm' : '')));
+  fillDatalist(document.getElementById('list-typeA'),       uniq(matches.map(r => r.typeA)));
+  fillDatalist(document.getElementById('list-typeB'),       uniq(matches.map(r => r.typeB)));
+}
+
 // ─── 載入紀錄 ─────────────────────────────
 
 async function loadRecords(filters = {}) {
@@ -36,6 +62,7 @@ async function loadRecords(filters = {}) {
   container.innerHTML = loadingState();
   try {
     allRecords = await getCrystalCosts(filters);
+    if (!_baseRecords.length) _baseRecords = [...allRecords]; // 首次載入時保存全量
     filterAndRender();
     renderSummary(allRecords, filters);
   } catch(e) {
