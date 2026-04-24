@@ -42,14 +42,11 @@
     <div class="flex-between mb-20">
       <div class="page-title">水晶庫存</div>
       <div style="display:flex;gap:8px">
-        <button class="btn btn-secondary" onclick="openPriceModal()">售價設定</button>
+        <button class="btn btn-secondary" id="low-stock-btn" onclick="openModal('lowStockModal')">低庫存提醒</button>
         <button class="btn btn-secondary" onclick="openModal('returnModal')">退貨回庫</button>
         <button class="btn btn-gold" onclick="openModal('shipModal')">出貨扣庫存</button>
       </div>
     </div>
-
-    <!-- 低庫存警示區 -->
-    <div id="low-stock-alerts"></div>
 
     <!-- 搜尋 -->
     <div class="search-area" style="margin-bottom:16px">
@@ -276,6 +273,22 @@
       <div class="modal-footer">
         <button class="btn btn-secondary" onclick="closeModal('returnModal')">取消</button>
         <button class="btn btn-primary" onclick="submitReturn()">確認退貨回庫</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 低庫存提醒 Modal -->
+  <div class="modal-overlay" id="lowStockModal">
+    <div class="modal" style="max-width:560px">
+      <div class="modal-header">
+        <div class="modal-title">低庫存提醒</div>
+        <button class="modal-close" onclick="closeModal('lowStockModal')">✕</button>
+      </div>
+      <div class="modal-body" id="low-stock-modal-body">
+        <div style="color:var(--text-muted);font-size:13px">無低庫存項目</div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" onclick="closeModal('lowStockModal')">關閉</button>
       </div>
     </div>
   </div>

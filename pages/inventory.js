@@ -196,24 +196,46 @@ function startInlineEdit(event, specKey, field, currentVal, optionsStr) {
 // ─── 低庫存警示 ───────────────────────────
 
 function renderLowStockAlerts(items) {
-  // 排除「待設定」項目（數量 0 且無初始設定）
   const lowItems = items.filter(i => {
     const qty = i.quantity || 0;
     if (qty >= 20) return false;
-    if (i.type === 'crystal') {
+    if (i.type === 'crystal' || !i.type) {
       const pk = makeCrystalPatternKey(i.size || '', i.typeA || '', i.typeB || '');
       if (qty === 0 && !initialSettingKeys.has(normalizePatternKey(pk))) return false;
-    } else {
-      if (qty === 0 && !initialSettingKeys.has(normalizePatternKey(i.specKey || i.id))) return false;
     }
     return true;
   });
-  const alertsEl = document.getElementById('low-stock-alerts');
-  if (!lowItems.length) { alertsEl.innerHTML = ''; return; }
-  alertsEl.innerHTML = `
-    <div class="inline-alert inline-alert-danger mb-20">
-      <strong>低庫存警示</strong>：以下品項庫存低於 20，請注意補貨！<br>
-      ${lowItems.map(i => `&nbsp;&nbsp;・${i.displayName}：剩 <strong>${i.quantity}</strong> 顆`).join('<br>')}
+
+  // 更新按鈕：有低庫存時加紅點提示
+  const btn = document.getElementById('low-stock-btn');
+  if (btn) {
+    btn.style.position = 'relative';
+    if (lowItems.length) {
+      btn.style.borderColor = 'var(--danger)';
+      btn.style.color = 'var(--danger)';
+      btn.title = `${lowItems.length} 項低庫存`;
+    } else {
+      btn.style.borderColor = '';
+      btn.style.color = '';
+      btn.title = '';
+    }
+  }
+
+  // 填入 modal 內容
+  const body = document.getElementById('low-stock-modal-body');
+  if (!body) return;
+  if (!lowItems.length) {
+    body.innerHTML = '<div style="color:var(--text-muted);font-size:13px;text-align:center;padding:12px 0">目前無低庫存項目</div>';
+    return;
+  }
+  body.innerHTML = `
+    <p style="font-size:13px;color:var(--text-muted);margin-bottom:12px">以下品項庫存低於 20，請注意補貨！</p>
+    <div style="display:flex;flex-direction:column;gap:8px">
+      ${lowItems.map(i => `
+        <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 12px;background:#fff5f5;border-radius:6px;border-left:3px solid var(--danger)">
+          <span style="font-size:13px;color:var(--text)">${i.displayName}</span>
+          <span style="font-size:14px;font-weight:700;color:var(--danger)">剩 ${i.quantity} 顆</span>
+        </div>`).join('')}
     </div>`;
 }
 
