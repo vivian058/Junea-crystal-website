@@ -17,7 +17,7 @@ let crystalColFilter = { name: [], size: [], typeB: [], typeA: [] };
 let _activeFilterCol = null;
 
 document.addEventListener('DOMContentLoaded', async () => {
-  document.getElementById('navbar-root').innerHTML = renderNav('庫存表');
+  document.getElementById('navbar-root').innerHTML = renderNav('水晶庫存');
   await loadInventory();
 });
 
@@ -66,10 +66,8 @@ function filterInventory() {
         && (!typeB.length || typeB.includes(tb))
         && (!typeA.length || typeA.includes(ta));
     });
-  const accessories = filtered.filter(i => i.type === 'accessory');
 
   renderCrystalTable(crystals);
-  renderAccessoryTable(accessories);
 }
 
 // ─── 欄位下拉篩選 ─────────────────────────
@@ -417,22 +415,8 @@ function renderCrystalTable(items) {
   document.getElementById('crystal-table').innerHTML = buildCrystalInventoryRows(items);
 }
 
-function renderAccessoryTable(items) {
-  document.getElementById('accessory-table').innerHTML =
-    items.length ? buildAccessoryInventoryRows(items)
-      : '<div style="text-align:center;padding:24px;color:var(--text-muted);font-size:13px">尚無配件庫存紀錄</div>';
-}
-
-// ─── 區塊收縮 ─────────────────────────────
-
-const _sectionOpen = { crystal: true, accessory: true };
-
-function toggleSection(name) {
-  _sectionOpen[name] = !_sectionOpen[name];
-  const section = document.getElementById(name + '-section');
-  const icon = document.getElementById(name + '-toggle-icon');
-  if (section) section.style.display = _sectionOpen[name] ? '' : 'none';
-  if (icon) icon.textContent = _sectionOpen[name] ? '▾' : '▸';
+function renderCrystalTableWrapper(items) {
+  document.getElementById('crystal-table').innerHTML = buildCrystalInventoryRows(items);
 }
 
 // ─── 全選 / 批次刪除（庫存）──────────────
@@ -647,33 +631,6 @@ async function confirmSyncCrystal() {
       if (result.noSetting.length) {
         showToast(`以下規格尚未設定初始庫存：${result.noSetting.join('、')}`, 'warning', 10000);
       }
-      await loadInventory();
-    }
-  } catch(e) {
-    showToast(`更新失敗：${e.message}`, 'danger');
-  } finally {
-    btn.disabled = false; btn.textContent = '確認更新';
-  }
-}
-
-function runSyncAccessory() {
-  const today = new Date().toISOString().slice(0, 10);
-  document.getElementById('sync-acc-date').value = today;
-  openModal('syncAccDateModal');
-}
-
-async function confirmSyncAccessory() {
-  const dateStr = document.getElementById('sync-acc-date').value;
-  if (!dateStr) { showToast('請選擇進貨日期', 'warning'); return; }
-  const btn = document.querySelector('#syncAccDateModal .btn-primary');
-  btn.disabled = true; btn.textContent = '更新中...';
-  try {
-    const result = await syncAccessoryInventoryByDate(dateStr);
-    closeModal('syncAccDateModal');
-    if (!result.updated.length) {
-      showToast(`${dateStr} 無配件進貨紀錄`, 'info');
-    } else {
-      showToast(`已更新 ${result.updated.length} 項配件庫存（${dateStr}）`, 'success', 6000);
       await loadInventory();
     }
   } catch(e) {
