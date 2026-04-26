@@ -72,7 +72,8 @@ async function loadSettings() {
   document.getElementById('table-container').innerHTML = loadingState();
   try {
     const settings = await getInitialStockSettings();
-    renderTable(settings.filter(s => s.type !== 'accessory'));
+    _currentSettings = settings.filter(s => s.type !== 'accessory');
+    renderTable(_currentSettings);
   } catch(e) {
     document.getElementById('table-container').innerHTML =
       `<div class="empty-state"><div class="empty-state-text">${e.message}</div></div>`;
@@ -91,8 +92,14 @@ function renderTable(settings) {
     container.innerHTML = emptyState('', '尚未設定任何規格，點右上角「新增水晶設定」開始');
     return;
   }
-  const rows = newSettings.map(s => `
-    <tr>
+  const rows = newSettings.map((s, idx) => `
+    <tr draggable="true"
+        ondragstart="onRowDragStart(event,${idx})"
+        ondragover="onRowDragOver(event,${idx})"
+        ondragleave="onRowDragLeave(event)"
+        ondrop="onRowDrop(event,${idx})"
+        ondragend="onRowDragEnd(event)">
+      <td class="drag-handle" title="拖曳排序">⠿</td>
       <td>${s.size ? s.size + 'mm' : '-'}</td>
       <td>${s.typeB || '-'}</td>
       <td><span class="badge badge-purple">${s.typeA || '-'}</span></td>
@@ -113,6 +120,7 @@ function renderTable(settings) {
       <table>
         <thead>
           <tr>
+            <th style="width:36px"></th>
             <th>尺寸</th>
             <th>形狀</th>
             <th>規格</th>
@@ -126,6 +134,8 @@ function renderTable(settings) {
 }
 
 let editingSpecKey = null;
+let _currentSettings = [];
+let _dragIdx = null;
 
 function openEditModal(specKey, size, typeA, typeB, defaultQty) {
   editingSpecKey = specKey;
@@ -205,5 +215,47 @@ async function deleteSetting(specKey, displayName) {
   } catch(e) {
     showToast(`刪除失敗：${e.message}`, 'danger');
   }
+}
+
+// ─── 拖曳排序 ─────────────────────────────
+
+function onRowDragStart(event, idx) {
+  _dragIdx = idx;
+  event.currentTarget.classList.add('dragging');
+  event.dataTransfer.effectAllowed = 'move';
+}
+
+function onRowDragOver(event, idx) {
+  event.preventDefault();
+  if (_dragIdx === idx) return;
+  event.currentTarget.classList.add('drag-over');
+}
+
+function onRowDragLeave(event) {
+  event.currentTarget.classList.remove('drag-over');
+}
+
+function onRowDragEnd(event) {
+  document.querySelectorAll('tr.dragging').forEach(r => r.classList.remove('dragging'));
+  document.querySelectorAll('tr.drag-over').forEach(r => r.classList.remove('drag-over'));
+}
+
+async function onRowDrop(event, targetIdx) {
+  event.preventDefault();
+  event.currentTarget.classList.remove('drag-over');
+  if (_dragIdx === null || _dragIdx === targetIdx) return;
+
+  const newOrder = [..._currentSettings];
+  const [moved] = newOrder.splice(_dragIdx, 1);
+  newOrder.splice(targetIdx, 0, moved);
+  _currentSettings = newOrder;
+  renderTable(_currentSettings);
+
+  try {
+    await saveInitialStockOrder(newOrder.map(s => s.specKey));
+  } catch(e) {
+    showToast('順序儲存失敗：' + e.message, 'danger');
+  }
+  _dragIdx = null;
 }
 

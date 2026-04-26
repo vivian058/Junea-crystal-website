@@ -16,6 +16,10 @@
     .opt-add-row input { flex: 1; }
     .opt-toggle { font-size: 11px; color: var(--primary); cursor: pointer; margin-top: 4px; display: inline-block; background: none; border: none; padding: 0; }
     .opt-toggle:hover { text-decoration: underline; }
+    .drag-handle { cursor: grab; color: var(--text-muted); font-size: 16px; padding: 0 8px; user-select: none; }
+    .drag-handle:active { cursor: grabbing; }
+    tr.drag-over td { border-top: 2px solid var(--primary) !important; }
+    tr.dragging { opacity: 0.4; }
   </style>
 </head>
 <body>
