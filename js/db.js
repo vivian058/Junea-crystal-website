@@ -39,8 +39,18 @@ async function addCrystalCost(data) {
 async function getCrystalCosts(filters = {}) {
   const snapshot = await db.collection(COLLECTIONS.CRYSTAL_COSTS).get();
   let results = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-  // 客戶端排序（日期新→舊）
-  results.sort((a, b) => (b.date || '').localeCompare(a.date || ''));
+  // 客戶端排序：水晶名稱 → 尺寸(數值) → 形狀 → 規格 → 日期降序
+  results.sort((a, b) => {
+    const nameComp = (a.crystalName || '').localeCompare(b.crystalName || '', 'zh-TW');
+    if (nameComp !== 0) return nameComp;
+    const sA = parseFloat(a.size) || 0, sB = parseFloat(b.size) || 0;
+    if (sA !== sB) return sA - sB;
+    const tbComp = (a.typeB || '').localeCompare(b.typeB || '', 'zh-TW');
+    if (tbComp !== 0) return tbComp;
+    const taComp = (a.typeA || '').localeCompare(b.typeA || '', 'zh-TW');
+    if (taComp !== 0) return taComp;
+    return (b.date || '').localeCompare(a.date || '');
+  });
 
   if (filters.crystalName) results = results.filter(r => r.crystalName && r.crystalName.includes(filters.crystalName));
   if (filters.size) results = results.filter(r => r.size && r.size.toString().includes(filters.size));
@@ -118,7 +128,14 @@ async function addAccessoryCost(data) {
 async function getAccessoryCosts(filters = {}) {
   const snapshot = await db.collection(COLLECTIONS.ACCESSORY_COSTS).get();
   let results = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-  results.sort((a, b) => (b.date || '').localeCompare(a.date || ''));
+  // 客戶端排序：商品名稱 → 貨號 → 日期降序
+  results.sort((a, b) => {
+    const nameComp = (a.productName || '').localeCompare(b.productName || '', 'zh-TW');
+    if (nameComp !== 0) return nameComp;
+    const codeComp = (a.itemCode || '').localeCompare(b.itemCode || '');
+    if (codeComp !== 0) return codeComp;
+    return (b.date || '').localeCompare(a.date || '');
+  });
 
   if (filters.vendor) results = results.filter(r => r.vendor && r.vendor.includes(filters.vendor));
   if (filters.keyword) {
@@ -272,7 +289,19 @@ async function getInventory() {
   results.sort((a, b) => {
     const ao = a.order ?? 99999, bo = b.order ?? 99999;
     if (ao !== bo) return ao - bo;
-    return (a.displayName || '').localeCompare(b.displayName || '', 'zh-TW');
+    // 未設 order 的項目：水晶按名稱→尺寸排，配件按商品名稱→貨號排
+    if (a.type === 'accessory' || b.type === 'accessory') {
+      const nameComp = (a.productName || a.displayName || '').localeCompare(b.productName || b.displayName || '', 'zh-TW');
+      if (nameComp !== 0) return nameComp;
+      return (a.itemCode || '').localeCompare(b.itemCode || '');
+    }
+    const nameComp = (a.crystalName || '').localeCompare(b.crystalName || '', 'zh-TW');
+    if (nameComp !== 0) return nameComp;
+    const sA = parseFloat(a.size) || 0, sB = parseFloat(b.size) || 0;
+    if (sA !== sB) return sA - sB;
+    const tbComp = (a.typeB || '').localeCompare(b.typeB || '', 'zh-TW');
+    if (tbComp !== 0) return tbComp;
+    return (a.typeA || '').localeCompare(b.typeA || '', 'zh-TW');
   });
   return results;
 }
