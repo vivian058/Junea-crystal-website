@@ -4,6 +4,8 @@
 
 let allInventory = [];
 let editingSpecKey = '';
+let _accDragIdx = null;
+let _currentAccessories = [];
 
 document.addEventListener('DOMContentLoaded', async () => {
   document.getElementById('navbar-root').innerHTML = renderNav('配件庫存');
@@ -34,6 +36,7 @@ function filterAndRender() {
       (i.itemCode || '').toLowerCase().includes(kw) ||
       (i.displayName || '').toLowerCase().includes(kw)
     );
+  _currentAccessories = accessories;
   renderAccessoryTable(accessories);
 }
 
@@ -50,7 +53,7 @@ function buildLogEntries(item) {
 function buildAccessoryInventoryRows(items) {
   if (!items.length) return '<div class="empty-state"><div class="empty-state-text">尚無配件庫存紀錄</div></div>';
 
-  const rows = items.flatMap(item => {
+  const rows = items.flatMap((item, idx) => {
     const qty = item.quantity || 0;
     const isLow = qty > 0 && qty < 20;
     const qtyClass = qty >= 50 ? 'qty-ok' : qty >= 20 ? 'qty-warn' : 'qty-danger';
@@ -67,6 +70,7 @@ function buildAccessoryInventoryRows(items) {
       const ei = item.id.replace(/'/g, "\\'");
       return '<tr class="log-row-' + safeId + '" style="display:none;background:#faf6ff">' +
         '<td></td>' +
+        '<td></td>' +
         '<td style="font-size:12px;color:var(--text-muted);padding:5px 12px">' + (l.date || '-') + '</td>' +
         '<td colspan="2"></td>' +
         '<td style="font-size:12px;font-weight:700;padding:5px 12px;color:' + color + '">' + sign + l.amount + '</td>' +
@@ -78,7 +82,13 @@ function buildAccessoryInventoryRows(items) {
     }).join('');
 
     return [
-      `<tr>
+      `<tr draggable="true"
+          ondragstart="onAccDragStart(event,${idx})"
+          ondragover="onAccDragOver(event,${idx})"
+          ondragleave="onAccDragLeave(event)"
+          ondrop="onAccDrop(event,${idx})"
+          ondragend="onAccDragEnd(event)">
+        <td class="drag-handle" title="拖曳排序">⠿</td>
         <td style="text-align:center;padding:8px 6px">
           <input type="checkbox" class="inv-check-accessory" value="${item.id}" onchange="updateBulkBar()">
         </td>
@@ -114,6 +124,7 @@ function buildAccessoryInventoryRows(items) {
       <table>
         <thead>
           <tr>
+            <th style="width:36px"></th>
             <th style="width:40px;text-align:center">
               <input type="checkbox" id="check-all" onchange="toggleSelectAll(this)" title="全選">
             </th>
@@ -318,6 +329,48 @@ function runSyncAccessory() {
   const today = new Date().toISOString().slice(0, 10);
   document.getElementById('sync-acc-date').value = today;
   openModal('syncAccDateModal');
+}
+
+// ─── 配件庫存拖曳排序 ─────────────────────
+
+function onAccDragStart(event, idx) {
+  _accDragIdx = idx;
+  event.currentTarget.classList.add('dragging');
+  event.dataTransfer.effectAllowed = 'move';
+}
+
+function onAccDragOver(event, idx) {
+  event.preventDefault();
+  if (_accDragIdx === idx) return;
+  event.currentTarget.classList.add('drag-over');
+}
+
+function onAccDragLeave(event) {
+  event.currentTarget.classList.remove('drag-over');
+}
+
+function onAccDragEnd(event) {
+  document.querySelectorAll('tr.dragging').forEach(r => r.classList.remove('dragging'));
+  document.querySelectorAll('tr.drag-over').forEach(r => r.classList.remove('drag-over'));
+}
+
+async function onAccDrop(event, targetIdx) {
+  event.preventDefault();
+  event.currentTarget.classList.remove('drag-over');
+  if (_accDragIdx === null || _accDragIdx === targetIdx) return;
+
+  const newOrder = [..._currentAccessories];
+  const [moved] = newOrder.splice(_accDragIdx, 1);
+  newOrder.splice(targetIdx, 0, moved);
+  _currentAccessories = newOrder;
+  renderAccessoryTable(_currentAccessories);
+
+  try {
+    await saveInventoryOrder(newOrder.map(i => i.id));
+  } catch(e) {
+    showToast('順序儲存失敗：' + e.message, 'danger');
+  }
+  _accDragIdx = null;
 }
 
 async function confirmSyncAccessory() {

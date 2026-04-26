@@ -4,6 +4,8 @@
 
 let allInventory = [];
 let initialSettingKeys = new Set(); // 有初始庫存設定的 specKey（正規化後）
+let _crystalDragIdx = null;
+let _currentCrystals = [];
 
 // 正規化 patternKey，讓 4*6 / 4×6 / 4x6 / 5~6 / 5-6 都能互相匹配
 function normalizePatternKey(key) {
@@ -67,6 +69,7 @@ function filterInventory() {
         && (!typeA.length || typeA.includes(ta));
     });
 
+  _currentCrystals = crystals;
   renderCrystalTable(crystals);
 }
 
@@ -252,7 +255,7 @@ function buildLogEntries(item) {
 function buildCrystalInventoryRows(items) {
   if (!items.length) return '<div class="empty-state"><div class="empty-state-text">\u7121\u7b26\u5408\u9805\u76ee</div></div>';
 
-  const rows = items.flatMap(item => {
+  const rows = items.flatMap((item, idx) => {
     const qty = item.quantity || 0;
     const specKey = item.specKey || item.id;
     const displayName = item.displayName || item.specKey || '';
@@ -277,6 +280,7 @@ function buildCrystalInventoryRows(items) {
       const ei = item.id.replace(/'/g, "\\'");
       return '<tr class="log-row-' + safeId + '" style="display:none;background:#faf6ff">' +
         '<td></td>' +
+        '<td></td>' +
         '<td style="font-size:12px;color:var(--text-muted);padding:5px 12px">' + (l.date || '-') + '</td>' +
         '<td colspan="3"></td>' +
         '<td style="font-size:12px;font-weight:700;padding:5px 12px;color:' + color + '">' + sign + l.amount + '</td>' +
@@ -288,7 +292,13 @@ function buildCrystalInventoryRows(items) {
     }).join('');
 
     return [
-      `<tr>
+      `<tr draggable="true"
+          ondragstart="onCrystalDragStart(event,${idx})"
+          ondragover="onCrystalDragOver(event,${idx})"
+          ondragleave="onCrystalDragLeave(event)"
+          ondrop="onCrystalDrop(event,${idx})"
+          ondragend="onCrystalDragEnd(event)">
+        <td class="drag-handle" title="拖曳排序">⠿</td>
         <td style="text-align:center;padding:8px 6px">
           <input type="checkbox" class="inv-check-crystal" value="${item.id}" onchange="updateInvBulkBar('crystal')">
         </td>
@@ -326,6 +336,7 @@ function buildCrystalInventoryRows(items) {
       <table>
         <thead>
           <tr>
+            <th style="width:36px"></th>
             <th style="width:40px;text-align:center">
               <input type="checkbox" id="inv-check-all-crystal" onchange="toggleInvSelectAll(this,'crystal')" title="全選">
             </th>
@@ -748,6 +759,48 @@ function renderPriceList() {
         </tbody>
       </table>
     </div>`;
+}
+
+// ─── 水晶庫存拖曳排序 ─────────────────────
+
+function onCrystalDragStart(event, idx) {
+  _crystalDragIdx = idx;
+  event.currentTarget.classList.add('dragging');
+  event.dataTransfer.effectAllowed = 'move';
+}
+
+function onCrystalDragOver(event, idx) {
+  event.preventDefault();
+  if (_crystalDragIdx === idx) return;
+  event.currentTarget.classList.add('drag-over');
+}
+
+function onCrystalDragLeave(event) {
+  event.currentTarget.classList.remove('drag-over');
+}
+
+function onCrystalDragEnd(event) {
+  document.querySelectorAll('tr.dragging').forEach(r => r.classList.remove('dragging'));
+  document.querySelectorAll('tr.drag-over').forEach(r => r.classList.remove('drag-over'));
+}
+
+async function onCrystalDrop(event, targetIdx) {
+  event.preventDefault();
+  event.currentTarget.classList.remove('drag-over');
+  if (_crystalDragIdx === null || _crystalDragIdx === targetIdx) return;
+
+  const newOrder = [..._currentCrystals];
+  const [moved] = newOrder.splice(_crystalDragIdx, 1);
+  newOrder.splice(targetIdx, 0, moved);
+  _currentCrystals = newOrder;
+  renderCrystalTable(_currentCrystals);
+
+  try {
+    await saveInventoryOrder(newOrder.map(i => i.id));
+  } catch(e) {
+    showToast('順序儲存失敗：' + e.message, 'danger');
+  }
+  _crystalDragIdx = null;
 }
 
 async function saveBraceletPrice(id) {
