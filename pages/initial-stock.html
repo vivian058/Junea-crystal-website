@@ -25,7 +25,6 @@
     <div class="flex-between mb-20">
       <div class="page-title">初始庫存設定</div>
       <div style="display:flex;gap:8px">
-        <button class="btn btn-secondary" onclick="openAddAccessoryModal()">＋ 新增配件設定</button>
         <button class="btn btn-primary" onclick="openModal('addModal')">＋ 新增水晶設定</button>
       </div>
     </div>
@@ -36,16 +35,8 @@
       </div>
     </div>
 
-    <div style="font-weight:700;color:var(--primary-dark);font-size:15px;margin:0 0 12px">水晶初始庫存</div>
-    <div class="card" style="margin-bottom:24px">
-      <div id="table-container">
-        <div class="loading"><div class="spinner"></div><div>載入中...</div></div>
-      </div>
-    </div>
-
-    <div style="font-weight:700;color:var(--primary-dark);font-size:15px;margin:0 0 12px">配件初始庫存</div>
     <div class="card">
-      <div id="acc-table-container">
+      <div id="table-container">
         <div class="loading"><div class="spinner"></div><div>載入中...</div></div>
       </div>
     </div>
@@ -111,45 +102,6 @@
           <button class="btn btn-secondary" onclick="closeModal('addModal')">取消</button>
           <button class="btn btn-primary" onclick="submitSetting()">儲存設定</button>
         </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- 新增/編輯配件設定 Modal -->
-  <div class="modal-overlay" id="addAccessoryModal">
-    <div class="modal" style="max-width:540px">
-      <div class="modal-header">
-        <div class="modal-title" id="acc-modal-title">＋ 新增配件設定</div>
-        <button class="modal-close" onclick="closeModal('addAccessoryModal')">✕</button>
-      </div>
-      <div class="modal-body">
-        <div class="form-grid">
-          <div class="form-group">
-            <label class="required">貨號</label>
-            <input class="form-control" id="as-itemCode" type="text" placeholder="如：JDZ210924">
-          </div>
-          <div class="form-group">
-            <label>商品名稱</label>
-            <input class="form-control" id="as-productName" type="text" placeholder="如：彈力繩">
-          </div>
-          <div class="form-group">
-            <label>規格</label>
-            <input class="form-control" id="as-spec" list="list-spec-is" placeholder="如：3mm、大號" autocomplete="off">
-            <datalist id="list-spec-is">
-              <option value="2mm"><option value="3mm"><option value="4mm">
-              <option value="5mm"><option value="6mm"><option value="8mm">
-              <option value="10mm"><option value="大號"><option value="中號"><option value="小號">
-            </datalist>
-          </div>
-          <div class="form-group">
-            <label class="required">每次進貨預設數量（個）</label>
-            <input class="form-control" id="as-defaultQty" type="number" min="1" placeholder="如：100">
-          </div>
-        </div>
-      </div>
-      <div class="modal-footer">
-        <button class="btn btn-secondary" onclick="closeModal('addAccessoryModal')">取消</button>
-        <button class="btn btn-primary" onclick="submitAccessorySetting()">儲存設定</button>
       </div>
     </div>
   </div>

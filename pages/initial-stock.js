@@ -70,17 +70,12 @@ document.addEventListener('DOMContentLoaded', async () => {
 
 async function loadSettings() {
   document.getElementById('table-container').innerHTML = loadingState();
-  document.getElementById('acc-table-container').innerHTML = loadingState();
   try {
     const settings = await getInitialStockSettings();
-    const crystals = settings.filter(s => s.type !== 'accessory');
-    const accessories = settings.filter(s => s.type === 'accessory');
-    renderTable(crystals);
-    renderAccessoryTable(accessories);
+    renderTable(settings.filter(s => s.type !== 'accessory'));
   } catch(e) {
-    const msg = `<div class="empty-state"><div class="empty-state-text">${e.message}</div></div>`;
-    document.getElementById('table-container').innerHTML = msg;
-    document.getElementById('acc-table-container').innerHTML = msg;
+    document.getElementById('table-container').innerHTML =
+      `<div class="empty-state"><div class="empty-state-text">${e.message}</div></div>`;
   }
 }
 
@@ -212,93 +207,3 @@ async function deleteSetting(specKey, displayName) {
   }
 }
 
-// ─── 配件初始庫存設定 ─────────────────────
-
-let editingAccSpecKey = null;
-
-function renderAccessoryTable(accessories) {
-  const container = document.getElementById('acc-table-container');
-  if (!accessories.length) {
-    container.innerHTML = emptyState('', '尚未設定任何配件，點右上角「新增配件設定」開始');
-    return;
-  }
-  const rows = accessories.map(s => `
-    <tr>
-      <td><strong>${s.productName || s.itemCode || '-'}</strong></td>
-      <td><span class="badge badge-purple">${s.itemCode || '-'}</span></td>
-      <td>${fmtSpec(s.spec)}</td>
-      <td>
-        <span style="font-size:20px;font-weight:800;color:var(--primary)">${s.defaultQuantity}</span>
-        <span style="color:var(--text-muted);font-size:13px"> 個</span>
-      </td>
-      <td>
-        <div class="btn-group">
-          <button class="btn btn-secondary btn-sm" onclick="openEditAccessoryModal('${s.specKey}','${(s.itemCode||'').replace(/'/g,"\\'")}','${(s.productName||'').replace(/'/g,"\\'")}','${(s.spec||'').replace(/'/g,"\\'")}',${s.defaultQuantity})">編輯</button>
-          <button class="btn btn-danger btn-sm" onclick="deleteSetting('${s.specKey}','${(s.displayName||s.itemCode||'').replace(/'/g,"\\'")}')">刪除</button>
-        </div>
-      </td>
-    </tr>`).join('');
-
-  container.innerHTML = `
-    <div class="table-wrap">
-      <table>
-        <thead>
-          <tr>
-            <th>商品名稱</th><th>貨號</th><th>規格</th><th>每次進貨預設數量</th><th>操作</th>
-          </tr>
-        </thead>
-        <tbody>${rows}</tbody>
-      </table>
-    </div>`;
-}
-
-function openAddAccessoryModal() {
-  editingAccSpecKey = null;
-  ['as-itemCode','as-productName','as-spec','as-defaultQty'].forEach(id => {
-    document.getElementById(id).value = '';
-  });
-  document.getElementById('as-itemCode').disabled = false;
-  document.getElementById('acc-modal-title').textContent = '＋ 新增配件設定';
-  openModal('addAccessoryModal');
-}
-
-function openEditAccessoryModal(specKey, itemCode, productName, spec, defaultQty) {
-  editingAccSpecKey = specKey;
-  document.getElementById('as-itemCode').value = itemCode;
-  document.getElementById('as-itemCode').disabled = true; // 貨號不可改（影響 specKey）
-  document.getElementById('as-productName').value = productName;
-  document.getElementById('as-spec').value = spec;
-  document.getElementById('as-defaultQty').value = defaultQty;
-  document.getElementById('acc-modal-title').textContent = '編輯配件設定';
-  openModal('addAccessoryModal');
-}
-
-async function submitAccessorySetting() {
-  const get = id => document.getElementById(id).value.trim();
-  const data = {
-    itemCode: get('as-itemCode'),
-    productName: get('as-productName'),
-    spec: get('as-spec'),
-    defaultQuantity: parseInt(get('as-defaultQty')) || 0
-  };
-  if (!data.itemCode) { showToast('請填寫貨號', 'warning'); return; }
-  if (!data.defaultQuantity || data.defaultQuantity < 1) { showToast('請填寫有效的預設數量', 'warning'); return; }
-
-  try {
-    const btn = document.querySelector('#addAccessoryModal .btn-primary');
-    btn.disabled = true; btn.textContent = '儲存中...';
-    const result = await setAccessoryInitialSetting(data);
-    if (result.isNewInventory) {
-      showToast(`設定已儲存！已自動在庫存表新增「${data.productName || data.itemCode}」（初始數量 0）`, 'success', 7000);
-    } else {
-      showToast('設定已儲存！', 'success');
-    }
-    closeModal('addAccessoryModal');
-    await loadSettings();
-  } catch(e) {
-    showToast(`儲存失敗：${e.message}`, 'danger');
-  } finally {
-    const btn = document.querySelector('#addAccessoryModal .btn-primary');
-    if (btn) { btn.disabled = false; btn.textContent = '儲存設定'; }
-  }
-}
