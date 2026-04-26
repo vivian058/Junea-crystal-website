@@ -195,7 +195,7 @@ function renderTable(records) {
       <td>${r.vendor || '-'}</td>
       <td class="td-link">${r.shopLink ? `<a href="${r.shopLink}" target="_blank">連結 ↗</a>` : '-'}</td>
       <td>${fmtYuan(r.pricePerStrand)}</td>
-      <td><strong>${(r.pricePerStrand && r.exchangeRate) ? '$' + (r.pricePerStrand * r.exchangeRate).toFixed(1) : '-'}</strong></td>
+      <td><strong>${r.costPerStrand ? fmtCurrency(r.costPerStrand) : '-'}</strong></td>
       <td>${r.exchangeRate || '-'}</td>
       <td><strong style="color:var(--primary-dark)">${fmtCurrency(r.costPerBead)}</strong></td>
       <td style="min-width:120px;color:var(--text-muted);font-size:12px">${r.note || '-'}</td>
@@ -382,9 +382,6 @@ async function submitAdd() {
     return;
   }
 
-  if (!data.costPerStrand && data.pricePerStrand && data.exchangeRate) {
-    data.costPerStrand = Math.round(data.pricePerStrand * data.exchangeRate * 10) / 10;
-  }
   if (!data.costPerBead) {
     data.costPerBead = await calcCrystalCostPerBead(data);
   }
