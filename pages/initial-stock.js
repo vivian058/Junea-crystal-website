@@ -179,7 +179,7 @@ async function submitSetting() {
   try {
     const btn = document.querySelector('#addModal .btn-primary');
     btn.disabled = true; btn.textContent = '儲存中...';
-    const result = await setInitialStockSetting(data);
+    const result = await setInitialStockSetting(data, editingSpecKey || null);
     const msg = result.updatedCount > 0
       ? `已儲存！同時更新庫存中 ${result.updatedCount} 個符合項目的數量為 ${data.defaultQuantity} 顆`
       : `已儲存：${data.size}mm ${data.typeB} ${data.typeA} → ${data.defaultQuantity} 顆`;
