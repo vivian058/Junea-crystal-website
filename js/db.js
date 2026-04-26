@@ -658,8 +658,21 @@ async function _ensureAccessoryInventory(specKey, data) {
 async function getInitialStockSettings() {
   const snapshot = await db.collection(COLLECTIONS.INITIAL_STOCK).get();
   const results = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-  results.sort((a, b) => (a.displayName || '').localeCompare(b.displayName || '', 'zh-TW'));
+  results.sort((a, b) => {
+    if (a.order != null && b.order != null) return a.order - b.order;
+    if (a.order != null) return -1;
+    if (b.order != null) return 1;
+    return (a.displayName || '').localeCompare(b.displayName || '', 'zh-TW');
+  });
   return results;
+}
+
+async function saveInitialStockOrder(specKeys) {
+  const batch = db.batch();
+  specKeys.forEach((key, idx) => {
+    batch.update(db.collection(COLLECTIONS.INITIAL_STOCK).doc(key), { order: idx });
+  });
+  await batch.commit();
 }
 
 async function checkInitialStockSettingExists(data) {
