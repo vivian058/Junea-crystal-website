@@ -269,8 +269,20 @@ async function getLatestCrystalCosts() {
 async function getInventory() {
   const snapshot = await db.collection(COLLECTIONS.INVENTORY).get();
   const results = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-  results.sort((a, b) => (a.displayName || '').localeCompare(b.displayName || '', 'zh-TW'));
+  results.sort((a, b) => {
+    const ao = a.order ?? 99999, bo = b.order ?? 99999;
+    if (ao !== bo) return ao - bo;
+    return (a.displayName || '').localeCompare(b.displayName || '', 'zh-TW');
+  });
   return results;
+}
+
+async function saveInventoryOrder(ids) {
+  const batch = db.batch();
+  ids.forEach((id, idx) => {
+    batch.update(db.collection(COLLECTIONS.INVENTORY).doc(id), { order: idx });
+  });
+  await batch.commit();
 }
 
 async function updateInventoryItem(specKey, data) {
