@@ -694,9 +694,9 @@ async function checkInitialStockSettingExists(data) {
   return doc.exists;
 }
 
-async function setInitialStockSetting(data) {
+async function setInitialStockSetting(data, existingSpecKey) {
   const normalizedSize = String(data.size || '').replace(/mm$/i, '').trim();
-  const specKey = makeCrystalPatternKey(normalizedSize, data.typeA, data.typeB);
+  const specKey = existingSpecKey || makeCrystalPatternKey(normalizedSize, data.typeA, data.typeB);
   const displayName = `${normalizedSize}mm ${data.typeB} ${data.typeA}`;
   await db.collection(COLLECTIONS.INITIAL_STOCK).doc(specKey).set({
     specKey, size: normalizedSize, typeA: data.typeA, typeB: data.typeB,
