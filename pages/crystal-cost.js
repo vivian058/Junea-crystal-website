@@ -340,6 +340,7 @@ function openEditRecord(id) {
   document.getElementById('a-productName').value = record.productName || '';
   document.getElementById('a-shopLink').value = record.shopLink || '';
   document.getElementById('a-pricePerStrand').value = record.pricePerStrand || '';
+  document.getElementById('a-costPerStrand').value = record.costPerStrand || '';
   document.getElementById('a-exchangeRate').value = record.exchangeRate || '';
   document.getElementById('a-costPerBead').value = record.costPerBead || '';
   document.getElementById('a-note').value = record.note || '';
@@ -363,6 +364,7 @@ async function submitAdd() {
     productName: get('a-productName'),
     shopLink: get('a-shopLink'),
     pricePerStrand: parseFloat(get('a-pricePerStrand')) || 0,
+    costPerStrand: parseFloat(get('a-costPerStrand')) || 0,
     exchangeRate: parseFloat(get('a-exchangeRate')) || 0,
     costPerBead: parseFloat(get('a-costPerBead')) || 0,
     note: get('a-note')
@@ -380,6 +382,9 @@ async function submitAdd() {
     return;
   }
 
+  if (!data.costPerStrand && data.pricePerStrand && data.exchangeRate) {
+    data.costPerStrand = Math.round(data.pricePerStrand * data.exchangeRate * 10) / 10;
+  }
   if (!data.costPerBead) {
     data.costPerBead = await calcCrystalCostPerBead(data);
   }
@@ -430,7 +435,7 @@ async function submitAdd() {
 
 function resetAddForm() {
   ['a-crystalName','a-vendor','a-productName','a-shopLink','a-size','a-typeB',
-   'a-pricePerStrand','a-exchangeRate','a-costPerBead','a-note'].forEach(id => {
+   'a-pricePerStrand','a-costPerStrand','a-exchangeRate','a-costPerBead','a-note'].forEach(id => {
     document.getElementById(id).value = '';
   });
   document.getElementById('a-typeA').value = '';
