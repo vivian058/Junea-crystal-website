@@ -258,8 +258,12 @@ async function deleteChainCost(id) {
 // ─── 設計款手鍊 ────────────────────────────
 
 async function addBraceletDesign(data) {
-  const currentCost = await _calcBraceletCost(data.materials);
-  const record = { ...data, baseCost: currentCost, createdAt: firebase.firestore.FieldValue.serverTimestamp() };
+  const materialCost = await _calcBraceletCost(data.materials);
+  const chainTotal = (data.chainItems || []).reduce((s, i) => s + Number(i.totalCost || 0), 0);
+  const packagingTotal = (data.packagingItems || []).reduce((s, i) => s + Number(i.cost || 0), 0);
+  const logisticsTotal = (data.logisticsItems || []).reduce((s, i) => s + Number(i.cost || 0), 0);
+  const currentCost = Math.round((materialCost + chainTotal + packagingTotal + logisticsTotal) * 10) / 10;
+  const record = { ...data, baseCost: currentCost, materialCost, createdAt: firebase.firestore.FieldValue.serverTimestamp() };
   const docRef = await db.collection(COLLECTIONS.BRACELET_DESIGNS).add(record);
   return docRef.id;
 }
@@ -282,9 +286,13 @@ async function getBraceletDesign(id) {
 }
 
 async function updateBraceletDesign(id, data) {
-  const currentCost = await _calcBraceletCost(data.materials);
+  const materialCost = await _calcBraceletCost(data.materials);
+  const chainTotal = (data.chainItems || []).reduce((s, i) => s + Number(i.totalCost || 0), 0);
+  const packagingTotal = (data.packagingItems || []).reduce((s, i) => s + Number(i.cost || 0), 0);
+  const logisticsTotal = (data.logisticsItems || []).reduce((s, i) => s + Number(i.cost || 0), 0);
+  const currentCost = Math.round((materialCost + chainTotal + packagingTotal + logisticsTotal) * 10) / 10;
   await db.collection(COLLECTIONS.BRACELET_DESIGNS).doc(id).update({
-    ...data, baseCost: currentCost, updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+    ...data, baseCost: currentCost, materialCost, updatedAt: firebase.firestore.FieldValue.serverTimestamp()
   });
 }
 
