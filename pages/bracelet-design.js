@@ -160,6 +160,7 @@ function resetModal() {
   _setVal('d-sellingPrice', ''); _setVal('d-targetMargin', '');
   _setVal('m-qty', ''); _setVal('ch-cm', '');
   _setVal('note-input', '');
+  _setVal('note-date', new Date().toISOString().split('T')[0]);
   _setDisplay('profit-section', 'none'); _setDisplay('suggested-section', 'none');
   clearMaterialSelection(); clearChainSelection();
   _setVal('pkg-name', ''); _setVal('pkg-cost', '');
@@ -208,7 +209,7 @@ function showMaterialSuggestions() {
 
   crystalOptions.forEach(item => {
     const name = `${item.crystalName} ${item.size}mm ${item.typeB} ${item.typeA}`;
-    const searchable = [name, item.specKey, item.productName, item.vendor, item.crystalName]
+    const searchable = [name, item.specKey, item.itemCode, item.productName, item.vendor, item.crystalName]
       .filter(Boolean).join(' ').toLowerCase();
     if (!search || searchable.includes(search)) {
       _materialMatches.push({ type: 'crystal', specKey: item.specKey, displayName: name, unitCost: item.costPerBead || 0 });
@@ -545,14 +546,17 @@ async function submitDesign() {
 
 // ─── 製作備註 ─────────────────────────────
 
-function todayStr() {
-  return new Date().toLocaleDateString('zh-TW', { year: 'numeric', month: '2-digit', day: '2-digit' });
+function fmtNoteDate(isoDate) {
+  if (!isoDate) return '';
+  const [y, m, d] = isoDate.split('-');
+  return `${y}/${m}/${d}`;
 }
 
 function addNote() {
   const text = (document.getElementById('note-input').value || '').trim();
+  const dateVal = document.getElementById('note-date').value || new Date().toISOString().split('T')[0];
   if (!text) { showToast('請輸入備註內容', 'warning'); return; }
-  currentNotes.push({ date: todayStr(), text });
+  currentNotes.push({ date: dateVal, text });
   _setVal('note-input', '');
   renderNoteList();
 }
@@ -567,7 +571,7 @@ function startEditNote(idx) {
   if (!row) return;
   const note = currentNotes[idx];
   row.innerHTML = `
-    <span style="font-size:12px;color:var(--text-muted);white-space:nowrap;padding-top:2px">${note.date}</span>
+    <input class="form-control" id="note-edit-date-${idx}" type="date" value="${note.date}" style="max-width:140px;font-size:13px;padding:4px 8px">
     <input class="form-control" id="note-edit-${idx}" value="${note.text.replace(/"/g, '&quot;')}" style="flex:1;font-size:13px;padding:4px 8px">
     <button class="btn btn-primary btn-sm" onclick="saveEditNote(${idx})" style="white-space:nowrap">儲存</button>
     <button class="btn btn-secondary btn-sm" onclick="renderNoteList()" style="white-space:nowrap">取消</button>`;
@@ -576,10 +580,12 @@ function startEditNote(idx) {
 
 function saveEditNote(idx) {
   const el = document.getElementById(`note-edit-${idx}`);
+  const dateEl = document.getElementById(`note-edit-date-${idx}`);
   if (!el) return;
   const text = el.value.trim();
   if (!text) { showToast('備註不能為空', 'warning'); return; }
   currentNotes[idx].text = text;
+  if (dateEl && dateEl.value) currentNotes[idx].date = dateEl.value;
   renderNoteList();
 }
 
@@ -592,7 +598,7 @@ function renderNoteList() {
   }
   container.innerHTML = currentNotes.map((n, idx) => `
     <div id="note-row-${idx}" style="display:flex;align-items:center;gap:8px;padding:7px 0;border-bottom:1px solid var(--border)">
-      <span style="font-size:12px;color:var(--text-muted);white-space:nowrap;padding-top:2px">${n.date}</span>
+      <span style="font-size:12px;color:var(--text-muted);white-space:nowrap">${fmtNoteDate(n.date)}</span>
       <span style="flex:1;font-size:13px">${n.text}</span>
       <span onclick="startEditNote(${idx})" style="cursor:pointer;color:var(--primary);font-size:13px;padding:0 4px" title="編輯">✎</span>
       <span onclick="removeNote(${idx})" style="cursor:pointer;color:var(--text-muted);padding:0 4px" title="刪除">✕</span>

@@ -203,19 +203,6 @@
 
         <hr class="divider">
 
-        <!-- ⑤ 製作備註 -->
-        <div class="cost-section-title">⑤ 製作備註</div>
-        <div id="notes-list" style="margin-bottom:8px"></div>
-        <div style="display:flex;gap:8px;align-items:flex-end">
-          <div class="form-group" style="flex:1;margin-bottom:0">
-            <label>新增備註</label>
-            <input class="form-control" id="note-input" type="text" placeholder="輸入備註內容…">
-          </div>
-          <button class="btn btn-secondary" onclick="addNote()" style="white-space:nowrap">＋ 加入</button>
-        </div>
-
-        <hr class="divider">
-
         <!-- 售價 / 毛利 -->
         <div class="profit-box">
           <div class="profit-inputs">
@@ -243,6 +230,23 @@
               <div style="font-size:13px;font-weight:600;color:var(--primary-dark)">建議售價（依目標毛利率）</div>
               <div style="font-size:20px;font-weight:800;color:var(--primary-dark)" id="suggested-price-preview">-</div>
             </div>
+          </div>
+        </div>
+
+        <!-- 製作備註（獨立區塊） -->
+        <div style="margin-top:12px">
+          <div style="font-size:13px;font-weight:700;color:var(--primary-dark);margin-bottom:8px">製作備註</div>
+          <div id="notes-list" style="margin-bottom:10px"></div>
+          <div style="display:flex;gap:8px;align-items:flex-end">
+            <div class="form-group" style="margin-bottom:0;max-width:150px">
+              <label style="font-size:12px">日期</label>
+              <input class="form-control" id="note-date" type="date">
+            </div>
+            <div class="form-group" style="flex:1;margin-bottom:0">
+              <label style="font-size:12px">備註內容</label>
+              <input class="form-control" id="note-input" type="text" placeholder="輸入備註內容…">
+            </div>
+            <button class="btn btn-secondary" onclick="addNote()" style="white-space:nowrap;align-self:flex-end">＋ 加入</button>
           </div>
         </div>
 
