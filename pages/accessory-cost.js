@@ -50,20 +50,16 @@ function renderTable(records) {
       <td style="text-align:center;padding:8px 6px">
         <input type="checkbox" class="row-check" value="${r.id}" onchange="updateBulkBar()">
       </td>
-      <td>${fmtDate(r.date)}</td>
-      <td><span class="badge badge-purple">${r.itemCode || '-'}</span></td>
       <td>${r.vendor || '-'}</td>
+      <td class="td-link">${r.shopLink ? `<a href="${r.shopLink}" target="_blank">連結 ↗</a>` : '-'}</td>
+      <td><span class="badge badge-purple">${r.itemCode || '-'}</span></td>
+      <td style="text-align:center">${r.imageUrl ? `<img src="${r.imageUrl}" onerror="this.style.display='none'" style="width:40px;height:40px;object-fit:cover;border-radius:4px;display:block;margin:auto">` : '-'}</td>
       <td>${r.productName || '-'}</td>
       <td>${r.color || '-'}</td>
       <td>${fmtSpec(r.spec)}</td>
-      <td class="td-link">${r.shopLink ? `<a href="${r.shopLink}" target="_blank">連結 ↗</a>` : '-'}</td>
-      <td>${r.lotQty != null && r.lotQty !== '' ? r.lotQty : '-'}</td>
-      <td>${r.piecesPerLot != null && r.piecesPerLot !== '' ? r.piecesPerLot : '-'}</td>
-      <td><strong>${r.costPerLot ? fmtCurrency(r.costPerLot) : '-'}</strong></td>
+      <td><strong style="color:var(--primary-dark)">${r.costPerLot ? fmtCurrency(r.costPerLot) : '-'}</strong></td>
       <td>${fmtYuan(r.pricePerPieceYuan)}</td>
-      <td>${r.exchangeRate || '-'}</td>
-      <td><strong style="color:var(--primary-dark)">${fmtCurrency(r.costPerPiece)}</strong></td>
-      <td style="min-width:120px;color:var(--text-muted);font-size:12px">${r.note || '-'}</td>
+      <td>${r.note || '-'}</td>
       <td>
         <div style="display:flex;gap:4px;flex-wrap:nowrap">
           <button class="btn btn-secondary btn-sm" onclick="openEditRecord('${r.id}')">編輯</button>
@@ -78,25 +74,21 @@ function renderTable(records) {
       <button class="btn btn-danger btn-sm" onclick="deleteSelected()">刪除已選</button>
     </div>
     <div class="table-wrap">
-      <table style="min-width:1100px">
+      <table style="min-width:1000px">
         <thead>
           <tr>
             <th style="width:40px;text-align:center">
               <input type="checkbox" id="check-all" onchange="toggleSelectAll(this)" title="全選">
             </th>
-            <th style="min-width:90px">日期</th>
+            <th style="min-width:100px">廠家</th>
+            <th style="min-width:70px">賣場Link</th>
             <th style="min-width:100px">貨號</th>
-            <th style="min-width:90px">廠家</th>
-            <th style="min-width:120px">商品名稱</th>
+            <th style="min-width:60px">圖片</th>
+            <th style="min-width:140px">賣場商品名稱</th>
             <th style="min-width:70px">顏色</th>
             <th style="min-width:80px">規格</th>
-            <th style="min-width:60px">賣場</th>
-            <th style="min-width:80px">一份數量</th>
-            <th style="min-width:80px">一份顆數</th>
-            <th style="min-width:110px">單份進貨成本$</th>
-            <th style="min-width:80px">單顆¥</th>
-            <th style="min-width:60px">匯率</th>
-            <th style="min-width:100px">單顆成本$</th>
+            <th style="min-width:110px">單品進貨成本$</th>
+            <th style="min-width:90px">單顆進價¥</th>
             <th style="min-width:160px">備註</th>
             <th style="min-width:110px">操作</th>
           </tr>
@@ -194,14 +186,11 @@ function openEditRecord(id) {
   document.getElementById('a-itemCode').value = record.itemCode || '';
   document.getElementById('a-productName').value = record.productName || '';
   document.getElementById('a-shopLink').value = record.shopLink || '';
+  document.getElementById('a-imageUrl').value = record.imageUrl || '';
   document.getElementById('a-color').value = record.color || '';
   document.getElementById('a-spec').value = record.spec || '';
-  document.getElementById('a-lotQty').value = record.lotQty != null ? record.lotQty : '';
-  document.getElementById('a-piecesPerLot').value = record.piecesPerLot != null ? record.piecesPerLot : '';
   document.getElementById('a-costPerLot').value = record.costPerLot || '';
   document.getElementById('a-pricePerPieceYuan').value = record.pricePerPieceYuan || '';
-  document.getElementById('a-exchangeRate').value = record.exchangeRate || '';
-  document.getElementById('a-costPerPiece').value = record.costPerPiece || '';
   document.getElementById('a-note').value = record.note || '';
   document.getElementById('add-alert').innerHTML = '';
   document.querySelector('#addModal .modal-title').textContent = '編輯進貨紀錄';
@@ -219,14 +208,11 @@ async function submitAdd() {
     itemCode: get('a-itemCode'),
     productName: get('a-productName'),
     shopLink: get('a-shopLink'),
+    imageUrl: get('a-imageUrl'),
     color: get('a-color'),
     spec: get('a-spec'),
-    lotQty: parseInt(get('a-lotQty')) || 0,
-    piecesPerLot: parseInt(get('a-piecesPerLot')) || 0,
     costPerLot: parseFloat(get('a-costPerLot')) || 0,
     pricePerPieceYuan: parseFloat(get('a-pricePerPieceYuan')) || 0,
-    exchangeRate: parseFloat(get('a-exchangeRate')) || 0,
-    costPerPiece: parseFloat(get('a-costPerPiece')) || 0,
     note: get('a-note')
   };
 
@@ -236,17 +222,6 @@ async function submitAdd() {
   if (!data.date || !data.vendor || !data.itemCode) {
     alertEl.innerHTML = `<div class="inline-alert inline-alert-warning">請填寫必填欄位（日期、廠家、貨號）</div>`;
     return;
-  }
-  if (!data.exchangeRate) {
-    alertEl.innerHTML = `<div class="inline-alert inline-alert-warning">請填寫當次匯率</div>`;
-    return;
-  }
-
-  if (!data.costPerLot && data.piecesPerLot && data.pricePerPieceYuan && data.exchangeRate) {
-    data.costPerLot = Math.round(data.piecesPerLot * data.pricePerPieceYuan * data.exchangeRate * 100) / 100;
-  }
-  if (!data.costPerPiece) {
-    data.costPerPiece = calcAccessoryCostPerPiece(data);
   }
 
   const btn = document.querySelector('#addModal .btn-primary');
@@ -279,9 +254,8 @@ async function submitAdd() {
 }
 
 function resetAddForm() {
-  ['a-vendor','a-itemCode','a-productName','a-shopLink','a-color','a-spec',
-   'a-lotQty','a-piecesPerLot','a-costPerLot',
-   'a-pricePerPieceYuan','a-exchangeRate','a-costPerPiece','a-note'].forEach(id => {
+  ['a-vendor','a-itemCode','a-productName','a-shopLink','a-imageUrl',
+   'a-color','a-spec','a-costPerLot','a-pricePerPieceYuan','a-note'].forEach(id => {
     document.getElementById(id).value = '';
   });
   document.getElementById('a-date').value = new Date().toISOString().split('T')[0];
@@ -347,24 +321,20 @@ function handleExcelUpload(file) {
       importRows = dataRows.map(r => ({
         date: toDateStr(r[0]),
         vendor: String(r[1] || '').trim(),
-        itemCode: String(r[2] || '').trim(),
-        productName: String(r[3] || '').trim(),
-        shopLink: String(r[4] || '').trim(),
-        color: String(r[5] || '').trim(),
-        spec: String(r[6] || '').trim(),
-        lotQty: parseInt(r[7]) || 0,
-        piecesPerLot: parseInt(r[8]) || 0,
-        costPerLot: parseFloat(r[9]) || 0,
-        pricePerPieceYuan: parseFloat(r[10]) || 0,
-        exchangeRate: parseFloat(r[11]) || 0,
-        costPerPiece: parseFloat(r[12]) || 0,
-        note: String(r[13] || '').trim(),
-        quantity: parseInt(r[14]) || 0
+        shopLink: String(r[2] || '').trim(),
+        itemCode: String(r[3] || '').trim(),
+        imageUrl: String(r[4] || '').trim(),
+        productName: String(r[5] || '').trim(),
+        color: String(r[6] || '').trim(),
+        spec: String(r[7] || '').trim(),
+        costPerLot: parseFloat(r[8]) || 0,
+        pricePerPieceYuan: parseFloat(r[9]) || 0,
+        note: String(r[10] || '').trim()
       }));
 
-      const invalid = importRows.filter(r => !r.date || !r.vendor || !r.itemCode || !r.exchangeRate);
+      const invalid = importRows.filter(r => !r.date || !r.vendor || !r.itemCode);
       if (invalid.length) {
-        alertEl.innerHTML = `<div class="inline-alert inline-alert-warning">有 ${invalid.length} 列缺少必填欄位（日期/廠家/貨號/匯率），請修正後重新上傳</div>`;
+        alertEl.innerHTML = `<div class="inline-alert inline-alert-warning">有 ${invalid.length} 列缺少必填欄位（日期/廠家/貨號），請修正後重新上傳</div>`;
         importRows = [];
         return;
       }
@@ -378,13 +348,8 @@ function handleExcelUpload(file) {
           <td>${r.productName || '-'}</td>
           <td>${r.color || '-'}</td>
           <td>${fmtSpec(r.spec)}</td>
-          <td>${r.lotQty || '-'}</td>
-          <td>${r.piecesPerLot || '-'}</td>
-          <td>${r.costPerLot || '自動'}</td>
+          <td>${r.costPerLot || '-'}</td>
           <td>${r.pricePerPieceYuan || '-'}</td>
-          <td>${r.exchangeRate}</td>
-          <td>${r.costPerPiece || '自動'}</td>
-          <td>${r.quantity || '-'}</td>
         </tr>`).join('');
 
       document.getElementById('preview-count').textContent = `共 ${importRows.length} 筆，確認後點「確認匯入」`;
@@ -408,9 +373,6 @@ async function submitImport() {
   let success = 0, failed = 0;
   for (const row of importRows) {
     try {
-      if (!row.costPerPiece) {
-        row.costPerPiece = calcAccessoryCostPerPiece(row);
-      }
       await addAccessoryCost(row);
       success++;
     } catch(e) {
@@ -433,10 +395,10 @@ async function submitImport() {
 
 function downloadAccessoryTemplate() {
   const data = [
-    ['進貨日期(YYYY-MM-DD)','廠家','貨號','商品名稱','賣場連結','顏色','規格','一份數量','一份顆數','單份進貨成本$(留空自動計算)','單顆進價¥','匯率','單顆成本$(留空自動計算)','備註','進貨數量'],
-    ['2026-03-25','广州腾龙饰品配件','JDZ210726','喇叭大孔珠','','14K金','8mm','1','50','','0.48','4.612','','','50'],
-    ['2026-03-25','广州腾龙饰品配件','JDZ2005281','大孔桶珠','','14K金','4*6mm','1','50','','0.41','4.612','','','50'],
-    ['2026-03-25','广州腾龙饰品配件','JDZ945331','切面空心西瓜珠','','14K金','4mm','1','100','','0.16','4.612','','','100'],
+    ['進貨日期(YYYY-MM-DD)','廠家','賣場Link','貨號','圖片連結','賣場商品名稱','顏色','規格','單品進貨成本$','單顆進價¥','備註'],
+    ['2026-03-25','广州腾龙饰品配件','https://...','JDZ210726','','喇叭大孔珠','14K金','8mm','25','0.48',''],
+    ['2026-03-25','广州腾龙饰品配件','https://...','JDZ2005281','','大孔桶珠','14K金','4*6mm','','0.41',''],
+    ['2026-03-25','广州腾龙饰品配件','https://...','JDZ945331','','切面空心西瓜珠','14K金','4mm','','0.16',''],
   ];
   const ws = XLSX.utils.aoa_to_sheet(data);
   const wb = XLSX.utils.book_new();
