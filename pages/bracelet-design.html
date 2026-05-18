@@ -30,6 +30,9 @@
     .cost-add-row .form-group { flex: 1; margin-bottom: 0; }
     .total-row { display: flex; justify-content: space-between; align-items: center; padding: 10px 0; border-top: 2px solid var(--border); margin-top: 8px; }
     .profit-box { background: var(--bg); border-radius: var(--radius-sm); padding: 12px 16px; margin-top: 10px; }
+    .profit-inputs { display: flex; gap: 12px; align-items: flex-end; margin-bottom: 10px; flex-wrap: wrap; }
+    .profit-result { border-top: 1px solid var(--border); margin-top: 8px; padding-top: 8px; }
+    .suggested-price-box { background: var(--primary-light); border-radius: 6px; padding: 10px 14px; margin-top: 8px; display: flex; justify-content: space-between; align-items: center; }
   </style>
 </head>
 <body>
@@ -66,21 +69,14 @@
           </div>
         </div>
 
-        <!-- ① 材料清單 -->
+        <!-- ① 材料清單（水晶 / 配件）-->
         <div class="cost-section-title">① 材料清單（水晶 / 配件）</div>
         <div class="selector-area">
           <div style="font-size:13px;font-weight:600;margin-bottom:8px;color:var(--text-muted)">新增材料</div>
           <div class="selector-row" style="margin-bottom:8px">
-            <div class="form-group" style="min-width:200px">
-              <label>貨號搜尋</label>
-              <input class="form-control" id="m-code-search" type="text" placeholder="輸入貨號或名稱快速篩選" oninput="updateMaterialOptions()">
-            </div>
-            <div class="form-group" style="min-width:100px">
-              <label>類型</label>
-              <select class="form-control" id="m-type" onchange="updateMaterialOptions()">
-                <option value="crystal">水晶</option>
-                <option value="accessory">配件</option>
-              </select>
+            <div class="form-group" style="flex:1">
+              <label>貨號 / 名稱搜尋</label>
+              <input class="form-control" id="m-search" type="text" placeholder="輸入貨號或名稱快速篩選" oninput="updateMaterialOptions()">
             </div>
           </div>
           <div class="selector-row">
@@ -97,7 +93,7 @@
             <button class="btn btn-secondary" onclick="addMaterialRow()" style="align-self:flex-end;white-space:nowrap">＋ 加入</button>
           </div>
         </div>
-        <div id="material-list" class="material-list" style="margin-bottom:8px"></div>
+        <div id="material-list" style="margin-bottom:8px"></div>
         <div class="cost-row" style="border-top:1.5px solid var(--border);padding-top:10px">
           <div class="cost-row-label" style="font-weight:600">商品總成本</div>
           <div class="cost-row-value" style="font-size:18px;color:var(--secondary)" id="material-cost-preview">$0</div>
@@ -105,8 +101,40 @@
 
         <hr class="divider">
 
-        <!-- ② 產品包裝成本 -->
-        <div class="cost-section-title">② 產品包裝成本</div>
+        <!-- ② 鍊條線材成本 -->
+        <div class="cost-section-title">② 鍊條線材成本</div>
+        <div class="selector-area">
+          <div style="font-size:13px;font-weight:600;margin-bottom:8px;color:var(--text-muted)">新增鍊條線材</div>
+          <div class="selector-row" style="margin-bottom:8px">
+            <div class="form-group" style="flex:1">
+              <label>貨號 / 名稱搜尋</label>
+              <input class="form-control" id="ch-search" type="text" placeholder="輸入貨號或名稱快速篩選" oninput="updateChainOptions()">
+            </div>
+          </div>
+          <div class="selector-row">
+            <div class="form-group" style="flex:3">
+              <label>選擇品項</label>
+              <select class="form-control" id="ch-item">
+                <option value="">-- 選擇品項 --</option>
+              </select>
+            </div>
+            <div class="form-group" style="flex:1;min-width:80px">
+              <label>使用長度 (cm)</label>
+              <input class="form-control" id="ch-cm" type="number" min="0.1" step="0.1" placeholder="cm">
+            </div>
+            <button class="btn btn-secondary" onclick="addChainRow()" style="align-self:flex-end;white-space:nowrap">＋ 加入</button>
+          </div>
+        </div>
+        <div id="chain-list" style="margin-bottom:8px"></div>
+        <div class="cost-row" style="border-top:1.5px solid var(--border);padding-top:10px">
+          <div class="cost-row-label" style="font-weight:600">鍊條線材小計</div>
+          <div class="cost-row-value" style="font-size:18px;color:var(--secondary)" id="chain-cost-preview">$0</div>
+        </div>
+
+        <hr class="divider">
+
+        <!-- ③ 產品包裝成本 -->
+        <div class="cost-section-title">③ 產品包裝成本</div>
         <div id="packaging-list" style="margin-bottom:8px"></div>
         <div class="cost-add-row">
           <div class="form-group">
@@ -126,8 +154,8 @@
 
         <hr class="divider">
 
-        <!-- ③ 金物流平台成本 -->
-        <div class="cost-section-title">③ 金物流平台成本</div>
+        <!-- ④ 金物流平台成本 -->
+        <div class="cost-section-title">④ 金物流平台成本</div>
         <div id="logistics-list" style="margin-bottom:8px"></div>
         <div class="cost-add-row">
           <div class="form-group">
@@ -147,20 +175,27 @@
 
         <hr class="divider">
 
-        <!-- 全部加總 + 售價 + 毛利 -->
+        <!-- 全部加總 -->
         <div class="total-row">
           <div style="font-size:15px;font-weight:700">全部加總成本</div>
           <div style="font-size:22px;font-weight:800;color:var(--secondary)" id="total-cost-preview">$0</div>
         </div>
 
+        <!-- 售價 / 毛利 -->
         <div class="profit-box">
-          <div style="display:flex;gap:12px;align-items:flex-end;margin-bottom:10px">
+          <div class="profit-inputs">
             <div class="form-group" style="margin-bottom:0;max-width:180px">
               <label style="font-size:13px;font-weight:600">預估售價 ($)</label>
               <input class="form-control" id="d-sellingPrice" type="number" step="1" placeholder="輸入售價" oninput="updateProfitCalc()">
             </div>
+            <div class="form-group" style="margin-bottom:0;max-width:180px">
+              <label style="font-size:13px;font-weight:600">目標毛利率 (%)</label>
+              <input class="form-control" id="d-targetMargin" type="number" step="0.1" min="0" max="100" placeholder="如：30" oninput="calcPriceFromMargin()">
+            </div>
           </div>
-          <div id="profit-section" style="display:none">
+
+          <!-- 由售價算出的毛利 / 毛利率 -->
+          <div id="profit-section" style="display:none" class="profit-result">
             <div class="cost-row" style="padding:4px 0">
               <div class="cost-row-label">毛利</div>
               <div class="cost-row-value" id="profit-preview">-</div>
@@ -168,6 +203,14 @@
             <div class="cost-row" style="padding:4px 0">
               <div class="cost-row-label">毛利率</div>
               <div class="cost-row-value" id="margin-preview">-</div>
+            </div>
+          </div>
+
+          <!-- 由目標毛利率算出的建議售價 -->
+          <div id="suggested-section" style="display:none">
+            <div class="suggested-price-box">
+              <div style="font-size:13px;font-weight:600;color:var(--primary-dark)">建議售價（依目標毛利率）</div>
+              <div style="font-size:20px;font-weight:800;color:var(--primary-dark)" id="suggested-price-preview">-</div>
             </div>
           </div>
         </div>

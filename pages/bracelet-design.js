@@ -4,11 +4,13 @@
 
 let editingId = null;
 let currentMaterials = [];
+let currentChains = [];
 let currentPackaging = [];
 let currentLogistics = [];
 let _lastTotalCost = 0;
 let crystalOptions = [];
 let accessoryOptions = [];
+let chainOptions = [];
 
 document.addEventListener('DOMContentLoaded', async () => {
   document.getElementById('navbar-root').innerHTML = renderNav('設計款手鍊');
@@ -20,8 +22,11 @@ document.addEventListener('DOMContentLoaded', async () => {
 
 async function preloadOptions() {
   try {
-    crystalOptions = await getLatestCrystalCosts();
-    accessoryOptions = await getLatestAccessoryCosts();
+    [crystalOptions, accessoryOptions, chainOptions] = await Promise.all([
+      getLatestCrystalCosts(),
+      getLatestAccessoryCosts(),
+      getChainCosts()
+    ]);
   } catch(e) { console.warn(e); }
 }
 
@@ -45,9 +50,10 @@ async function loadDesigns() {
 
 async function renderDesignCard(design) {
   const materialCost = await calcBraceletCurrentCost(design.materials || []);
+  const chainTotal = (design.chainItems || []).reduce((s, i) => s + Number(i.totalCost || 0), 0);
   const packagingTotal = (design.packagingItems || []).reduce((s, i) => s + Number(i.cost || 0), 0);
   const logisticsTotal = (design.logisticsItems || []).reduce((s, i) => s + Number(i.cost || 0), 0);
-  const currentCost = materialCost + packagingTotal + logisticsTotal;
+  const currentCost = materialCost + chainTotal + packagingTotal + logisticsTotal;
   const baseCost = design.baseCost || 0;
   const diff = currentCost - baseCost;
   const hasAlert = Math.abs(diff) >= 50;
@@ -65,13 +71,15 @@ async function renderDesignCard(design) {
     : '';
 
   const materialRows = (design.materials || []).map(m => {
-    const unitCost = m.unitCost || 0;
-    const total = unitCost * (m.quantity || 0);
-    return `<div class="material-row">
-      <span>${m.displayName} × ${m.quantity} 顆</span>
-      <span style="color:var(--primary)">${unitCost ? fmtCurrency(total) : ''}</span>
-    </div>`;
+    const total = (m.unitCost || 0) * (m.quantity || 0);
+    return `<div class="material-row"><span>${m.displayName} × ${m.quantity} 顆</span><span style="color:var(--primary)">${m.unitCost ? fmtCurrency(total) : ''}</span></div>`;
   }).join('');
+
+  let chainRows = '';
+  if ((design.chainItems || []).length) {
+    chainRows = `<div style="font-size:12px;font-weight:600;color:var(--text-muted);margin-top:8px;padding-top:6px;border-top:1px dashed var(--border)">鍊條線材</div>` +
+      (design.chainItems || []).map(i => `<div class="material-row"><span>${i.displayName} × ${i.lengthCm}cm</span><span style="color:var(--primary)">${fmtCurrency(Number(i.totalCost))}</span></div>`).join('');
+  }
 
   let packagingRows = '';
   if ((design.packagingItems || []).length) {
@@ -90,10 +98,11 @@ async function renderDesignCard(design) {
     const sp = Number(design.sellingPrice);
     const profit = sp - currentCost;
     const margin = sp > 0 ? (profit / sp * 100) : 0;
+    const color = profit >= 0 ? 'var(--success,#2ea44f)' : 'var(--danger,#cf222e)';
     profitHtml = `<div style="background:var(--bg);border-radius:6px;padding:8px 12px;margin-top:8px;font-size:13px">
       <div class="material-row"><span>售價</span><span style="font-weight:700">${fmtCurrency(sp)}</span></div>
-      <div class="material-row"><span>毛利</span><span style="font-weight:700;color:${profit >= 0 ? 'var(--success)' : 'var(--danger)'}">${fmtCurrency(profit)}</span></div>
-      <div class="material-row"><span>毛利率</span><span style="font-weight:700;color:${margin >= 0 ? 'var(--success)' : 'var(--danger)'}">${margin.toFixed(1)}%</span></div>
+      <div class="material-row"><span>毛利</span><span style="font-weight:700;color:${color}">${fmtCurrency(profit)}</span></div>
+      <div class="material-row"><span>毛利率</span><span style="font-weight:700;color:${color}">${margin.toFixed(1)}%</span></div>
     </div>`;
   }
 
@@ -116,9 +125,7 @@ async function renderDesignCard(design) {
       </div>
       ${alertHtml}
       <div class="material-summary">
-        ${materialRows}
-        ${packagingRows}
-        ${logisticsRows}
+        ${materialRows}${chainRows}${packagingRows}${logisticsRows}
       </div>
       ${profitHtml}
       <div class="btn-group mt-16">
@@ -133,6 +140,7 @@ async function renderDesignCard(design) {
 async function openAddModal() {
   editingId = null;
   currentMaterials = [];
+  currentChains = [];
   currentPackaging = [];
   currentLogistics = [];
   _lastTotalCost = 0;
@@ -140,17 +148,23 @@ async function openAddModal() {
   document.getElementById('d-name').value = '';
   document.getElementById('d-imageUrl').value = '';
   document.getElementById('d-sellingPrice').value = '';
-  document.getElementById('m-code-search').value = '';
+  document.getElementById('d-targetMargin').value = '';
+  document.getElementById('m-search').value = '';
   document.getElementById('m-qty').value = '';
+  document.getElementById('ch-search').value = '';
+  document.getElementById('ch-cm').value = '';
   document.getElementById('modal-title').textContent = '新增設計款手鍊';
   document.getElementById('save-btn').textContent = '儲存設計款';
   document.getElementById('profit-section').style.display = 'none';
+  document.getElementById('suggested-section').style.display = 'none';
 
+  updateMaterialOptions();
+  updateChainOptions();
   renderMaterialList();
+  renderChainList();
   renderPackagingList();
   renderLogisticsList();
   updateCostPreviews();
-  await updateMaterialOptions();
   openModal('designModal');
 }
 
@@ -160,83 +174,93 @@ async function openEditModal(id) {
   if (!design) { showToast('找不到此設計款', 'danger'); return; }
 
   currentMaterials = design.materials ? [...design.materials] : [];
+  currentChains = design.chainItems ? [...design.chainItems] : [];
   currentPackaging = design.packagingItems ? [...design.packagingItems] : [];
   currentLogistics = design.logisticsItems ? [...design.logisticsItems] : [];
 
   document.getElementById('d-name').value = design.name || '';
   document.getElementById('d-imageUrl').value = design.imageUrl || '';
   document.getElementById('d-sellingPrice').value = design.sellingPrice || '';
-  document.getElementById('m-code-search').value = '';
+  document.getElementById('d-targetMargin').value = '';
+  document.getElementById('m-search').value = '';
   document.getElementById('m-qty').value = '';
+  document.getElementById('ch-search').value = '';
+  document.getElementById('ch-cm').value = '';
   document.getElementById('modal-title').textContent = '編輯設計款手鍊';
   document.getElementById('save-btn').textContent = '儲存修改';
+  document.getElementById('suggested-section').style.display = 'none';
 
+  updateMaterialOptions();
+  updateChainOptions();
   renderMaterialList();
+  renderChainList();
   renderPackagingList();
   renderLogisticsList();
   await updateCostPreviews();
   updateProfitCalc();
-  await updateMaterialOptions();
   openModal('designModal');
 }
 
-// ─── 材料選項與搜尋 ───────────────────────
+// ─── 材料（水晶 / 配件）─────────────────
 
 function updateMaterialOptions() {
-  const type = document.getElementById('m-type').value;
-  const search = (document.getElementById('m-code-search').value || '').trim().toLowerCase();
+  const search = (document.getElementById('m-search').value || '').trim().toLowerCase();
   const select = document.getElementById('m-item');
   select.innerHTML = '<option value="">-- 選擇品項 --</option>';
 
-  const options = type === 'crystal' ? crystalOptions : accessoryOptions;
-  options.forEach(item => {
-    let label, name, key;
-    if (type === 'crystal') {
-      name = `${item.crystalName} ${item.size}mm ${item.typeB} ${item.typeA}`;
-      label = `${name}｜${fmtCurrency(item.costPerBead)}/顆`;
-      key = item.specKey;
-    } else {
-      name = `[${item.itemCode}] ${item.productName || ''}${item.color ? ' · ' + item.color : ''}`;
-      label = `${name}｜${fmtCurrency(item.costPerPiece)}/顆`;
-      key = item.specKey;
-    }
-
-    if (search && !name.toLowerCase().includes(search) && !key.toLowerCase().includes(search)) return;
-
+  // 水晶選項
+  crystalOptions.forEach(item => {
+    const name = `${item.crystalName} ${item.size}mm ${item.typeB} ${item.typeA}`;
+    const code = item.specKey || '';
+    if (search && !name.toLowerCase().includes(search) && !code.toLowerCase().includes(search)) return;
     const o = document.createElement('option');
-    o.value = key;
-    o.textContent = label;
-    o.dataset.name = name;
-    o.dataset.cost = type === 'crystal' ? (item.costPerBead || 0) : (item.costPerPiece || 0);
+    o.value = item.specKey;
+    o.textContent = `[水晶] ${name}｜${fmtCurrency(item.costPerBead)}/顆`;
+    o.dataset.displayName = name;
+    o.dataset.cost = item.costPerBead || 0;
+    o.dataset.type = 'crystal';
+    select.appendChild(o);
+  });
+
+  // 配件選項
+  accessoryOptions.forEach(item => {
+    const name = `${item.productName || ''}${item.color ? ' · ' + item.color : ''}`;
+    const code = item.itemCode || '';
+    const searchText = `${code} ${name}`.toLowerCase();
+    if (search && !searchText.includes(search)) return;
+    const o = document.createElement('option');
+    o.value = item.specKey;
+    o.textContent = `[配件][${code}] ${name}｜${fmtCurrency(item.costPerPiece)}/顆`;
+    o.dataset.displayName = `[${code}] ${name}`;
+    o.dataset.cost = item.costPerPiece || 0;
+    o.dataset.type = 'accessory';
     select.appendChild(o);
   });
 }
 
 function addMaterialRow() {
-  const type = document.getElementById('m-type').value;
   const select = document.getElementById('m-item');
   const qty = parseInt(document.getElementById('m-qty').value);
   const specKey = select.value;
-  const selectedOpt = select.selectedOptions[0];
+  const opt = select.selectedOptions[0];
 
   if (!specKey) { showToast('請選擇品項', 'warning'); return; }
   if (!qty || qty < 1) { showToast('請填寫使用顆數', 'warning'); return; }
 
-  const unitCost = parseFloat(selectedOpt.dataset.cost || 0);
+  const unitCost = parseFloat(opt.dataset.cost || 0);
   const existing = currentMaterials.findIndex(m => m.specKey === specKey);
   if (existing >= 0) {
     currentMaterials[existing].quantity = qty;
     currentMaterials[existing].unitCost = unitCost;
   } else {
     currentMaterials.push({
-      type,
+      type: opt.dataset.type,
       specKey,
-      displayName: selectedOpt.dataset.name,
+      displayName: opt.dataset.displayName,
       quantity: qty,
       unitCost
     });
   }
-
   document.getElementById('m-qty').value = '';
   renderMaterialList();
   updateCostPreviews();
@@ -251,24 +275,101 @@ function removeMaterial(specKey) {
 function renderMaterialList() {
   const container = document.getElementById('material-list');
   if (!currentMaterials.length) {
-    container.innerHTML = `<div style="text-align:center;padding:16px;color:var(--text-muted);font-size:13px">尚未加入任何材料</div>`;
+    container.innerHTML = `<div style="text-align:center;padding:12px;color:var(--text-muted);font-size:13px">尚未加入任何材料</div>`;
     document.getElementById('material-cost-preview').textContent = '$0';
     return;
   }
   container.innerHTML = currentMaterials.map(m => {
-    const unitCost = m.unitCost || 0;
-    const rowTotal = unitCost * (m.quantity || 0);
-    return `<div class="material-item" style="display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid var(--border)">
+    const rowTotal = (m.unitCost || 0) * (m.quantity || 0);
+    return `<div style="display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid var(--border)">
       <span class="badge badge-${m.type === 'crystal' ? 'purple' : 'gold'}">${m.type === 'crystal' ? '水晶' : '配件'}</span>
-      <span class="material-item-name" style="flex:1;font-size:13px">${m.displayName}</span>
+      <span style="flex:1;font-size:13px">${m.displayName}</span>
       <span style="font-size:13px;color:var(--text-muted)">× ${m.quantity} 顆</span>
-      ${unitCost ? `<span style="font-size:13px;color:var(--secondary);font-weight:600">${fmtCurrency(rowTotal)}</span>` : ''}
-      <span class="material-item-remove" onclick="removeMaterial('${m.specKey}')" style="cursor:pointer;color:var(--text-muted);font-size:14px;padding:0 4px">✕</span>
+      ${m.unitCost ? `<span style="font-size:13px;color:var(--secondary);font-weight:600;min-width:56px;text-align:right">${fmtCurrency(rowTotal)}</span>` : ''}
+      <span onclick="removeMaterial('${m.specKey}')" style="cursor:pointer;color:var(--text-muted);padding:0 4px">✕</span>
     </div>`;
   }).join('');
 
   const total = currentMaterials.reduce((s, m) => s + (m.unitCost || 0) * (m.quantity || 0), 0);
   document.getElementById('material-cost-preview').textContent = fmtCurrency(total);
+}
+
+// ─── 鍊條線材 ────────────────────────────
+
+function updateChainOptions() {
+  const search = (document.getElementById('ch-search').value || '').trim().toLowerCase();
+  const select = document.getElementById('ch-item');
+  select.innerHTML = '<option value="">-- 選擇品項 --</option>';
+
+  chainOptions.forEach(item => {
+    const code = item.itemCode || '';
+    const name = `${item.productName || ''}${item.color ? ' · ' + item.color : ''}${item.spec ? ' ' + item.spec : ''}`;
+    const searchText = `${code} ${name}`.toLowerCase();
+    if (search && !searchText.includes(search)) return;
+    const o = document.createElement('option');
+    o.value = item.id;
+    o.textContent = `[${code}] ${name}｜$${Number(item.costPerCm || 0).toFixed(4)}/cm`;
+    o.dataset.displayName = `[${code}] ${name}`;
+    o.dataset.costPerCm = item.costPerCm || 0;
+    select.appendChild(o);
+  });
+}
+
+function addChainRow() {
+  const select = document.getElementById('ch-item');
+  const cm = parseFloat(document.getElementById('ch-cm').value);
+  const itemId = select.value;
+  const opt = select.selectedOptions[0];
+
+  if (!itemId) { showToast('請選擇鍊條線材', 'warning'); return; }
+  if (!cm || cm <= 0) { showToast('請填寫使用長度 (cm)', 'warning'); return; }
+
+  const costPerCm = parseFloat(opt.dataset.costPerCm || 0);
+  const totalCost = Math.round(costPerCm * cm * 10000) / 10000;
+
+  const existing = currentChains.findIndex(c => c.itemId === itemId);
+  if (existing >= 0) {
+    currentChains[existing].lengthCm = cm;
+    currentChains[existing].costPerCm = costPerCm;
+    currentChains[existing].totalCost = totalCost;
+  } else {
+    currentChains.push({
+      itemId,
+      displayName: opt.dataset.displayName,
+      lengthCm: cm,
+      costPerCm,
+      totalCost
+    });
+  }
+  document.getElementById('ch-cm').value = '';
+  renderChainList();
+  updateCostPreviews();
+}
+
+function removeChain(itemId) {
+  currentChains = currentChains.filter(c => c.itemId !== itemId);
+  renderChainList();
+  updateCostPreviews();
+}
+
+function renderChainList() {
+  const container = document.getElementById('chain-list');
+  if (!currentChains.length) {
+    container.innerHTML = `<div style="text-align:center;padding:12px;color:var(--text-muted);font-size:13px">尚未加入任何鍊條線材</div>`;
+    document.getElementById('chain-cost-preview').textContent = '$0';
+    return;
+  }
+  container.innerHTML = currentChains.map(c => `
+    <div style="display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid var(--border)">
+      <span class="badge" style="background:#e8f4e8;color:#2d6a2d">線材</span>
+      <span style="flex:1;font-size:13px">${c.displayName}</span>
+      <span style="font-size:13px;color:var(--text-muted)">× ${c.lengthCm}cm</span>
+      <span style="font-size:13px;color:var(--secondary);font-weight:600;min-width:56px;text-align:right">${fmtCurrency(c.totalCost)}</span>
+      <span onclick="removeChain('${c.itemId}')" style="cursor:pointer;color:var(--text-muted);padding:0 4px">✕</span>
+    </div>`).join('');
+
+  const total = currentChains.reduce((s, c) => s + Number(c.totalCost || 0), 0);
+  document.getElementById('chain-cost-preview').textContent = fmtCurrency(total);
 }
 
 // ─── 包裝成本 ─────────────────────────────
@@ -301,7 +402,7 @@ function renderPackagingList() {
     <div style="display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid var(--border)">
       <span style="flex:1;font-size:13px">${item.name}</span>
       <span style="font-size:13px;color:var(--secondary);font-weight:600">${fmtCurrency(Number(item.cost))}</span>
-      <span onclick="removePackagingItem(${idx})" style="cursor:pointer;color:var(--text-muted);font-size:14px;padding:0 4px">✕</span>
+      <span onclick="removePackagingItem(${idx})" style="cursor:pointer;color:var(--text-muted);padding:0 4px">✕</span>
     </div>`).join('');
 
   const total = currentPackaging.reduce((s, i) => s + Number(i.cost || 0), 0);
@@ -338,29 +439,34 @@ function renderLogisticsList() {
     <div style="display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid var(--border)">
       <span style="flex:1;font-size:13px">${item.name}</span>
       <span style="font-size:13px;color:var(--secondary);font-weight:600">${fmtCurrency(Number(item.cost))}</span>
-      <span onclick="removeLogisticsItem(${idx})" style="cursor:pointer;color:var(--text-muted);font-size:14px;padding:0 4px">✕</span>
+      <span onclick="removeLogisticsItem(${idx})" style="cursor:pointer;color:var(--text-muted);padding:0 4px">✕</span>
     </div>`).join('');
 
   const total = currentLogistics.reduce((s, i) => s + Number(i.cost || 0), 0);
   document.getElementById('logistics-cost-preview').textContent = fmtCurrency(total);
 }
 
-// ─── 成本加總與毛利 ───────────────────────
+// ─── 成本加總 ─────────────────────────────
 
 async function updateCostPreviews() {
   const materialCost = await calcBraceletCurrentCost(currentMaterials);
+  const chainTotal = currentChains.reduce((s, c) => s + Number(c.totalCost || 0), 0);
   const packagingTotal = currentPackaging.reduce((s, i) => s + Number(i.cost || 0), 0);
   const logisticsTotal = currentLogistics.reduce((s, i) => s + Number(i.cost || 0), 0);
-  const grand = materialCost + packagingTotal + logisticsTotal;
+  const grand = materialCost + chainTotal + packagingTotal + logisticsTotal;
   _lastTotalCost = grand;
 
   document.getElementById('material-cost-preview').textContent = fmtCurrency(materialCost);
+  document.getElementById('chain-cost-preview').textContent = fmtCurrency(chainTotal);
   document.getElementById('packaging-cost-preview').textContent = fmtCurrency(packagingTotal);
   document.getElementById('logistics-cost-preview').textContent = fmtCurrency(logisticsTotal);
   document.getElementById('total-cost-preview').textContent = fmtCurrency(grand);
 
   updateProfitCalc();
+  calcPriceFromMargin();
 }
+
+// ─── 毛利計算 ─────────────────────────────
 
 function updateProfitCalc() {
   const sp = parseFloat(document.getElementById('d-sellingPrice').value) || 0;
@@ -379,12 +485,27 @@ function updateProfitCalc() {
   document.getElementById('margin-preview').style.color = color;
 }
 
+function calcPriceFromMargin() {
+  const targetMargin = parseFloat(document.getElementById('d-targetMargin').value);
+  const suggestedSection = document.getElementById('suggested-section');
+  if (!targetMargin || targetMargin <= 0 || targetMargin >= 100 || !_lastTotalCost) {
+    suggestedSection.style.display = 'none';
+    return;
+  }
+  // 售價 = 成本 / (1 - 毛利率)
+  const suggested = _lastTotalCost / (1 - targetMargin / 100);
+  suggestedSection.style.display = 'block';
+  document.getElementById('suggested-price-preview').textContent = `$${Math.ceil(suggested)}`;
+}
+
 // ─── 儲存 ─────────────────────────────────
 
 async function submitDesign() {
   const name = document.getElementById('d-name').value.trim();
   if (!name) { showToast('請填寫手鍊名稱', 'warning'); return; }
-  if (!currentMaterials.length) { showToast('請至少加入一種材料', 'warning'); return; }
+  if (!currentMaterials.length && !currentChains.length) {
+    showToast('請至少加入一種材料或鍊條線材', 'warning'); return;
+  }
 
   const btn = document.getElementById('save-btn');
   btn.disabled = true; btn.textContent = '儲存中...';
@@ -395,6 +516,7 @@ async function submitDesign() {
       name,
       imageUrl: document.getElementById('d-imageUrl').value.trim(),
       materials: currentMaterials,
+      chainItems: currentChains,
       packagingItems: currentPackaging,
       logisticsItems: currentLogistics,
       sellingPrice: sp || null
