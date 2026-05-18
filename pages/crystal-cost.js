@@ -182,7 +182,7 @@ function renderTable(records) {
     return;
   }
 
-  const HL = 'background:#daf2ef';
+  const HL = '';
   const rows = records.map(r => `
     <tr>
       <td style="text-align:center;padding:8px 6px">
@@ -193,7 +193,7 @@ function renderTable(records) {
       <td class="td-link">${r.shopLink ? `<a href="${r.shopLink}" target="_blank">連結 ↗</a>` : '-'}</td>
       <td>${r.itemCode || '-'}</td>
       <td><strong>${r.crystalName || '-'}</strong></td>
-      <td style="color:var(--text-muted);font-size:12px">${r.productName || '-'}</td>
+      <td>${r.productName || '-'}</td>
       <td><span class="badge badge-purple">${r.typeA || '-'}</span></td>
       <td>${r.size ? r.size + 'mm' : '-'}</td>
       <td>${r.typeB || '-'}</td>
@@ -210,7 +210,7 @@ function renderTable(records) {
       </td>
     </tr>`).join('');
 
-  const HLth = 'background:#6DC5BF;color:#fff;';
+  const HLth = '';
   container.innerHTML = `
     <div id="bulk-bar" style="display:none;padding:10px 16px;background:var(--primary-light);border-radius:6px;margin-bottom:8px;align-items:center;gap:12px">
       <span id="bulk-count" style="font-size:13px;color:var(--primary-dark);font-weight:600"></span>
