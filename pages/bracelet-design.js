@@ -18,6 +18,9 @@ let _selectedMaterial = null; // { type, specKey, displayName, unitCost }
 let _chainMatches = [];
 let _selectedChain = null;    // { itemId, displayName, costPerCm }
 
+// 備註
+let currentNotes = [];
+
 document.addEventListener('DOMContentLoaded', async () => {
   document.getElementById('navbar-root').innerHTML = renderNav('設計款手鍊');
   await loadDesigns();
@@ -156,20 +159,21 @@ function resetModal() {
   _setVal('d-name', ''); _setVal('d-imageUrl', '');
   _setVal('d-sellingPrice', ''); _setVal('d-targetMargin', '');
   _setVal('m-qty', ''); _setVal('ch-cm', '');
+  _setVal('note-input', '');
   _setDisplay('profit-section', 'none'); _setDisplay('suggested-section', 'none');
   clearMaterialSelection(); clearChainSelection();
-  _setText('pkg-name', ''); _setVal('pkg-name', ''); _setVal('pkg-cost', '');
-  _setText('log-name', ''); _setVal('log-name', ''); _setVal('log-cost', '');
+  _setVal('pkg-name', ''); _setVal('pkg-cost', '');
+  _setVal('log-name', ''); _setVal('log-cost', '');
 }
 
 async function openAddModal() {
   editingId = null;
-  currentMaterials = []; currentChains = []; currentPackaging = []; currentLogistics = [];
+  currentMaterials = []; currentChains = []; currentPackaging = []; currentLogistics = []; currentNotes = [];
   _lastTotalCost = 0;
   resetModal();
   _setText('modal-title', '新增設計款手鍊');
   _setText('save-btn', '儲存設計款');
-  renderMaterialList(); renderChainList(); renderPackagingList(); renderLogisticsList();
+  renderMaterialList(); renderChainList(); renderPackagingList(); renderLogisticsList(); renderNoteList();
   updateCostPreviews();
   openModal('designModal');
 }
@@ -182,13 +186,14 @@ async function openEditModal(id) {
   currentChains = design.chainItems ? [...design.chainItems] : [];
   currentPackaging = design.packagingItems ? [...design.packagingItems] : [];
   currentLogistics = design.logisticsItems ? [...design.logisticsItems] : [];
+  currentNotes = design.notes ? [...design.notes] : [];
   resetModal();
   _setVal('d-name', design.name || '');
   _setVal('d-imageUrl', design.imageUrl || '');
   _setVal('d-sellingPrice', design.sellingPrice || '');
   _setText('modal-title', '編輯設計款手鍊');
   _setText('save-btn', '儲存修改');
-  renderMaterialList(); renderChainList(); renderPackagingList(); renderLogisticsList();
+  renderMaterialList(); renderChainList(); renderPackagingList(); renderLogisticsList(); renderNoteList();
   await updateCostPreviews();
   updateProfitCalc();
   openModal('designModal');
@@ -203,7 +208,9 @@ function showMaterialSuggestions() {
 
   crystalOptions.forEach(item => {
     const name = `${item.crystalName} ${item.size}mm ${item.typeB} ${item.typeA}`;
-    if (!search || name.toLowerCase().includes(search) || (item.specKey || '').toLowerCase().includes(search)) {
+    const searchable = [name, item.specKey, item.productName, item.vendor, item.crystalName]
+      .filter(Boolean).join(' ').toLowerCase();
+    if (!search || searchable.includes(search)) {
       _materialMatches.push({ type: 'crystal', specKey: item.specKey, displayName: name, unitCost: item.costPerBead || 0 });
     }
   });
@@ -211,7 +218,9 @@ function showMaterialSuggestions() {
   accessoryOptions.forEach(item => {
     const code = item.itemCode || '';
     const name = `${item.productName || ''}${item.color ? ' · ' + item.color : ''}`;
-    if (!search || `${code} ${name}`.toLowerCase().includes(search)) {
+    const searchable = [code, name, item.specKey, item.spec, item.vendor, item.productName, item.color]
+      .filter(Boolean).join(' ').toLowerCase();
+    if (!search || searchable.includes(search)) {
       _materialMatches.push({ type: 'accessory', specKey: item.specKey, displayName: `[${code}] ${name}`, unitCost: item.costPerPiece || 0 });
     }
   });
@@ -303,7 +312,9 @@ function showChainSuggestions() {
   chainOptions.forEach(item => {
     const code = item.itemCode || '';
     const name = `${item.productName || ''}${item.color ? ' · ' + item.color : ''}${item.spec ? ' ' + item.spec : ''}`;
-    if (!search || `${code} ${name}`.toLowerCase().includes(search)) {
+    const searchable = [code, name, item.specKey, item.vendor, item.productName, item.color, item.spec]
+      .filter(Boolean).join(' ').toLowerCase();
+    if (!search || searchable.includes(search)) {
       _chainMatches.push({ itemId: item.id, displayName: `[${code}] ${name}`, costPerCm: item.costPerCm || 0 });
     }
   });
@@ -512,6 +523,7 @@ async function submitDesign() {
       chainItems: currentChains,
       packagingItems: currentPackaging,
       logisticsItems: currentLogistics,
+      notes: currentNotes,
       sellingPrice: sp || null
     };
     if (editingId) {
@@ -529,6 +541,62 @@ async function submitDesign() {
     btn.disabled = false;
     btn.textContent = editingId ? '儲存修改' : '儲存設計款';
   }
+}
+
+// ─── 製作備註 ─────────────────────────────
+
+function todayStr() {
+  return new Date().toLocaleDateString('zh-TW', { year: 'numeric', month: '2-digit', day: '2-digit' });
+}
+
+function addNote() {
+  const text = (document.getElementById('note-input').value || '').trim();
+  if (!text) { showToast('請輸入備註內容', 'warning'); return; }
+  currentNotes.push({ date: todayStr(), text });
+  _setVal('note-input', '');
+  renderNoteList();
+}
+
+function removeNote(idx) {
+  currentNotes.splice(idx, 1);
+  renderNoteList();
+}
+
+function startEditNote(idx) {
+  const row = document.getElementById(`note-row-${idx}`);
+  if (!row) return;
+  const note = currentNotes[idx];
+  row.innerHTML = `
+    <span style="font-size:12px;color:var(--text-muted);white-space:nowrap;padding-top:2px">${note.date}</span>
+    <input class="form-control" id="note-edit-${idx}" value="${note.text.replace(/"/g, '&quot;')}" style="flex:1;font-size:13px;padding:4px 8px">
+    <button class="btn btn-primary btn-sm" onclick="saveEditNote(${idx})" style="white-space:nowrap">儲存</button>
+    <button class="btn btn-secondary btn-sm" onclick="renderNoteList()" style="white-space:nowrap">取消</button>`;
+  document.getElementById(`note-edit-${idx}`).focus();
+}
+
+function saveEditNote(idx) {
+  const el = document.getElementById(`note-edit-${idx}`);
+  if (!el) return;
+  const text = el.value.trim();
+  if (!text) { showToast('備註不能為空', 'warning'); return; }
+  currentNotes[idx].text = text;
+  renderNoteList();
+}
+
+function renderNoteList() {
+  const container = document.getElementById('notes-list');
+  if (!container) return;
+  if (!currentNotes.length) {
+    container.innerHTML = `<div style="text-align:center;padding:10px;color:var(--text-muted);font-size:13px">尚未加入任何備註</div>`;
+    return;
+  }
+  container.innerHTML = currentNotes.map((n, idx) => `
+    <div id="note-row-${idx}" style="display:flex;align-items:center;gap:8px;padding:7px 0;border-bottom:1px solid var(--border)">
+      <span style="font-size:12px;color:var(--text-muted);white-space:nowrap;padding-top:2px">${n.date}</span>
+      <span style="flex:1;font-size:13px">${n.text}</span>
+      <span onclick="startEditNote(${idx})" style="cursor:pointer;color:var(--primary);font-size:13px;padding:0 4px" title="編輯">✎</span>
+      <span onclick="removeNote(${idx})" style="cursor:pointer;color:var(--text-muted);padding:0 4px" title="刪除">✕</span>
+    </div>`).join('');
 }
 
 // ─── 刪除 ─────────────────────────────────

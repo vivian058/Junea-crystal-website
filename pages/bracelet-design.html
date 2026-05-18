@@ -201,6 +201,21 @@
           <div style="font-size:22px;font-weight:800;color:var(--secondary)" id="total-cost-preview">$0</div>
         </div>
 
+        <hr class="divider">
+
+        <!-- ⑤ 製作備註 -->
+        <div class="cost-section-title">⑤ 製作備註</div>
+        <div id="notes-list" style="margin-bottom:8px"></div>
+        <div style="display:flex;gap:8px;align-items:flex-end">
+          <div class="form-group" style="flex:1;margin-bottom:0">
+            <label>新增備註</label>
+            <input class="form-control" id="note-input" type="text" placeholder="輸入備註內容…">
+          </div>
+          <button class="btn btn-secondary" onclick="addNote()" style="white-space:nowrap">＋ 加入</button>
+        </div>
+
+        <hr class="divider">
+
         <!-- 售價 / 毛利 -->
         <div class="profit-box">
           <div class="profit-inputs">
