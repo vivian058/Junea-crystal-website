@@ -6,6 +6,14 @@ let allRecords = [];
 let importRows = [];
 let editingRecordId = null;
 
+function fmtCostPerCm(num) {
+  if (!num || isNaN(num) || Number(num) === 0) return '-';
+  const n = Number(num);
+  // 依數值大小自動決定小數位數：< 0.1 用 4 位，否則用 2 位
+  const digits = n < 0.1 ? 4 : 2;
+  return `$${n.toLocaleString('zh-TW', { minimumFractionDigits: digits, maximumFractionDigits: digits })}`;
+}
+
 document.addEventListener('DOMContentLoaded', async () => {
   document.getElementById('navbar-root').innerHTML = renderNav('鍊條線材成本');
   document.getElementById('a-date').value = new Date().toISOString().split('T')[0];
@@ -58,7 +66,7 @@ function renderTable(records) {
       <td>${fmtSpec(r.spec)}</td>
       <td><strong style="color:var(--primary-dark)">${r.costPerLot ? fmtCurrency(r.costPerLot) : '-'}</strong></td>
       <td>${fmtYuan(r.pricePerPieceYuan)}</td>
-      <td><strong style="color:var(--primary-dark)">${r.costPerCm ? fmtCurrency(r.costPerCm) : '-'}</strong></td>
+      <td><strong style="color:var(--primary-dark)">${fmtCostPerCm(r.costPerCm)}</strong></td>
       <td>${r.note || '-'}</td>
       <td>
         <div style="display:flex;gap:4px;flex-wrap:nowrap">
