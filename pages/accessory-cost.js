@@ -319,22 +319,22 @@ function handleExcelUpload(file) {
       }
 
       importRows = dataRows.map(r => ({
-        date: toDateStr(r[0]),
-        vendor: String(r[1] || '').trim(),
-        shopLink: String(r[2] || '').trim(),
-        itemCode: String(r[3] || '').trim(),
-        imageUrl: String(r[4] || '').trim(),
-        productName: String(r[5] || '').trim(),
-        color: String(r[6] || '').trim(),
-        spec: String(r[7] || '').trim(),
-        costPerLot: parseFloat(r[8]) || 0,
-        pricePerPieceYuan: parseFloat(r[9]) || 0,
-        note: String(r[10] || '').trim()
+        date: new Date().toISOString().split('T')[0],
+        vendor: String(r[0] || '').trim(),
+        shopLink: String(r[1] || '').trim(),
+        itemCode: String(r[2] || '').trim(),
+        imageUrl: String(r[3] || '').trim(),
+        productName: String(r[4] || '').trim(),
+        color: String(r[5] || '').trim(),
+        spec: String(r[6] || '').trim(),
+        costPerLot: parseFloat(r[7]) || 0,
+        pricePerPieceYuan: parseFloat(r[8]) || 0,
+        note: String(r[9] || '').trim()
       }));
 
-      const invalid = importRows.filter(r => !r.date || !r.vendor || !r.itemCode);
+      const invalid = importRows.filter(r => !r.vendor || !r.itemCode);
       if (invalid.length) {
-        alertEl.innerHTML = `<div class="inline-alert inline-alert-warning">有 ${invalid.length} 列缺少必填欄位（日期/廠家/貨號），請修正後重新上傳</div>`;
+        alertEl.innerHTML = `<div class="inline-alert inline-alert-warning">有 ${invalid.length} 列缺少必填欄位（廠家/貨號），請修正後重新上傳</div>`;
         importRows = [];
         return;
       }
@@ -395,10 +395,7 @@ async function submitImport() {
 
 function downloadAccessoryTemplate() {
   const data = [
-    ['進貨日期(YYYY-MM-DD)','廠家','賣場Link','貨號','圖片連結','賣場商品名稱','顏色','規格','單品進貨成本$','單顆進價¥','備註'],
-    ['2026-03-25','广州腾龙饰品配件','https://...','JDZ210726','','喇叭大孔珠','14K金','8mm','25','0.48',''],
-    ['2026-03-25','广州腾龙饰品配件','https://...','JDZ2005281','','大孔桶珠','14K金','4*6mm','','0.41',''],
-    ['2026-03-25','广州腾龙饰品配件','https://...','JDZ945331','','切面空心西瓜珠','14K金','4mm','','0.16',''],
+    ['廠家','賣場Link','貨號','圖片連結','賣場商品名稱','顏色','規格','單品進貨成本$','單顆進價¥','備註'],
   ];
   const ws = XLSX.utils.aoa_to_sheet(data);
   const wb = XLSX.utils.book_new();
