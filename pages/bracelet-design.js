@@ -12,10 +12,23 @@ let crystalOptions = [];
 let accessoryOptions = [];
 let chainOptions = [];
 
+// Autocomplete 暫存
+let _materialMatches = [];
+let _selectedMaterial = null; // { type, specKey, displayName, unitCost }
+let _chainMatches = [];
+let _selectedChain = null;    // { itemId, displayName, costPerCm }
+
 document.addEventListener('DOMContentLoaded', async () => {
   document.getElementById('navbar-root').innerHTML = renderNav('設計款手鍊');
   await loadDesigns();
   await preloadOptions();
+
+  // 點其他地方關閉 dropdown
+  document.addEventListener('click', e => {
+    if (!e.target.closest('.ac-wrap')) {
+      document.querySelectorAll('.ac-dropdown').forEach(d => d.style.display = 'none');
+    }
+  });
 });
 
 // ─── 預載選項 ─────────────────────────────
@@ -124,9 +137,7 @@ async function renderDesignCard(design) {
         </div>
       </div>
       ${alertHtml}
-      <div class="material-summary">
-        ${materialRows}${chainRows}${packagingRows}${logisticsRows}
-      </div>
+      <div class="material-summary">${materialRows}${chainRows}${packagingRows}${logisticsRows}</div>
       ${profitHtml}
       <div class="btn-group mt-16">
         <button class="btn btn-secondary btn-sm" onclick="openEditModal('${design.id}')">編輯</button>
@@ -137,46 +148,28 @@ async function renderDesignCard(design) {
 
 // ─── Modal 控制 ───────────────────────────
 
-function _setVal(id, val) {
-  const el = document.getElementById(id);
-  if (el) el.value = val;
-}
-function _setDisplay(id, val) {
-  const el = document.getElementById(id);
-  if (el) el.style.display = val;
-}
-function _setText(id, val) {
-  const el = document.getElementById(id);
-  if (el) el.textContent = val;
+function _setVal(id, val) { const el = document.getElementById(id); if (el) el.value = val; }
+function _setDisplay(id, val) { const el = document.getElementById(id); if (el) el.style.display = val; }
+function _setText(id, val) { const el = document.getElementById(id); if (el) el.textContent = val; }
+
+function resetModal() {
+  _setVal('d-name', ''); _setVal('d-imageUrl', '');
+  _setVal('d-sellingPrice', ''); _setVal('d-targetMargin', '');
+  _setVal('m-qty', ''); _setVal('ch-cm', '');
+  _setDisplay('profit-section', 'none'); _setDisplay('suggested-section', 'none');
+  clearMaterialSelection(); clearChainSelection();
+  _setText('pkg-name', ''); _setVal('pkg-name', ''); _setVal('pkg-cost', '');
+  _setText('log-name', ''); _setVal('log-name', ''); _setVal('log-cost', '');
 }
 
 async function openAddModal() {
   editingId = null;
-  currentMaterials = [];
-  currentChains = [];
-  currentPackaging = [];
-  currentLogistics = [];
+  currentMaterials = []; currentChains = []; currentPackaging = []; currentLogistics = [];
   _lastTotalCost = 0;
-
-  _setVal('d-name', '');
-  _setVal('d-imageUrl', '');
-  _setVal('d-sellingPrice', '');
-  _setVal('d-targetMargin', '');
-  _setVal('m-search', '');
-  _setVal('m-qty', '');
-  _setVal('ch-search', '');
-  _setVal('ch-cm', '');
+  resetModal();
   _setText('modal-title', '新增設計款手鍊');
   _setText('save-btn', '儲存設計款');
-  _setDisplay('profit-section', 'none');
-  _setDisplay('suggested-section', 'none');
-
-  updateMaterialOptions();
-  updateChainOptions();
-  renderMaterialList();
-  renderChainList();
-  renderPackagingList();
-  renderLogisticsList();
+  renderMaterialList(); renderChainList(); renderPackagingList(); renderLogisticsList();
   updateCostPreviews();
   openModal('designModal');
 }
@@ -185,96 +178,90 @@ async function openEditModal(id) {
   editingId = id;
   const design = await getBraceletDesign(id);
   if (!design) { showToast('找不到此設計款', 'danger'); return; }
-
   currentMaterials = design.materials ? [...design.materials] : [];
   currentChains = design.chainItems ? [...design.chainItems] : [];
   currentPackaging = design.packagingItems ? [...design.packagingItems] : [];
   currentLogistics = design.logisticsItems ? [...design.logisticsItems] : [];
-
-  document.getElementById('d-name').value = design.name || '';
-  document.getElementById('d-imageUrl').value = design.imageUrl || '';
-  document.getElementById('d-sellingPrice').value = design.sellingPrice || '';
-  document.getElementById('d-targetMargin').value = '';
-  document.getElementById('m-search').value = '';
-  document.getElementById('m-qty').value = '';
-  document.getElementById('ch-search').value = '';
-  document.getElementById('ch-cm').value = '';
-  document.getElementById('modal-title').textContent = '編輯設計款手鍊';
-  document.getElementById('save-btn').textContent = '儲存修改';
-  document.getElementById('suggested-section').style.display = 'none';
-
-  updateMaterialOptions();
-  updateChainOptions();
-  renderMaterialList();
-  renderChainList();
-  renderPackagingList();
-  renderLogisticsList();
+  resetModal();
+  _setVal('d-name', design.name || '');
+  _setVal('d-imageUrl', design.imageUrl || '');
+  _setVal('d-sellingPrice', design.sellingPrice || '');
+  _setText('modal-title', '編輯設計款手鍊');
+  _setText('save-btn', '儲存修改');
+  renderMaterialList(); renderChainList(); renderPackagingList(); renderLogisticsList();
   await updateCostPreviews();
   updateProfitCalc();
   openModal('designModal');
 }
 
-// ─── 材料（水晶 / 配件）─────────────────
+// ─── Autocomplete：材料（水晶 + 配件）────
 
-function updateMaterialOptions() {
-  const search = (document.getElementById('m-search').value || '').trim().toLowerCase();
-  const select = document.getElementById('m-item');
-  select.innerHTML = '<option value="">-- 選擇品項 --</option>';
+function showMaterialSuggestions() {
+  const search = (document.getElementById('m-input').value || '').trim().toLowerCase();
+  const dropdown = document.getElementById('m-dropdown');
+  _materialMatches = [];
 
-  // 水晶選項
   crystalOptions.forEach(item => {
     const name = `${item.crystalName} ${item.size}mm ${item.typeB} ${item.typeA}`;
-    const code = item.specKey || '';
-    if (search && !name.toLowerCase().includes(search) && !code.toLowerCase().includes(search)) return;
-    const o = document.createElement('option');
-    o.value = item.specKey;
-    o.textContent = `[水晶] ${name}｜${fmtCurrency(item.costPerBead)}/顆`;
-    o.dataset.displayName = name;
-    o.dataset.cost = item.costPerBead || 0;
-    o.dataset.type = 'crystal';
-    select.appendChild(o);
+    if (!search || name.toLowerCase().includes(search) || (item.specKey || '').toLowerCase().includes(search)) {
+      _materialMatches.push({ type: 'crystal', specKey: item.specKey, displayName: name, unitCost: item.costPerBead || 0 });
+    }
   });
 
-  // 配件選項
   accessoryOptions.forEach(item => {
-    const name = `${item.productName || ''}${item.color ? ' · ' + item.color : ''}`;
     const code = item.itemCode || '';
-    const searchText = `${code} ${name}`.toLowerCase();
-    if (search && !searchText.includes(search)) return;
-    const o = document.createElement('option');
-    o.value = item.specKey;
-    o.textContent = `[配件][${code}] ${name}｜${fmtCurrency(item.costPerPiece)}/顆`;
-    o.dataset.displayName = `[${code}] ${name}`;
-    o.dataset.cost = item.costPerPiece || 0;
-    o.dataset.type = 'accessory';
-    select.appendChild(o);
+    const name = `${item.productName || ''}${item.color ? ' · ' + item.color : ''}`;
+    if (!search || `${code} ${name}`.toLowerCase().includes(search)) {
+      _materialMatches.push({ type: 'accessory', specKey: item.specKey, displayName: `[${code}] ${name}`, unitCost: item.costPerPiece || 0 });
+    }
   });
+
+  if (!_materialMatches.length) { dropdown.style.display = 'none'; return; }
+
+  const show = _materialMatches.slice(0, 40);
+  dropdown.innerHTML = show.map((m, i) => {
+    const badge = m.type === 'crystal'
+      ? `<span class="badge badge-purple">水晶</span>`
+      : `<span class="badge badge-gold">配件</span>`;
+    return `<div class="ac-item" onmousedown="selectMaterial(${i})">${badge}<span style="flex:1">${m.displayName}</span><span style="color:var(--secondary);font-weight:600">${fmtCurrency(m.unitCost)}/顆</span></div>`;
+  }).join('');
+  dropdown.style.display = 'block';
+}
+
+function selectMaterial(i) {
+  _selectedMaterial = _materialMatches[i];
+  if (!_selectedMaterial) return;
+  document.getElementById('m-input').value = '';
+  document.getElementById('m-dropdown').style.display = 'none';
+  document.getElementById('m-selected').style.display = 'flex';
+  document.getElementById('m-selected-name').textContent = _selectedMaterial.displayName;
+  document.getElementById('m-selected-cost-label').textContent = `${fmtCurrency(_selectedMaterial.unitCost)}/顆`;
+  document.getElementById('m-qty').focus();
+}
+
+function clearMaterialSelection() {
+  _selectedMaterial = null;
+  _setVal('m-input', '');
+  _setDisplay('m-selected', 'none');
+  _setText('m-selected-name', '');
+  _setText('m-selected-cost-label', '');
 }
 
 function addMaterialRow() {
-  const select = document.getElementById('m-item');
+  if (!_selectedMaterial) { showToast('請先選擇品項', 'warning'); return; }
   const qty = parseInt(document.getElementById('m-qty').value);
-  const specKey = select.value;
-  const opt = select.selectedOptions[0];
-
-  if (!specKey) { showToast('請選擇品項', 'warning'); return; }
   if (!qty || qty < 1) { showToast('請填寫使用顆數', 'warning'); return; }
 
-  const unitCost = parseFloat(opt.dataset.cost || 0);
+  const { type, specKey, displayName, unitCost } = _selectedMaterial;
   const existing = currentMaterials.findIndex(m => m.specKey === specKey);
   if (existing >= 0) {
     currentMaterials[existing].quantity = qty;
     currentMaterials[existing].unitCost = unitCost;
   } else {
-    currentMaterials.push({
-      type: opt.dataset.type,
-      specKey,
-      displayName: opt.dataset.displayName,
-      quantity: qty,
-      unitCost
-    });
+    currentMaterials.push({ type, specKey, displayName, quantity: qty, unitCost });
   }
-  document.getElementById('m-qty').value = '';
+  _setVal('m-qty', '');
+  clearMaterialSelection();
   renderMaterialList();
   updateCostPreviews();
 }
@@ -289,7 +276,7 @@ function renderMaterialList() {
   const container = document.getElementById('material-list');
   if (!currentMaterials.length) {
     container.innerHTML = `<div style="text-align:center;padding:12px;color:var(--text-muted);font-size:13px">尚未加入任何材料</div>`;
-    document.getElementById('material-cost-preview').textContent = '$0';
+    _setText('material-cost-preview', '$0');
     return;
   }
   container.innerHTML = currentMaterials.map(m => {
@@ -302,42 +289,63 @@ function renderMaterialList() {
       <span onclick="removeMaterial('${m.specKey}')" style="cursor:pointer;color:var(--text-muted);padding:0 4px">✕</span>
     </div>`;
   }).join('');
-
   const total = currentMaterials.reduce((s, m) => s + (m.unitCost || 0) * (m.quantity || 0), 0);
-  document.getElementById('material-cost-preview').textContent = fmtCurrency(total);
+  _setText('material-cost-preview', fmtCurrency(total));
 }
 
-// ─── 鍊條線材 ────────────────────────────
+// ─── Autocomplete：鍊條線材 ───────────────
 
-function updateChainOptions() {
-  const search = (document.getElementById('ch-search').value || '').trim().toLowerCase();
-  const select = document.getElementById('ch-item');
-  select.innerHTML = '<option value="">-- 選擇品項 --</option>';
+function showChainSuggestions() {
+  const search = (document.getElementById('ch-input').value || '').trim().toLowerCase();
+  const dropdown = document.getElementById('ch-dropdown');
+  _chainMatches = [];
 
   chainOptions.forEach(item => {
     const code = item.itemCode || '';
     const name = `${item.productName || ''}${item.color ? ' · ' + item.color : ''}${item.spec ? ' ' + item.spec : ''}`;
-    const searchText = `${code} ${name}`.toLowerCase();
-    if (search && !searchText.includes(search)) return;
-    const o = document.createElement('option');
-    o.value = item.id;
-    o.textContent = `[${code}] ${name}｜$${Number(item.costPerCm || 0).toFixed(4)}/cm`;
-    o.dataset.displayName = `[${code}] ${name}`;
-    o.dataset.costPerCm = item.costPerCm || 0;
-    select.appendChild(o);
+    if (!search || `${code} ${name}`.toLowerCase().includes(search)) {
+      _chainMatches.push({ itemId: item.id, displayName: `[${code}] ${name}`, costPerCm: item.costPerCm || 0 });
+    }
   });
+
+  if (!_chainMatches.length) { dropdown.style.display = 'none'; return; }
+
+  const show = _chainMatches.slice(0, 40);
+  dropdown.innerHTML = show.map((c, i) =>
+    `<div class="ac-item" onmousedown="selectChain(${i})">
+      <span class="badge" style="background:#e8f4e8;color:#2d6a2d">線材</span>
+      <span style="flex:1">${c.displayName}</span>
+      <span style="color:var(--secondary);font-weight:600">$${Number(c.costPerCm || 0).toFixed(4)}/cm</span>
+    </div>`
+  ).join('');
+  dropdown.style.display = 'block';
+}
+
+function selectChain(i) {
+  _selectedChain = _chainMatches[i];
+  if (!_selectedChain) return;
+  document.getElementById('ch-input').value = '';
+  document.getElementById('ch-dropdown').style.display = 'none';
+  document.getElementById('ch-selected').style.display = 'flex';
+  document.getElementById('ch-selected-name').textContent = _selectedChain.displayName;
+  document.getElementById('ch-selected-cost-label').textContent = `$${Number(_selectedChain.costPerCm || 0).toFixed(4)}/cm`;
+  document.getElementById('ch-cm').focus();
+}
+
+function clearChainSelection() {
+  _selectedChain = null;
+  _setVal('ch-input', '');
+  _setDisplay('ch-selected', 'none');
+  _setText('ch-selected-name', '');
+  _setText('ch-selected-cost-label', '');
 }
 
 function addChainRow() {
-  const select = document.getElementById('ch-item');
+  if (!_selectedChain) { showToast('請先選擇鍊條線材', 'warning'); return; }
   const cm = parseFloat(document.getElementById('ch-cm').value);
-  const itemId = select.value;
-  const opt = select.selectedOptions[0];
-
-  if (!itemId) { showToast('請選擇鍊條線材', 'warning'); return; }
   if (!cm || cm <= 0) { showToast('請填寫使用長度 (cm)', 'warning'); return; }
 
-  const costPerCm = parseFloat(opt.dataset.costPerCm || 0);
+  const { itemId, displayName, costPerCm } = _selectedChain;
   const totalCost = Math.round(costPerCm * cm * 10000) / 10000;
 
   const existing = currentChains.findIndex(c => c.itemId === itemId);
@@ -346,15 +354,10 @@ function addChainRow() {
     currentChains[existing].costPerCm = costPerCm;
     currentChains[existing].totalCost = totalCost;
   } else {
-    currentChains.push({
-      itemId,
-      displayName: opt.dataset.displayName,
-      lengthCm: cm,
-      costPerCm,
-      totalCost
-    });
+    currentChains.push({ itemId, displayName, lengthCm: cm, costPerCm, totalCost });
   }
-  document.getElementById('ch-cm').value = '';
+  _setVal('ch-cm', '');
+  clearChainSelection();
   renderChainList();
   updateCostPreviews();
 }
@@ -369,7 +372,7 @@ function renderChainList() {
   const container = document.getElementById('chain-list');
   if (!currentChains.length) {
     container.innerHTML = `<div style="text-align:center;padding:12px;color:var(--text-muted);font-size:13px">尚未加入任何鍊條線材</div>`;
-    document.getElementById('chain-cost-preview').textContent = '$0';
+    _setText('chain-cost-preview', '$0');
     return;
   }
   container.innerHTML = currentChains.map(c => `
@@ -382,7 +385,7 @@ function renderChainList() {
     </div>`).join('');
 
   const total = currentChains.reduce((s, c) => s + Number(c.totalCost || 0), 0);
-  document.getElementById('chain-cost-preview').textContent = fmtCurrency(total);
+  _setText('chain-cost-preview', fmtCurrency(total));
 }
 
 // ─── 包裝成本 ─────────────────────────────
@@ -392,34 +395,25 @@ function addPackagingItem() {
   const cost = parseFloat(document.getElementById('pkg-cost').value) || 0;
   if (!name) { showToast('請填寫包裝項目名稱', 'warning'); return; }
   currentPackaging.push({ name, cost });
-  document.getElementById('pkg-name').value = '';
-  document.getElementById('pkg-cost').value = '';
-  renderPackagingList();
-  updateCostPreviews();
+  _setVal('pkg-name', ''); _setVal('pkg-cost', '');
+  renderPackagingList(); updateCostPreviews();
 }
 
 function removePackagingItem(idx) {
   currentPackaging.splice(idx, 1);
-  renderPackagingList();
-  updateCostPreviews();
+  renderPackagingList(); updateCostPreviews();
 }
 
 function renderPackagingList() {
   const container = document.getElementById('packaging-list');
-  if (!currentPackaging.length) {
-    container.innerHTML = '';
-    document.getElementById('packaging-cost-preview').textContent = '$0';
-    return;
-  }
+  if (!currentPackaging.length) { container.innerHTML = ''; _setText('packaging-cost-preview', '$0'); return; }
   container.innerHTML = currentPackaging.map((item, idx) => `
     <div style="display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid var(--border)">
       <span style="flex:1;font-size:13px">${item.name}</span>
       <span style="font-size:13px;color:var(--secondary);font-weight:600">${fmtCurrency(Number(item.cost))}</span>
       <span onclick="removePackagingItem(${idx})" style="cursor:pointer;color:var(--text-muted);padding:0 4px">✕</span>
     </div>`).join('');
-
-  const total = currentPackaging.reduce((s, i) => s + Number(i.cost || 0), 0);
-  document.getElementById('packaging-cost-preview').textContent = fmtCurrency(total);
+  _setText('packaging-cost-preview', fmtCurrency(currentPackaging.reduce((s, i) => s + Number(i.cost || 0), 0)));
 }
 
 // ─── 物流平台成本 ──────────────────────────
@@ -429,34 +423,25 @@ function addLogisticsItem() {
   const cost = parseFloat(document.getElementById('log-cost').value) || 0;
   if (!name) { showToast('請填寫物流/平台項目名稱', 'warning'); return; }
   currentLogistics.push({ name, cost });
-  document.getElementById('log-name').value = '';
-  document.getElementById('log-cost').value = '';
-  renderLogisticsList();
-  updateCostPreviews();
+  _setVal('log-name', ''); _setVal('log-cost', '');
+  renderLogisticsList(); updateCostPreviews();
 }
 
 function removeLogisticsItem(idx) {
   currentLogistics.splice(idx, 1);
-  renderLogisticsList();
-  updateCostPreviews();
+  renderLogisticsList(); updateCostPreviews();
 }
 
 function renderLogisticsList() {
   const container = document.getElementById('logistics-list');
-  if (!currentLogistics.length) {
-    container.innerHTML = '';
-    document.getElementById('logistics-cost-preview').textContent = '$0';
-    return;
-  }
+  if (!currentLogistics.length) { container.innerHTML = ''; _setText('logistics-cost-preview', '$0'); return; }
   container.innerHTML = currentLogistics.map((item, idx) => `
     <div style="display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid var(--border)">
       <span style="flex:1;font-size:13px">${item.name}</span>
       <span style="font-size:13px;color:var(--secondary);font-weight:600">${fmtCurrency(Number(item.cost))}</span>
       <span onclick="removeLogisticsItem(${idx})" style="cursor:pointer;color:var(--text-muted);padding:0 4px">✕</span>
     </div>`).join('');
-
-  const total = currentLogistics.reduce((s, i) => s + Number(i.cost || 0), 0);
-  document.getElementById('logistics-cost-preview').textContent = fmtCurrency(total);
+  _setText('logistics-cost-preview', fmtCurrency(currentLogistics.reduce((s, i) => s + Number(i.cost || 0), 0)));
 }
 
 // ─── 成本加總 ─────────────────────────────
@@ -469,11 +454,11 @@ async function updateCostPreviews() {
   const grand = materialCost + chainTotal + packagingTotal + logisticsTotal;
   _lastTotalCost = grand;
 
-  document.getElementById('material-cost-preview').textContent = fmtCurrency(materialCost);
-  document.getElementById('chain-cost-preview').textContent = fmtCurrency(chainTotal);
-  document.getElementById('packaging-cost-preview').textContent = fmtCurrency(packagingTotal);
-  document.getElementById('logistics-cost-preview').textContent = fmtCurrency(logisticsTotal);
-  document.getElementById('total-cost-preview').textContent = fmtCurrency(grand);
+  _setText('material-cost-preview', fmtCurrency(materialCost));
+  _setText('chain-cost-preview', fmtCurrency(chainTotal));
+  _setText('packaging-cost-preview', fmtCurrency(packagingTotal));
+  _setText('logistics-cost-preview', fmtCurrency(logisticsTotal));
+  _setText('total-cost-preview', fmtCurrency(grand));
 
   updateProfitCalc();
   calcPriceFromMargin();
@@ -483,32 +468,27 @@ async function updateCostPreviews() {
 
 function updateProfitCalc() {
   const sp = parseFloat(document.getElementById('d-sellingPrice').value) || 0;
-  const profitSection = document.getElementById('profit-section');
-  if (!sp) {
-    profitSection.style.display = 'none';
-    return;
-  }
-  profitSection.style.display = 'block';
+  _setDisplay('profit-section', sp ? 'block' : 'none');
+  if (!sp) return;
   const profit = sp - _lastTotalCost;
   const margin = sp > 0 ? (profit / sp * 100) : 0;
   const color = profit >= 0 ? 'var(--success,#2ea44f)' : 'var(--danger,#cf222e)';
-  document.getElementById('profit-preview').textContent = fmtCurrency(profit);
-  document.getElementById('profit-preview').style.color = color;
-  document.getElementById('margin-preview').textContent = `${margin.toFixed(1)}%`;
-  document.getElementById('margin-preview').style.color = color;
+  const pEl = document.getElementById('profit-preview');
+  const mEl = document.getElementById('margin-preview');
+  if (pEl) { pEl.textContent = fmtCurrency(profit); pEl.style.color = color; }
+  if (mEl) { mEl.textContent = `${margin.toFixed(1)}%`; mEl.style.color = color; }
 }
 
 function calcPriceFromMargin() {
   const targetMargin = parseFloat(document.getElementById('d-targetMargin').value);
   const suggestedSection = document.getElementById('suggested-section');
+  if (!suggestedSection) return;
   if (!targetMargin || targetMargin <= 0 || targetMargin >= 100 || !_lastTotalCost) {
-    suggestedSection.style.display = 'none';
-    return;
+    suggestedSection.style.display = 'none'; return;
   }
-  // 售價 = 成本 / (1 - 毛利率)
   const suggested = _lastTotalCost / (1 - targetMargin / 100);
   suggestedSection.style.display = 'block';
-  document.getElementById('suggested-price-preview').textContent = `$${Math.ceil(suggested)}`;
+  _setText('suggested-price-preview', `$${Math.ceil(suggested)}`);
 }
 
 // ─── 儲存 ─────────────────────────────────
