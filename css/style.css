@@ -296,12 +296,10 @@ thead tr {
 thead th {
   padding: 11px 14px;
   text-align: left;
-  font-weight: 700;
-  color: var(--text-muted);
+  font-weight: 600;
+  color: var(--text);
   white-space: nowrap;
-  font-size: 11px;
-  text-transform: uppercase;
-  letter-spacing: 0.07em;
+  font-size: 13px;
 }
 
 tbody tr {
