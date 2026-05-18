@@ -205,6 +205,56 @@ async function deleteAccessoryCost(id) {
   await db.collection(COLLECTIONS.ACCESSORY_COSTS).doc(id).delete();
 }
 
+// ─── 鍊條線材成本表 ────────────────────────
+
+async function addChainCost(data) {
+  const record = { ...data, createdAt: firebase.firestore.FieldValue.serverTimestamp() };
+  const docRef = await db.collection(COLLECTIONS.CHAIN_COSTS).add(record);
+  return { id: docRef.id };
+}
+
+async function getChainCosts(filters = {}) {
+  const snapshot = await db.collection(COLLECTIONS.CHAIN_COSTS).get();
+  let results = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+  results.sort((a, b) => {
+    const nameComp = (a.productName || '').localeCompare(b.productName || '', 'zh-TW');
+    if (nameComp !== 0) return nameComp;
+    const codeComp = (a.itemCode || '').localeCompare(b.itemCode || '');
+    if (codeComp !== 0) return codeComp;
+    return (b.date || '').localeCompare(a.date || '');
+  });
+  if (filters.vendor) results = results.filter(r => r.vendor && r.vendor.includes(filters.vendor));
+  if (filters.keyword) {
+    const kw = filters.keyword.toLowerCase();
+    results = results.filter(r =>
+      (r.productName && r.productName.toLowerCase().includes(kw)) ||
+      (r.itemCode && r.itemCode.toLowerCase().includes(kw)) ||
+      (r.vendor && r.vendor.toLowerCase().includes(kw)) ||
+      (r.color && r.color.toLowerCase().includes(kw)) ||
+      (r.spec && r.spec.toLowerCase().includes(kw))
+    );
+  }
+  return results;
+}
+
+async function getChainFilterOptions() {
+  const snapshot = await db.collection(COLLECTIONS.CHAIN_COSTS).get();
+  const all = snapshot.docs.map(doc => doc.data());
+  return {
+    vendors: [...new Set(all.map(r => r.vendor).filter(Boolean))].sort()
+  };
+}
+
+async function updateChainCost(id, data) {
+  await db.collection(COLLECTIONS.CHAIN_COSTS).doc(id).update({
+    ...data, updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+  });
+}
+
+async function deleteChainCost(id) {
+  await db.collection(COLLECTIONS.CHAIN_COSTS).doc(id).delete();
+}
+
 // ─── 設計款手鍊 ────────────────────────────
 
 async function addBraceletDesign(data) {

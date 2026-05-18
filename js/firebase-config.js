@@ -21,6 +21,7 @@ const db = firebase.firestore();
 const COLLECTIONS = {
   CRYSTAL_COSTS: 'crystalCosts',
   ACCESSORY_COSTS: 'accessoryCosts',
+  CHAIN_COSTS: 'chainCosts',
   BRACELET_DESIGNS: 'braceletDesigns',
   INVENTORY: 'inventory',
   INITIAL_STOCK: 'initialStockSettings',
