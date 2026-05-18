@@ -87,7 +87,7 @@
         <div class="modal-title">水晶成本表使用說明</div>
         <button class="modal-close" onclick="closeModal('guideModal')">✕</button>
       </div>
-      <div class="modal-body" style="font-size:14px;line-height:1.8">
+      <div class="modal-body" id="guide-modal-body" style="font-size:14px;line-height:1.8">
         <p style="color:var(--text-muted);margin-bottom:16px">請依照以下步驟將水晶進貨資料匯入系統。</p>
 
         <div style="margin-bottom:20px">
@@ -126,6 +126,7 @@
       </div>
       <div class="modal-footer">
         <button class="btn btn-secondary" onclick="closeModal('guideModal')">關閉</button>
+        <button class="btn btn-secondary" id="btn-guide-edit" onclick="toggleGuideEdit()">編輯</button>
       </div>
     </div>
   </div>
