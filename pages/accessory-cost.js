@@ -4,14 +4,36 @@
 
 let allRecords = [];
 let importRows = [];
-let editingRecordId = null; // null = 新增；有值 = 編輯
+let editingRecordId = null;
+
+const GUIDE_KEY = 'jn_accessory_guide_content';
 
 document.addEventListener('DOMContentLoaded', async () => {
   document.getElementById('navbar-root').innerHTML = renderNav('配件成本');
   document.getElementById('a-date').value = new Date().toISOString().split('T')[0];
+  const saved = localStorage.getItem(GUIDE_KEY);
+  if (saved) document.getElementById('guide-modal-body').innerHTML = saved;
   await loadFilterOptions();
   await loadRecords();
 });
+
+function toggleGuideEdit() {
+  const body = document.getElementById('guide-modal-body');
+  const btn = document.getElementById('btn-guide-edit');
+  const editing = body.contentEditable === 'true';
+  if (editing) {
+    body.contentEditable = 'false';
+    body.style.outline = '';
+    localStorage.setItem(GUIDE_KEY, body.innerHTML);
+    btn.textContent = '編輯';
+    showToast('說明內容已儲存', 'success');
+  } else {
+    body.contentEditable = 'true';
+    body.style.outline = '2px solid var(--primary)';
+    body.style.borderRadius = '6px';
+    btn.textContent = '儲存';
+  }
+}
 
 // ─── 載入篩選選項 ─────────────────────────
 

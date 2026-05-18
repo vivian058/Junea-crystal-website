@@ -13,6 +13,7 @@
     <div class="flex-between mb-20">
       <div class="page-title">配件成本表</div>
       <div style="display:flex;gap:8px">
+        <button style="background:none;border:1.5px solid #aaa;color:var(--text-muted);border-radius:6px;padding:6px 14px;cursor:pointer;font-size:13px" onclick="openModal('guideModal')">使用說明</button>
         <button class="btn btn-secondary" onclick="openModal('uploadModal')">匯入 Excel</button>
         <button class="btn btn-primary" onclick="openAddModal()">＋ 新增進貨</button>
       </div>
@@ -60,6 +61,57 @@
     <div class="card">
       <div id="table-container">
         <div class="loading"><div class="spinner"></div><div>載入中...</div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 使用說明 Modal -->
+  <div class="modal-overlay" id="guideModal">
+    <div class="modal" style="max-width:560px">
+      <div class="modal-header">
+        <div class="modal-title">配件成本表使用說明</div>
+        <button class="modal-close" onclick="closeModal('guideModal')">✕</button>
+      </div>
+      <div class="modal-body" id="guide-modal-body" style="font-size:14px;line-height:1.8">
+        <p style="color:var(--text-muted);margin-bottom:16px">請依照以下步驟將配件進貨資料匯入系統。</p>
+
+        <div style="margin-bottom:20px">
+          <div style="font-weight:700;color:var(--primary-dark);margin-bottom:8px">① 下載範本</div>
+          <div style="color:var(--text);padding-left:12px">
+            點右上角「匯入 Excel」→「下載範本」，取得標準格式的 Excel 檔案。<br>
+            範本欄位依序為：廠家、賣場Link、貨號、圖片連結、賣場商品名稱、顏色、規格、單品進貨成本$、單顆進價¥、備註。<br>
+            <span style="color:var(--text-muted);font-size:13px">請勿更動欄位順序，否則匯入時資料會對應錯誤。</span>
+          </div>
+        </div>
+
+        <div style="margin-bottom:20px">
+          <div style="font-weight:700;color:var(--primary-dark);margin-bottom:8px">② 將 Junéa 玖釀【配件進貨】資料貼到範本</div>
+          <div style="color:var(--text);padding-left:12px">
+            開啟你的 Junéa 玖釀【配件進貨】來源檔，將進貨資料依欄位對應複製貼入範本。<br>
+            每一列代表一筆進貨紀錄，不同規格請分列填寫。<br>
+            <span style="color:var(--text-muted);font-size:13px">若有圖片可填入圖片連結，系統會自動顯示縮圖。</span>
+          </div>
+        </div>
+
+        <div style="margin-bottom:20px">
+          <div style="font-weight:700;color:var(--primary-dark);margin-bottom:8px">③ 上傳範本更新</div>
+          <div style="color:var(--text);padding-left:12px">
+            資料填寫完畢後，回到本頁點「匯入 Excel」，將填好的範本檔案上傳或拖曳至上傳區。<br>
+            系統會顯示預覽列表供確認，確認無誤後點「確認匯入」即完成新增。<br>
+            <span style="color:var(--text-muted);font-size:13px">每次進貨後都需重新上傳，系統不會自動同步。</span>
+          </div>
+        </div>
+
+        <div style="background:var(--primary-light);border-radius:8px;padding:12px 16px;font-size:13px;color:var(--primary-dark)">
+          <strong>注意事項</strong><br>
+          · 同一筆進貨不要重複上傳，會產生重複紀錄<br>
+          · 若要修改已匯入的資料，請在表格中點「編輯」<br>
+          · 單筆新增可直接點右上角「＋ 新增進貨」，不需透過 Excel
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" onclick="closeModal('guideModal')">關閉</button>
+        <button class="btn btn-secondary" id="btn-guide-edit" onclick="toggleGuideEdit()">編輯</button>
       </div>
     </div>
   </div>
