@@ -167,7 +167,7 @@ function _filterActive(field) {
 function _thBtn(field, label, minW) {
   const active = _filterActive(field);
   return `<th style="min-width:${minW}px">
-    <button onclick="openColFilter(event,'${field}')" style="background:none;border:none;cursor:pointer;font-size:13px;font-weight:600;color:inherit;display:flex;align-items:center;gap:3px;padding:0;white-space:nowrap">
+    <button onclick="openColFilter(event,'${field}')" style="background:none;border:none;cursor:pointer;color:inherit;display:flex;align-items:center;gap:3px;padding:0;white-space:nowrap;font:inherit">
       ${label}<span style="color:${active ? 'var(--primary)' : 'var(--text-muted)'}">▾</span>
     </button>
   </th>`;
