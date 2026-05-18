@@ -137,6 +137,19 @@ async function renderDesignCard(design) {
 
 // ─── Modal 控制 ───────────────────────────
 
+function _setVal(id, val) {
+  const el = document.getElementById(id);
+  if (el) el.value = val;
+}
+function _setDisplay(id, val) {
+  const el = document.getElementById(id);
+  if (el) el.style.display = val;
+}
+function _setText(id, val) {
+  const el = document.getElementById(id);
+  if (el) el.textContent = val;
+}
+
 async function openAddModal() {
   editingId = null;
   currentMaterials = [];
@@ -145,18 +158,18 @@ async function openAddModal() {
   currentLogistics = [];
   _lastTotalCost = 0;
 
-  document.getElementById('d-name').value = '';
-  document.getElementById('d-imageUrl').value = '';
-  document.getElementById('d-sellingPrice').value = '';
-  document.getElementById('d-targetMargin').value = '';
-  document.getElementById('m-search').value = '';
-  document.getElementById('m-qty').value = '';
-  document.getElementById('ch-search').value = '';
-  document.getElementById('ch-cm').value = '';
-  document.getElementById('modal-title').textContent = '新增設計款手鍊';
-  document.getElementById('save-btn').textContent = '儲存設計款';
-  document.getElementById('profit-section').style.display = 'none';
-  document.getElementById('suggested-section').style.display = 'none';
+  _setVal('d-name', '');
+  _setVal('d-imageUrl', '');
+  _setVal('d-sellingPrice', '');
+  _setVal('d-targetMargin', '');
+  _setVal('m-search', '');
+  _setVal('m-qty', '');
+  _setVal('ch-search', '');
+  _setVal('ch-cm', '');
+  _setText('modal-title', '新增設計款手鍊');
+  _setText('save-btn', '儲存設計款');
+  _setDisplay('profit-section', 'none');
+  _setDisplay('suggested-section', 'none');
 
   updateMaterialOptions();
   updateChainOptions();
