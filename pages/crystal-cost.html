@@ -24,7 +24,7 @@
       <div class="card-title">查詢進貨紀錄</div>
       <div class="search-row">
         <div class="form-group">
-          <label>水晶名稱</label>
+          <label>色系</label>
           <input class="form-control" id="f-crystalName" list="list-crystalName" placeholder="全部（可直接輸入）" autocomplete="off">
           <datalist id="list-crystalName"></datalist>
         </div>
@@ -140,7 +140,7 @@
         <div id="add-alert"></div>
         <div class="form-grid">
           <div class="form-group">
-            <label class="required">水晶名稱</label>
+            <label class="required">色系</label>
             <input class="form-control" id="a-crystalName" type="text" placeholder="如：白水晶、紫水晶">
           </div>
           <div class="form-group">
@@ -148,11 +148,23 @@
             <input class="form-control" id="a-date" type="date">
           </div>
           <div class="form-group">
-            <label class="required">尺寸 (mm)</label>
-            <input class="form-control" id="a-size" type="text" placeholder="如：6、8、10">
+            <label>廠家</label>
+            <input class="form-control" id="a-vendor" type="text" placeholder="廠家名稱">
           </div>
           <div class="form-group">
-            <label class="required">規格 A</label>
+            <label>賣場連結</label>
+            <input class="form-control" id="a-shopLink" type="url" placeholder="https://...">
+          </div>
+          <div class="form-group">
+            <label>貨號</label>
+            <input class="form-control" id="a-itemCode" type="text" placeholder="廠家貨號">
+          </div>
+          <div class="form-group">
+            <label>賣場商品名稱</label>
+            <input class="form-control" id="a-productName" type="text" placeholder="賣場上的商品名">
+          </div>
+          <div class="form-group">
+            <label class="required">規格</label>
             <select class="form-control" id="a-typeA">
               <option value="">選擇...</option>
               <option>條珠</option>
@@ -160,38 +172,30 @@
             </select>
           </div>
           <div class="form-group">
-            <label class="required">形狀 / 規格 B</label>
+            <label class="required">尺寸 (mm)</label>
+            <input class="form-control" id="a-size" type="text" placeholder="如：6、8、10">
+          </div>
+          <div class="form-group">
+            <label class="required">形狀</label>
             <input class="form-control" id="a-typeB" type="text" placeholder="如：圓珠、扁刻面、算盤珠">
           </div>
           <div class="form-group">
-            <label>廠家</label>
-            <input class="form-control" id="a-vendor" type="text" placeholder="廠家名稱">
+            <label>單顆進貨成本 ($)</label>
+            <input class="form-control" id="a-costPerBead" type="number" step="0.01" placeholder="0.00">
           </div>
           <div class="form-group">
-            <label>賣場商品名稱</label>
-            <input class="form-control" id="a-productName" type="text" placeholder="賣場上的商品名">
+            <label>一條重量 (g)</label>
+            <input class="form-control" id="a-weightPerStrand" type="number" step="0.01" placeholder="0.00">
           </div>
           <div class="form-group">
-            <label>賣場連結</label>
-            <input class="form-control" id="a-shopLink" type="url" placeholder="https://...">
+            <label>克價 (¥)</label>
+            <input class="form-control" id="a-pricePerGram" type="number" step="0.01" placeholder="0.00">
           </div>
           <div class="form-group">
             <label>單條進價 (¥)</label>
             <input class="form-control" id="a-pricePerStrand" type="number" step="0.01" placeholder="0.00">
           </div>
           <div class="form-group">
-            <label>單條進貨成本 ($)</label>
-            <input class="form-control" id="a-costPerStrand" type="number" step="0.01" placeholder="0.00">
-          </div>
-          <div class="form-group">
-            <label class="required">當次匯率 (¥→$)</label>
-            <input class="form-control" id="a-exchangeRate" type="number" step="0.01" placeholder="如：4.45">
-          </div>
-          <div class="form-group">
-            <label>單顆成本 ($)</label>
-            <input class="form-control" id="a-costPerBead" type="number" step="0.01" placeholder="0.00">
-          </div>
-          <div class="form-group" style="grid-column: 1 / -1">
             <label>備註</label>
             <input class="form-control" id="a-note" type="text" placeholder="如：品質不錯、這家運費貴…">
           </div>
@@ -214,8 +218,8 @@
       <div class="modal-body">
         <div id="upload-alert"></div>
         <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px">
-          欄位順序（A→M）：<strong>日期(YYYY-MM-DD) / 水晶名稱 / 尺寸mm / 形狀 / 規格 / 廠家 / 商品名稱 / 賣場連結 / 單條¥ / 單條進貨成本$(留空自動計算) / 匯率 / 單顆成本$(留空自動計算) / 備註</strong><br>
-          第一列為標題列，系統自動跳過。「單顆成本$」留空則依公式自動計算。
+          欄位順序（A→N）：<strong>進貨日期(YYYY-MM-DD) / 廠家 / 賣場連結 / 貨號 / 色系 / 賣場商品名稱 / 規格 / 尺寸mm / 形狀 / 單顆進貨成本$ / 一條重量g / 克價¥ / 單條進價¥ / 備註</strong><br>
+          第一列為標題列，系統自動跳過。
           <a href="#" onclick="downloadCrystalTemplate();return false;" style="color:var(--primary);margin-left:8px">下載範本</a>
         </p>
         <div id="upload-zone" style="border:2px dashed var(--border);border-radius:8px;padding:32px;text-align:center;cursor:pointer;margin-bottom:16px"
@@ -232,8 +236,8 @@
             <table id="preview-table">
               <thead>
                 <tr>
-                  <th>水晶名稱</th><th>日期</th><th>尺寸</th><th>規格A</th><th>形狀B</th>
-                  <th>廠家</th><th>商品名稱</th><th>單條¥</th><th>匯率</th><th>單顆$</th>
+                  <th>日期</th><th>廠家</th><th>貨號</th><th>色系</th><th>商品名稱</th>
+                  <th>規格</th><th>尺寸</th><th>形狀</th><th>單顆進貨成本$</th><th>克價¥</th><th>單條進價¥</th>
                 </tr>
               </thead>
               <tbody id="preview-tbody"></tbody>

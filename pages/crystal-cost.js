@@ -182,22 +182,25 @@ function renderTable(records) {
     return;
   }
 
+  const HL = 'background:#d6f5ed';
   const rows = records.map(r => `
     <tr>
       <td style="text-align:center;padding:8px 6px">
         <input type="checkbox" class="row-check" value="${r.id}" onchange="updateBulkBar()">
       </td>
       <td>${fmtDate(r.date)}</td>
-      <td><strong>${r.crystalName || '-'}</strong></td>
-      <td>${r.size ? r.size + 'mm' : '-'}</td>
-      <td>${r.typeB || '-'}</td>
-      <td><span class="badge badge-purple">${r.typeA || '-'}</span></td>
       <td>${r.vendor || '-'}</td>
       <td class="td-link">${r.shopLink ? `<a href="${r.shopLink}" target="_blank">連結 ↗</a>` : '-'}</td>
-      <td>${fmtYuan(r.pricePerStrand)}</td>
-      <td><strong>${r.costPerStrand ? fmtCurrency(r.costPerStrand) : '-'}</strong></td>
-      <td>${r.exchangeRate || '-'}</td>
-      <td><strong style="color:var(--primary-dark)">${fmtCurrency(r.costPerBead)}</strong></td>
+      <td>${r.itemCode || '-'}</td>
+      <td><strong>${r.crystalName || '-'}</strong></td>
+      <td style="color:var(--text-muted);font-size:12px">${r.productName || '-'}</td>
+      <td><span class="badge badge-purple">${r.typeA || '-'}</span></td>
+      <td>${r.size ? r.size + 'mm' : '-'}</td>
+      <td>${r.typeB || '-'}</td>
+      <td style="${HL}"><strong style="color:var(--primary-dark)">${fmtCurrency(r.costPerBead)}</strong></td>
+      <td style="${HL}">${r.weightPerStrand ? r.weightPerStrand + 'g' : '-'}</td>
+      <td style="${HL}">${r.pricePerGram ? fmtYuan(r.pricePerGram) : '-'}</td>
+      <td style="${HL}">${fmtYuan(r.pricePerStrand)}</td>
       <td style="min-width:120px;color:var(--text-muted);font-size:12px">${r.note || '-'}</td>
       <td>
         <div style="display:flex;gap:4px;flex-wrap:nowrap">
@@ -207,30 +210,33 @@ function renderTable(records) {
       </td>
     </tr>`).join('');
 
+  const HLth = 'background:#b2e9d9;';
   container.innerHTML = `
     <div id="bulk-bar" style="display:none;padding:10px 16px;background:var(--primary-light);border-radius:6px;margin-bottom:8px;align-items:center;gap:12px">
       <span id="bulk-count" style="font-size:13px;color:var(--primary-dark);font-weight:600"></span>
       <button class="btn btn-danger btn-sm" onclick="deleteSelected()">刪除已選</button>
     </div>
     <div class="table-wrap">
-      <table style="min-width:1400px">
+      <table style="min-width:1500px">
         <thead>
           <tr>
             <th style="width:40px;text-align:center">
               <input type="checkbox" id="check-all" onchange="toggleSelectAll(this)" title="全選">
             </th>
-            <th style="min-width:90px">日期</th>
-            ${_thBtn('crystalName','水晶',90)}
-            ${_thBtn('size','尺寸',60)}
-            ${_thBtn('typeB','形狀',90)}
+            <th style="min-width:90px">進貨日期</th>
+            ${_thBtn('vendor','廠家',80)}
+            <th style="min-width:60px">賣場連結</th>
+            <th style="min-width:80px">貨號</th>
+            ${_thBtn('crystalName','色系',80)}
+            <th style="min-width:120px">賣場商品名稱</th>
             ${_thBtn('typeA','規格',70)}
-            ${_thBtn('vendor','廠家',90)}
-            <th style="min-width:60px">賣場</th>
-            <th style="min-width:80px">單條¥</th>
-            <th style="min-width:100px">單條進貨成本$</th>
-            <th style="min-width:60px">匯率</th>
-            <th style="min-width:100px">單顆成本$</th>
-            <th style="min-width:160px">備註</th>
+            ${_thBtn('size','尺寸',60)}
+            ${_thBtn('typeB','形狀',80)}
+            <th style="min-width:110px;${HLth}">單顆進貨成本$</th>
+            <th style="min-width:80px;${HLth}">一條重量g</th>
+            <th style="min-width:80px;${HLth}">克價¥</th>
+            <th style="min-width:90px;${HLth}">單條進價¥</th>
+            <th style="min-width:140px">備註</th>
             <th style="min-width:110px">操作</th>
           </tr>
         </thead>
@@ -337,11 +343,12 @@ function openEditRecord(id) {
   document.getElementById('a-typeA').value = record.typeA || '';
   document.getElementById('a-typeB').value = record.typeB || '';
   document.getElementById('a-vendor').value = record.vendor || '';
+  document.getElementById('a-itemCode').value = record.itemCode || '';
   document.getElementById('a-productName').value = record.productName || '';
   document.getElementById('a-shopLink').value = record.shopLink || '';
   document.getElementById('a-pricePerStrand').value = record.pricePerStrand || '';
-  document.getElementById('a-costPerStrand').value = record.costPerStrand || '';
-  document.getElementById('a-exchangeRate').value = record.exchangeRate || '';
+  document.getElementById('a-weightPerStrand').value = record.weightPerStrand || '';
+  document.getElementById('a-pricePerGram').value = record.pricePerGram || '';
   document.getElementById('a-costPerBead').value = record.costPerBead || '';
   document.getElementById('a-note').value = record.note || '';
   document.getElementById('add-alert').innerHTML = '';
@@ -361,11 +368,12 @@ async function submitAdd() {
     typeA: get('a-typeA'),
     typeB: get('a-typeB'),
     vendor: get('a-vendor'),
+    itemCode: get('a-itemCode'),
     productName: get('a-productName'),
     shopLink: get('a-shopLink'),
     pricePerStrand: parseFloat(get('a-pricePerStrand')) || 0,
-    costPerStrand: parseFloat(get('a-costPerStrand')) || 0,
-    exchangeRate: parseFloat(get('a-exchangeRate')) || 0,
+    weightPerStrand: parseFloat(get('a-weightPerStrand')) || 0,
+    pricePerGram: parseFloat(get('a-pricePerGram')) || 0,
     costPerBead: parseFloat(get('a-costPerBead')) || 0,
     note: get('a-note')
   };
@@ -374,16 +382,8 @@ async function submitAdd() {
   alertEl.innerHTML = '';
 
   if (!data.crystalName || !data.date || !data.size || !data.typeA || !data.typeB) {
-    alertEl.innerHTML = `<div class="inline-alert inline-alert-warning">請填寫必填欄位（水晶名稱、日期、尺寸、規格A、形狀）</div>`;
+    alertEl.innerHTML = `<div class="inline-alert inline-alert-warning">請填寫必填欄位（色系、日期、尺寸、規格、形狀）</div>`;
     return;
-  }
-  if (!data.exchangeRate) {
-    alertEl.innerHTML = `<div class="inline-alert inline-alert-warning">請填寫當次匯率</div>`;
-    return;
-  }
-
-  if (!data.costPerBead) {
-    data.costPerBead = await calcCrystalCostPerBead(data);
   }
 
   const btn = document.querySelector('#addModal .btn-primary');
@@ -431,8 +431,8 @@ async function submitAdd() {
 }
 
 function resetAddForm() {
-  ['a-crystalName','a-vendor','a-productName','a-shopLink','a-size','a-typeB',
-   'a-pricePerStrand','a-costPerStrand','a-exchangeRate','a-costPerBead','a-note'].forEach(id => {
+  ['a-crystalName','a-vendor','a-itemCode','a-productName','a-shopLink','a-size','a-typeB',
+   'a-pricePerStrand','a-weightPerStrand','a-pricePerGram','a-costPerBead','a-note'].forEach(id => {
     document.getElementById(id).value = '';
   });
   document.getElementById('a-typeA').value = '';
@@ -498,23 +498,24 @@ function handleExcelUpload(file) {
 
       importRows = dataRows.map(r => ({
         date: toDateStr(r[0]),
-        crystalName: String(r[1] || '').trim(),
-        size: String(r[2] || '').trim(),
-        typeB: String(r[3] || '').trim(),
-        typeA: String(r[4] || '').trim(),
-        vendor: String(r[5] || '').trim(),
-        productName: String(r[6] || '').trim(),
-        shopLink: String(r[7] || '').trim(),
-        pricePerStrand: parseFloat(r[8]) || 0,
-        // r[9] = 單條進貨成本$（自動計算欄，略過）
-        exchangeRate: parseFloat(r[10]) || 0,
-        costPerBead: parseFloat(r[11]) || 0,
-        note: String(r[12] || '').trim()
+        vendor: String(r[1] || '').trim(),
+        shopLink: String(r[2] || '').trim(),
+        itemCode: String(r[3] || '').trim(),
+        crystalName: String(r[4] || '').trim(),
+        productName: String(r[5] || '').trim(),
+        typeA: String(r[6] || '').trim(),
+        size: String(r[7] || '').trim(),
+        typeB: String(r[8] || '').trim(),
+        costPerBead: parseFloat(r[9]) || 0,
+        weightPerStrand: parseFloat(r[10]) || 0,
+        pricePerGram: parseFloat(r[11]) || 0,
+        pricePerStrand: parseFloat(r[12]) || 0,
+        note: String(r[13] || '').trim()
       }));
 
-      const invalid = importRows.filter(r => !r.crystalName || !r.date || !r.size || !r.typeA || !r.typeB || !r.exchangeRate);
+      const invalid = importRows.filter(r => !r.crystalName || !r.date || !r.size || !r.typeA || !r.typeB);
       if (invalid.length) {
-        alertEl.innerHTML = `<div class="inline-alert inline-alert-warning">有 ${invalid.length} 列缺少必填欄位（水晶名稱/日期/尺寸/規格A/形狀B/匯率），請修正後重新上傳</div>`;
+        alertEl.innerHTML = `<div class="inline-alert inline-alert-warning">有 ${invalid.length} 列缺少必填欄位（色系/日期/尺寸/規格/形狀），請修正後重新上傳</div>`;
         importRows = [];
         return;
       }
@@ -522,16 +523,17 @@ function handleExcelUpload(file) {
       const tbody = document.getElementById('preview-tbody');
       tbody.innerHTML = importRows.map(r => `
         <tr>
-          <td>${r.crystalName}</td>
           <td>${r.date}</td>
-          <td>${r.size}mm</td>
-          <td>${r.typeA}</td>
-          <td>${r.typeB}</td>
           <td>${r.vendor || '-'}</td>
+          <td>${r.itemCode || '-'}</td>
+          <td>${r.crystalName}</td>
           <td>${r.productName || '-'}</td>
+          <td>${r.typeA}</td>
+          <td>${r.size}mm</td>
+          <td>${r.typeB}</td>
+          <td>${r.costPerBead || '-'}</td>
+          <td>${r.pricePerGram || '-'}</td>
           <td>${r.pricePerStrand || '-'}</td>
-          <td>${r.exchangeRate}</td>
-          <td>${r.costPerBead || '自動'}</td>
         </tr>`).join('');
 
       document.getElementById('preview-count').textContent = `共 ${importRows.length} 筆，確認後點「確認匯入」`;
@@ -555,9 +557,6 @@ async function submitImport() {
   let success = 0, failed = 0;
   for (const row of importRows) {
     try {
-      if (!row.costPerBead) {
-        row.costPerBead = await calcCrystalCostPerBead(row);
-      }
       await addCrystalCost(row);
       success++;
     } catch(e) {
@@ -580,7 +579,7 @@ async function submitImport() {
 
 function downloadCrystalTemplate() {
   const data = [
-    ['日期(YYYY-MM-DD)','水晶名稱','尺寸mm','形狀','規格','廠家','商品名稱','賣場連結','單條¥','單條進貨成本$(留空自動計算)','匯率','單顆成本$(留空自動計算)','備註'],
+    ['進貨日期(YYYY-MM-DD)','廠家','賣場連結','貨號','色系','賣場商品名稱','規格','尺寸mm','形狀','單顆進貨成本$','一條重量g','克價¥','單條進價¥','備註'],
   ];
   const ws = XLSX.utils.aoa_to_sheet(data);
   const wb = XLSX.utils.book_new();
