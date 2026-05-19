@@ -222,7 +222,10 @@ function showMaterialSuggestions() {
     const sizeStr = String(item.size || '');
     const sizeDisplay = sizeStr.includes('mm') ? sizeStr : sizeStr + 'mm';
     const code = item.itemCode || '';
-    const baseName = `${item.crystalName} ${sizeDisplay} ${item.typeB} ${item.typeA}`.trim();
+    // productName = 礦石名（白水晶、拉長石）；crystalName = 色系（白色/多彩、黑色/灰色）
+    const mineral = item.productName || item.crystalName || '';
+    const color   = item.productName ? (item.crystalName || '') : '';
+    const baseName = [mineral, color, sizeDisplay, item.typeB, item.typeA].filter(Boolean).join(' ');
     const name = code ? `[${code}] ${baseName}` : baseName;
     const searchable = [baseName, code, item.specKey, item.productName, item.vendor, item.crystalName, item.typeA, item.typeB]
       .filter(Boolean).join(' ').toLowerCase();
