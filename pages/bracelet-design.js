@@ -169,7 +169,7 @@ function openSizePicker(id) {
     const active = savedSizes.includes(s);
     return `<span class="wrist-chip${active ? ' active' : ' chip-empty'}"
       style="min-width:52px;height:38px;font-size:14px;${active ? 'cursor:pointer' : 'cursor:default'}"
-      ${active ? `onclick="event.stopPropagation();closeModal('sizePickerModal');openDetailModal('${id}')"` : ''}
+      ${active ? `onclick="event.stopPropagation();openDetailModal('${id}')"` : ''}
     >${s}</span>`;
   }).join('');
 
@@ -185,6 +185,7 @@ function openSizePicker(id) {
 // ─── 詳細瀏覽 Modal ──────────────────────────
 
 async function openDetailModal(id) {
+  closeModal('sizePickerModal');
   const design = _loadedDesigns[id] || await getBraceletDesign(id);
   if (!design) return;
 
