@@ -3,6 +3,7 @@
 // =============================================
 
 let editingId = null;
+let _loadedDesigns = {};   // id → design，供詳細視窗用
 let currentMaterials = [];
 let currentChains = [];
 let currentPackaging = [];
@@ -65,6 +66,8 @@ async function loadDesigns() {
   container.innerHTML = loadingState();
   try {
     const designs = await getBraceletDesigns();
+    _loadedDesigns = {};
+    designs.forEach(d => { _loadedDesigns[d.id] = d; });
     if (!designs.length) {
       container.innerHTML = emptyState('', '尚無設計款，點右上角「新增設計款」建立第一款手鍊');
       return;
@@ -95,31 +98,8 @@ async function renderDesignCard(design) {
   }
 
   const imgHtml = design.imageUrl
-    ? `<img src="${design.imageUrl}" alt="${design.name}" style="width:100%;border-radius:6px;margin-bottom:12px;object-fit:cover;max-height:160px" onerror="this.style.display='none'">`
+    ? `<img src="${design.imageUrl}" alt="${design.name}" style="width:100%;border-radius:6px;margin-bottom:12px;object-fit:cover;max-height:180px" onerror="this.style.display='none'">`
     : '';
-
-  const materialRows = (design.materials || []).map(m => {
-    const total = (m.unitCost || 0) * (m.quantity || 0);
-    return `<div class="material-row"><span>${m.displayName} × ${m.quantity} 顆</span><span style="color:var(--primary)">${m.unitCost ? fmtCurrency(total) : ''}</span></div>`;
-  }).join('');
-
-  let chainRows = '';
-  if ((design.chainItems || []).length) {
-    chainRows = `<div style="font-size:12px;font-weight:600;color:var(--text-muted);margin-top:8px;padding-top:6px;border-top:1px dashed var(--border)">鍊條線材</div>` +
-      (design.chainItems || []).map(i => `<div class="material-row"><span>${i.displayName} × ${i.lengthCm}cm</span><span style="color:var(--primary)">${fmtChainCost(Number(i.totalCost))}</span></div>`).join('');
-  }
-
-  let packagingRows = '';
-  if ((design.packagingItems || []).length) {
-    packagingRows = `<div style="font-size:12px;font-weight:600;color:var(--text-muted);margin-top:8px;padding-top:6px;border-top:1px dashed var(--border)">包裝</div>` +
-      (design.packagingItems || []).map(i => `<div class="material-row"><span>${i.name}</span><span>${fmtCurrency(Number(i.cost))}</span></div>`).join('');
-  }
-
-  let logisticsRows = '';
-  if ((design.logisticsItems || []).length) {
-    logisticsRows = `<div style="font-size:12px;font-weight:600;color:var(--text-muted);margin-top:8px;padding-top:6px;border-top:1px dashed var(--border)">物流平台</div>` +
-      (design.logisticsItems || []).map(i => `<div class="material-row"><span>${i.name}</span><span>${fmtCurrency(Number(i.cost))}</span></div>`).join('');
-  }
 
   let profitHtml = '';
   if (design.sellingPrice) {
@@ -127,7 +107,7 @@ async function renderDesignCard(design) {
     const profit = sp - currentCost;
     const margin = sp > 0 ? (profit / sp * 100) : 0;
     const color = profit >= 0 ? 'var(--success,#2ea44f)' : 'var(--danger,#cf222e)';
-    profitHtml = `<div style="background:var(--bg);border-radius:6px;padding:8px 12px;margin-top:8px;font-size:13px">
+    profitHtml = `<div style="background:var(--bg);border-radius:6px;padding:8px 12px;margin-top:10px;font-size:13px">
       <div class="material-row"><span>售價</span><span style="font-weight:700">${fmtCurrency(sp)}</span></div>
       <div class="material-row"><span>毛利</span><span style="font-weight:700;color:${color}">${fmtCurrency(profit)}</span></div>
       <div class="material-row"><span>毛利率</span><span style="font-weight:700;color:${color}">${margin.toFixed(1)}%</span></div>
@@ -138,13 +118,15 @@ async function renderDesignCard(design) {
     ? (design.createdAt.toDate ? design.createdAt.toDate().toLocaleDateString('zh-TW') : '')
     : '';
 
+  const matCount = (design.materials||[]).length + (design.chainItems||[]).length;
+
   return `
-    <div class="design-card">
+    <div class="design-card" onclick="openDetailModal('${design.id}')">
       ${imgHtml}
       <div class="design-card-header">
         <div>
           <div class="design-card-name">${design.name}</div>
-          <div style="font-size:12px;color:var(--text-muted);margin-top:2px">建立：${createdDate}</div>
+          <div style="font-size:12px;color:var(--text-muted);margin-top:2px">建立：${createdDate} ‧ ${matCount} 項材料</div>
         </div>
         <div style="text-align:right">
           <div class="design-card-cost">${fmtCurrency(currentCost)}</div>
@@ -152,9 +134,8 @@ async function renderDesignCard(design) {
         </div>
       </div>
       ${alertHtml}
-      <div class="material-summary">${materialRows}${chainRows}${packagingRows}${logisticsRows}</div>
       ${profitHtml}
-      <div class="btn-group mt-16">
+      <div class="btn-group mt-16" onclick="event.stopPropagation()">
         <button class="btn btn-secondary btn-sm" onclick="openEditModal('${design.id}')">編輯</button>
         <button class="btn btn-danger btn-sm" onclick="deleteDesign('${design.id}', '${design.name}')">刪除</button>
       </div>
@@ -162,6 +143,109 @@ async function renderDesignCard(design) {
 }
 
 // ─── Modal 控制 ───────────────────────────
+
+// ─── 詳細瀏覽 Modal ──────────────────────────
+
+async function openDetailModal(id) {
+  const design = _loadedDesigns[id] || await getBraceletDesign(id);
+  if (!design) return;
+
+  const materialCost = (design.materials||[]).reduce((s,m) => s + (m.unitCost||0)*(m.quantity||0), 0);
+  const chainTotal   = (design.chainItems||[]).reduce((s,c) => s + Number(c.totalCost||0), 0);
+  const pkgTotal     = (design.packagingItems||[]).reduce((s,i) => s + Number(i.cost||0), 0);
+  const logTotal     = (design.logisticsItems||[]).reduce((s,i) => s + Number(i.cost||0), 0);
+  const totalCost    = materialCost + chainTotal + pkgTotal + logTotal;
+
+  const imgHtml = design.imageUrl
+    ? `<img src="${design.imageUrl}" alt="${design.name}" style="width:100%;border-radius:8px;margin-bottom:16px;object-fit:cover;max-height:240px" onerror="this.style.display='none'">`
+    : '';
+
+  const row = (label, val, color='') =>
+    `<div class="material-row"><span style="color:var(--text-muted)">${label}</span><span style="font-weight:600${color ? ';color:'+color : ''}">${val}</span></div>`;
+
+  const sectionTitle = txt =>
+    `<div class="detail-section-title">${txt}</div>`;
+
+  // 材料清單
+  let matHtml = '';
+  if ((design.materials||[]).length) {
+    matHtml = sectionTitle('① 材料清單（水晶 / 配件）') +
+      (design.materials||[]).map(m => {
+        const total = (m.unitCost||0)*(m.quantity||0);
+        const badge = m.type==='crystal' ? '<span class="badge badge-purple">水晶</span>' : '<span class="badge badge-gold">配件</span>';
+        return `<div class="material-row" style="gap:6px">${badge}<span style="flex:1;font-size:13px">${m.displayName} × ${m.quantity} 顆</span><span style="color:var(--primary);font-weight:600">${m.unitCost?fmtCurrency(total):''}</span></div>`;
+      }).join('') +
+      row('小計', fmtCurrency(materialCost), 'var(--primary)');
+  }
+
+  // 鍊條線材
+  let chainHtml = '';
+  if ((design.chainItems||[]).length) {
+    chainHtml = sectionTitle('② 鍊條線材') +
+      (design.chainItems||[]).map(c =>
+        `<div class="material-row"><span style="flex:1;font-size:13px">${c.displayName} × ${c.lengthCm}cm</span><span style="color:var(--primary);font-weight:600">${fmtChainCost(Number(c.totalCost))}</span></div>`
+      ).join('') +
+      row('小計', fmtChainCost(chainTotal), 'var(--primary)');
+  }
+
+  // 包裝
+  let pkgHtml = '';
+  if ((design.packagingItems||[]).length) {
+    pkgHtml = sectionTitle('③ 包裝成本') +
+      (design.packagingItems||[]).map(i => row(i.name, fmtCurrency(Number(i.cost)))).join('') +
+      row('小計', fmtCurrency(pkgTotal), 'var(--primary)');
+  }
+
+  // 物流平台
+  let logHtml = '';
+  if ((design.logisticsItems||[]).length) {
+    logHtml = sectionTitle('④ 物流平台') +
+      (design.logisticsItems||[]).map(i => row(i.name, fmtCurrency(Number(i.cost)))).join('') +
+      row('小計', fmtCurrency(logTotal), 'var(--primary)');
+  }
+
+  // 加總
+  const totalHtml = `<div style="display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-top:2px solid var(--border);margin-top:8px">
+    <span style="font-weight:700">總成本</span>
+    <span style="font-size:20px;font-weight:800;color:var(--secondary)">${fmtCurrency(totalCost)}</span>
+  </div>`;
+
+  // 售價毛利
+  let profitHtml = '';
+  if (design.sellingPrice) {
+    const sp = Number(design.sellingPrice);
+    const profit = sp - totalCost;
+    const margin = sp > 0 ? (profit/sp*100) : 0;
+    const color = profit >= 0 ? 'var(--success,#2ea44f)' : 'var(--danger,#cf222e)';
+    profitHtml = `<div style="background:var(--bg);border-radius:8px;padding:12px 14px;margin-top:12px">` +
+      row('售價', fmtCurrency(sp)) +
+      row('毛利', fmtCurrency(profit), color) +
+      row('毛利率', margin.toFixed(1)+'%', color) +
+      `</div>`;
+  }
+
+  // 備註
+  let notesHtml = '';
+  if ((design.notes||[]).length) {
+    notesHtml = sectionTitle('製作備註') +
+      (design.notes||[]).map(n =>
+        `<div class="material-row"><span style="color:var(--text-muted);white-space:nowrap;font-size:12px">${fmtNoteDate(n.date)}</span><span style="flex:1;font-size:13px;padding-left:8px">${n.text}</span></div>`
+      ).join('');
+  }
+
+  _setText('detail-title', design.name);
+  document.getElementById('detail-body').innerHTML = `
+    ${imgHtml}
+    ${matHtml}${chainHtml}${pkgHtml}${logHtml}
+    ${totalHtml}
+    ${profitHtml}
+    ${notesHtml}
+    <div class="btn-group mt-16">
+      <button class="btn btn-secondary" onclick="closeModal('detailModal');openEditModal('${design.id}')">編輯</button>
+      <button class="btn btn-danger" onclick="closeModal('detailModal');deleteDesign('${design.id}','${design.name.replace(/'/g,"\\'")}')">刪除</button>
+    </div>`;
+  openModal('detailModal');
+}
 
 function _setVal(id, val) { const el = document.getElementById(id); if (el) el.value = val; }
 function _setDisplay(id, val) { const el = document.getElementById(id); if (el) el.style.display = val; }

@@ -11,7 +11,9 @@
       background: white; border-radius: var(--radius); box-shadow: var(--shadow);
       padding: 20px; border: 2px solid transparent; transition: all 0.2s;
     }
-    .design-card:hover { border-color: var(--primary-light); }
+    .design-card { cursor: pointer; }
+    .design-card:hover { border-color: var(--primary-light); transform: translateY(-2px); box-shadow: 0 4px 16px rgba(0,0,0,0.1); }
+    .detail-section-title { font-size: 12px; font-weight: 700; color: var(--text-muted); padding: 8px 0 4px; border-top: 1px dashed var(--border); margin-top: 8px; letter-spacing: 0.5px; }
     .design-card-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 12px; }
     .design-card-name { font-size: 16px; font-weight: 700; color: var(--primary-dark); }
     .design-card-cost { font-size: 20px; font-weight: 800; color: var(--secondary); }
@@ -69,6 +71,17 @@
     </div>
     <div id="designs-container">
       <div class="loading"><div class="spinner"></div><div>載入中...</div></div>
+    </div>
+  </div>
+
+  <!-- 詳細瀏覽 Modal -->
+  <div class="modal-overlay" id="detailModal">
+    <div class="modal" style="max-width:560px">
+      <div class="modal-header">
+        <div class="modal-title" id="detail-title"></div>
+        <button class="modal-close" onclick="closeModal('detailModal')">×</button>
+      </div>
+      <div class="modal-body" id="detail-body" style="padding:0 24px 24px"></div>
     </div>
   </div>
 
@@ -265,6 +278,6 @@
   <script src="../js/firebase-config.js"></script>
   <script src="../js/db.js?v=2"></script>
   <script src="../js/utils.js"></script>
-  <script src="bracelet-design.js?v=15"></script>
+  <script src="bracelet-design.js?v=16"></script>
 </body>
 </html>
