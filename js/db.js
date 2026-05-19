@@ -64,7 +64,8 @@ async function getCrystalCosts(filters = {}) {
       (r.vendor && r.vendor.toLowerCase().includes(kw)) ||
       (r.size && r.size.toString().includes(kw)) ||
       (r.typeA && r.typeA.toLowerCase().includes(kw)) ||
-      (r.typeB && r.typeB.toLowerCase().includes(kw))
+      (r.typeB && r.typeB.toLowerCase().includes(kw)) ||
+      (r.itemCode && r.itemCode.toLowerCase().includes(kw))
     );
   }
   return results;
