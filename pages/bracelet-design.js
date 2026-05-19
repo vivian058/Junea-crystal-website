@@ -169,7 +169,7 @@ function openSizePicker(id) {
     const active = savedSizes.includes(s);
     return `<span class="wrist-chip${active ? ' active' : ' chip-empty'}"
       style="min-width:52px;height:38px;font-size:14px;${active ? 'cursor:pointer' : 'cursor:default'}"
-      ${active ? `onclick="closeModal('sizePickerModal');openDetailModal('${id}')"` : ''}
+      ${active ? `onclick="event.stopPropagation();closeModal('sizePickerModal');openDetailModal('${id}')"` : ''}
     >${s}</span>`;
   }).join('');
 
