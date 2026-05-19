@@ -222,7 +222,9 @@ function showMaterialSuggestions() {
     const searchable = [code, name, item.specKey, item.spec, item.vendor, item.productName, item.color]
       .filter(Boolean).join(' ').toLowerCase();
     if (!search || searchable.includes(search)) {
-      _materialMatches.push({ type: 'accessory', specKey: item.specKey, displayName: `[${code}] ${name}`, unitCost: item.costPerPiece || 0 });
+      // costPerPiece 欄已移除，以 costPerLot（單品進貨成本$）作為單顆成本
+      const unitCost = Number(item.costPerPiece || item.costPerLot || 0);
+      _materialMatches.push({ type: 'accessory', specKey: item.specKey, displayName: `[${code}] ${name}`, unitCost });
     }
   });
 
@@ -291,11 +293,13 @@ function renderMaterialList() {
   }
   container.innerHTML = currentMaterials.map(m => {
     const rowTotal = (m.unitCost || 0) * (m.quantity || 0);
-    return `<div style="display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid var(--border)">
+    const unitLabel = m.unitCost ? `<span style="font-size:12px;color:var(--text-muted)">${fmtCurrency(m.unitCost)}/顆</span><span style="font-size:12px;color:var(--text-muted)">×</span>` : '';
+    return `<div style="display:flex;align-items:center;gap:6px;padding:8px 0;border-bottom:1px solid var(--border)">
       <span class="badge badge-${m.type === 'crystal' ? 'purple' : 'gold'}">${m.type === 'crystal' ? '水晶' : '配件'}</span>
       <span style="flex:1;font-size:13px">${m.displayName}</span>
-      <span style="font-size:13px;color:var(--text-muted)">× ${m.quantity} 顆</span>
-      ${m.unitCost ? `<span style="font-size:13px;color:var(--secondary);font-weight:600;min-width:56px;text-align:right">${fmtCurrency(rowTotal)}</span>` : ''}
+      ${unitLabel}
+      <span style="font-size:13px;color:var(--text-muted)">${m.quantity} 顆</span>
+      ${m.unitCost ? `<span style="font-size:13px;color:var(--secondary);font-weight:700;min-width:52px;text-align:right">${fmtCurrency(rowTotal)}</span>` : ''}
       <span onclick="removeMaterial('${m.specKey}')" style="cursor:pointer;color:var(--text-muted);padding:0 4px">✕</span>
     </div>`;
   }).join('');
@@ -388,11 +392,12 @@ function renderChainList() {
     return;
   }
   container.innerHTML = currentChains.map(c => `
-    <div style="display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid var(--border)">
+    <div style="display:flex;align-items:center;gap:6px;padding:8px 0;border-bottom:1px solid var(--border)">
       <span class="badge" style="background:#e8f4e8;color:#2d6a2d">線材</span>
       <span style="flex:1;font-size:13px">${c.displayName}</span>
-      <span style="font-size:13px;color:var(--text-muted)">× ${c.lengthCm}cm</span>
-      <span style="font-size:13px;color:var(--secondary);font-weight:600;min-width:56px;text-align:right">${fmtCurrency(c.totalCost)}</span>
+      ${c.costPerCm ? `<span style="font-size:12px;color:var(--text-muted)">$${Number(c.costPerCm).toFixed(4)}/cm</span><span style="font-size:12px;color:var(--text-muted)">×</span>` : ''}
+      <span style="font-size:13px;color:var(--text-muted)">${c.lengthCm}cm</span>
+      <span style="font-size:13px;color:var(--secondary);font-weight:700;min-width:52px;text-align:right">${fmtCurrency(c.totalCost)}</span>
       <span onclick="removeChain('${c.itemId}')" style="cursor:pointer;color:var(--text-muted);padding:0 4px">✕</span>
     </div>`).join('');
 
