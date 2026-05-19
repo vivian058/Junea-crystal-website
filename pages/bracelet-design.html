@@ -13,7 +13,10 @@
     }
     .design-card { cursor: pointer; }
     .design-card:hover { border-color: var(--primary-light); transform: translateY(-2px); box-shadow: 0 4px 16px rgba(0,0,0,0.1); }
-    .detail-section-title { font-size: 12px; font-weight: 700; color: var(--text-muted); padding: 8px 0 4px; border-top: 1px dashed var(--border); margin-top: 8px; letter-spacing: 0.5px; }
+    .detail-section-title { font-size: 12px; font-weight: 700; color: var(--primary-dark); background: var(--primary-light); padding: 6px 10px; border-radius: 4px; margin: 12px 0 4px; letter-spacing: 0.5px; }
+    .wrist-chip { display:inline-flex; align-items:center; justify-content:center; min-width:44px; height:30px; padding:0 8px; border-radius:15px; font-size:12px; font-weight:600; border:1.5px solid var(--border); cursor:pointer; background:white; color:var(--text-muted); transition:all 0.15s; user-select:none; }
+    .wrist-chip.active { background:var(--primary); color:white; border-color:var(--primary); }
+    .wrist-chip:hover:not(.active) { background:var(--bg); }
     .design-card-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 12px; }
     .design-card-name { font-size: 16px; font-weight: 700; color: var(--primary-dark); }
     .design-card-cost { font-size: 20px; font-weight: 800; color: var(--secondary); }
@@ -104,6 +107,12 @@
             <label>圖片連結</label>
             <input class="form-control" id="d-imageUrl" type="url" placeholder="商品圖片網址">
           </div>
+        </div>
+
+        <!-- 手圍選擇 -->
+        <div style="margin-bottom:16px">
+          <div class="cost-section-title">手圍 (cm)</div>
+          <div id="wrist-chips" style="display:flex;flex-wrap:wrap;gap:6px;padding:8px 0"></div>
         </div>
 
         <!-- ① 材料清單（水晶 / 配件）-->
@@ -278,6 +287,6 @@
   <script src="../js/firebase-config.js"></script>
   <script src="../js/db.js?v=2"></script>
   <script src="../js/utils.js"></script>
-  <script src="bracelet-design.js?v=16"></script>
+  <script src="bracelet-design.js?v=17"></script>
 </body>
 </html>

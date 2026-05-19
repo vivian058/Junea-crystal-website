@@ -2,12 +2,15 @@
 // 設計款手鍊
 // =============================================
 
+const WRIST_SIZES = [13, 13.5, 14, 14.5, 15, 15.5, 16, 16.5, 17, 17.5, 18];
+
 let editingId = null;
 let _loadedDesigns = {};   // id → design，供詳細視窗用
 let currentMaterials = [];
 let currentChains = [];
 let currentPackaging = [];
 let currentLogistics = [];
+let currentWristSizes = [];
 let _lastTotalCost = 0;
 let crystalOptions = [];
 let accessoryOptions = [];
@@ -160,6 +163,12 @@ async function openDetailModal(id) {
     ? `<img src="${design.imageUrl}" alt="${design.name}" style="width:100%;border-radius:8px;margin-bottom:16px;object-fit:cover;max-height:240px" onerror="this.style.display='none'">`
     : '';
 
+  const savedSizes = design.wristSizes || [];
+  const wristHtml = `${sectionTitle('手圍 (cm)')}<div style="display:flex;flex-wrap:wrap;gap:6px;padding:8px 0 4px">` +
+    WRIST_SIZES.map(s =>
+      `<span class="wrist-chip${savedSizes.includes(s) ? ' active' : ''}" style="cursor:default">${s}</span>`
+    ).join('') + `</div>`;
+
   const row = (label, val, color='') =>
     `<div class="material-row"><span style="color:var(--text-muted)">${label}</span><span style="font-weight:600${color ? ';color:'+color : ''}">${val}</span></div>`;
 
@@ -236,6 +245,7 @@ async function openDetailModal(id) {
   _setText('detail-title', design.name);
   document.getElementById('detail-body').innerHTML = `
     ${imgHtml}
+    ${wristHtml}
     ${matHtml}${chainHtml}${pkgHtml}${logHtml}
     ${totalHtml}
     ${profitHtml}
@@ -261,11 +271,28 @@ function resetModal() {
   clearMaterialSelection(); clearChainSelection();
   _setVal('pkg-name', ''); _setVal('pkg-cost', '');
   _setVal('log-name', ''); _setVal('log-cost', '');
+  renderWristChips();
+}
+
+function renderWristChips() {
+  const container = document.getElementById('wrist-chips');
+  if (!container) return;
+  container.innerHTML = WRIST_SIZES.map(s =>
+    `<span class="wrist-chip${currentWristSizes.includes(s) ? ' active' : ''}" onclick="toggleWristSize(${s})">${s}</span>`
+  ).join('');
+}
+
+function toggleWristSize(size) {
+  const idx = currentWristSizes.indexOf(size);
+  if (idx >= 0) currentWristSizes.splice(idx, 1);
+  else currentWristSizes.push(size);
+  renderWristChips();
 }
 
 async function openAddModal() {
   editingId = null;
   currentMaterials = []; currentChains = []; currentPackaging = []; currentLogistics = []; currentNotes = [];
+  currentWristSizes = [];
   _lastTotalCost = 0;
   resetModal();
   _setText('modal-title', '新增設計款手鍊');
@@ -284,6 +311,7 @@ async function openEditModal(id) {
   currentPackaging = design.packagingItems ? [...design.packagingItems] : [];
   currentLogistics = design.logisticsItems ? [...design.logisticsItems] : [];
   currentNotes = design.notes ? [...design.notes] : [];
+  currentWristSizes = design.wristSizes ? [...design.wristSizes] : [];
   resetModal();
   _setVal('d-name', design.name || '');
   _setVal('d-imageUrl', design.imageUrl || '');
@@ -642,7 +670,8 @@ async function submitDesign() {
       packagingItems: currentPackaging,
       logisticsItems: currentLogistics,
       notes: currentNotes,
-      sellingPrice: sp || null
+      sellingPrice: sp || null,
+      wristSizes: currentWristSizes
     };
     if (editingId) {
       await updateBraceletDesign(editingId, data);
