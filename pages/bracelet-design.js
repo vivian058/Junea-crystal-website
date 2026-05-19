@@ -199,17 +199,17 @@ async function openDetailModal(id) {
     ? `<img src="${design.imageUrl}" alt="${design.name}" style="width:100%;border-radius:8px;margin-bottom:16px;object-fit:cover;max-height:240px" onerror="this.style.display='none'">`
     : '';
 
-  const savedSizes = design.wristSizes || [];
-  const wristHtml = `${sectionTitle('手圍 (cm)')}<div style="display:flex;flex-wrap:wrap;gap:6px;padding:8px 0 4px">` +
-    WRIST_SIZES.map(s =>
-      `<span class="wrist-chip${savedSizes.includes(s) ? ' active' : ''}" style="cursor:default">${s}</span>`
-    ).join('') + `</div>`;
-
   const row = (label, val, color='') =>
     `<div class="material-row"><span style="color:var(--text-muted)">${label}</span><span style="font-weight:600${color ? ';color:'+color : ''}">${val}</span></div>`;
 
   const sectionTitle = txt =>
     `<div class="detail-section-title">${txt}</div>`;
+
+  const savedSizes = design.wristSizes || [];
+  const wristHtml = `${sectionTitle('手圍 (cm)')}<div style="display:flex;flex-wrap:wrap;gap:6px;padding:8px 0 4px">` +
+    WRIST_SIZES.map(s =>
+      `<span class="wrist-chip${savedSizes.includes(s) ? ' active' : ''}" style="cursor:default">${s}</span>`
+    ).join('') + `</div>`;
 
   // 材料清單
   let matHtml = '';
