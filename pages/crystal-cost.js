@@ -213,7 +213,7 @@ function renderTable(records) {
       <td>${fmtDate(r.date)}</td>
       <td>${r.vendor || '-'}</td>
       <td class="td-link">${r.shopLink ? `<a href="${r.shopLink}" target="_blank">連結 ↗</a>` : '-'}</td>
-      <td>${r.itemCode || '-'}</td>
+      <td>${r.itemCode ? `<span class="badge badge-purple">${r.itemCode}</span>` : '-'}</td>
       <td><strong>${r.crystalName || '-'}</strong></td>
       <td>${r.productName || '-'}</td>
       <td><span class="badge badge-purple">${r.typeA || '-'}</span></td>
@@ -223,7 +223,7 @@ function renderTable(records) {
       <td style="${HL}">${r.weightPerStrand ? r.weightPerStrand + 'g' : '-'}</td>
       <td style="${HL}">${r.pricePerGram ? fmtYuan(r.pricePerGram) : '-'}</td>
       <td style="${HL}">${fmtYuan(r.pricePerStrand)}</td>
-      <td style="min-width:120px;color:var(--text-muted);font-size:12px">${r.note || '-'}</td>
+      <td style="min-width:120px;color:var(--text-muted)">${r.note || '-'}</td>
       <td>
         <div style="display:flex;gap:4px;flex-wrap:nowrap">
           <button class="btn btn-secondary btn-sm" onclick="openEditRecord('${r.id}')">編輯</button>
