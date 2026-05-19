@@ -38,17 +38,20 @@ document.addEventListener('DOMContentLoaded', async () => {
 
 async function preloadOptions() {
   try {
-    crystalOptions = await getLatestCrystalCosts();
-    // 直接查所有歷史記錄補齊 itemCode（去重邏輯可能丟失舊貨號）
-    const allSnap = await db.collection(COLLECTIONS.CRYSTAL_COSTS).get();
-    const codeMap = {};
-    allSnap.docs.forEach(doc => {
-      const d = doc.data();
-      if (d.specKey && d.itemCode) codeMap[d.specKey] = d.itemCode;
+    // 讀全部歷史記錄，本地去重並保留任何一筆有的 itemCode / productName
+    const allRecords = await getCrystalCosts();          // 不篩選，傳回所有記錄
+    allRecords.sort((a, b) => (b.date || '').localeCompare(a.date || ''));
+    const seenSpec = new Map();
+    allRecords.forEach(r => {
+      if (!seenSpec.has(r.specKey)) {
+        seenSpec.set(r.specKey, { ...r });
+      } else {
+        const ex = seenSpec.get(r.specKey);
+        if (!ex.itemCode && r.itemCode) ex.itemCode = r.itemCode;
+        if (!ex.productName && r.productName) ex.productName = r.productName;
+      }
     });
-    crystalOptions.forEach(item => {
-      if (!item.itemCode && codeMap[item.specKey]) item.itemCode = codeMap[item.specKey];
-    });
+    crystalOptions = [...seenSpec.values()];
   } catch(e) { console.warn('[crystal]', e); }
   try { accessoryOptions = await getLatestAccessoryCosts(); } catch(e) { console.warn('[accessory]', e); }
   try { chainOptions = await getChainCosts(); } catch(e) { console.warn('[chain] 載入失敗:', e); }
