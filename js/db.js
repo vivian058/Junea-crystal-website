@@ -331,12 +331,18 @@ async function getLatestCrystalCosts() {
   const snapshot = await db.collection(COLLECTIONS.CRYSTAL_COSTS).get();
   const results = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
   results.sort((a, b) => (b.date || '').localeCompare(a.date || ''));
-  const seen = new Set();
-  return results.filter(r => {
-    if (seen.has(r.specKey)) return false;
-    seen.add(r.specKey);
-    return true;
-  });
+  // 以 specKey 去重，保留最新一筆價格；但 itemCode / productName 從所有歷史記錄補齊
+  const seen = new Map();
+  for (const r of results) {
+    if (!seen.has(r.specKey)) {
+      seen.set(r.specKey, { ...r });
+    } else {
+      const existing = seen.get(r.specKey);
+      if (!existing.itemCode && r.itemCode) existing.itemCode = r.itemCode;
+      if (!existing.productName && r.productName) existing.productName = r.productName;
+    }
+  }
+  return [...seen.values()];
 }
 
 // ─── 庫存表 ────────────────────────────────
