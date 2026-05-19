@@ -228,7 +228,11 @@ function showMaterialSuggestions() {
     }
   });
 
-  if (!_materialMatches.length) { dropdown.style.display = 'none'; return; }
+  if (!_materialMatches.length) {
+    dropdown.innerHTML = `<div class="ac-item" style="color:var(--text-muted);font-size:12px">無符合項目（水晶 ${crystalOptions.length} 筆 / 配件 ${accessoryOptions.length} 筆）</div>`;
+    dropdown.style.display = 'block';
+    return;
+  }
 
   const show = _materialMatches.slice(0, 40);
   dropdown.innerHTML = show.map((m, i) => {
