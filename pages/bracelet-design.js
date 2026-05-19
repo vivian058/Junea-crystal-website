@@ -39,7 +39,10 @@ document.addEventListener('DOMContentLoaded', async () => {
 async function preloadOptions() {
   try { crystalOptions = await getLatestCrystalCosts(); } catch(e) { console.warn('[crystal]', e); }
   try { accessoryOptions = await getLatestAccessoryCosts(); } catch(e) { console.warn('[accessory]', e); }
-  try { chainOptions = await getChainCosts(); } catch(e) { console.warn('[chain]', e); }
+  try {
+    chainOptions = await getChainCosts();
+    console.log('[chain] 載入筆數:', chainOptions.length, chainOptions.slice(0,2));
+  } catch(e) { console.warn('[chain] 載入失敗:', e); }
 }
 
 // ─── 載入設計款列表 ───────────────────────
@@ -320,7 +323,11 @@ function showChainSuggestions() {
     }
   });
 
-  if (!_chainMatches.length) { dropdown.style.display = 'none'; return; }
+  if (!_chainMatches.length) {
+    dropdown.innerHTML = `<div class="ac-item" style="color:var(--text-muted);font-size:12px">無符合項目（已載入 ${chainOptions.length} 筆鍊條資料）</div>`;
+    dropdown.style.display = 'block';
+    return;
+  }
 
   const show = _chainMatches.slice(0, 40);
   dropdown.innerHTML = show.map((c, i) =>
