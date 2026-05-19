@@ -44,10 +44,10 @@ async function preloadOptions() {
     const seenSpec = new Map();
     allRecords.forEach(r => {
       if (!seenSpec.has(r.specKey)) {
-        seenSpec.set(r.specKey, { ...r });
+        seenSpec.set(r.specKey, { ...r, _allCodes: r.itemCode ? [r.itemCode] : [] });
       } else {
         const ex = seenSpec.get(r.specKey);
-        if (!ex.itemCode && r.itemCode) ex.itemCode = r.itemCode;
+        if (r.itemCode && !ex._allCodes.includes(r.itemCode)) ex._allCodes.push(r.itemCode);
         if (!ex.productName && r.productName) ex.productName = r.productName;
       }
     });
@@ -227,7 +227,7 @@ function showMaterialSuggestions() {
     const color   = item.productName ? (item.crystalName || '') : '';
     const baseName = [mineral, color, sizeDisplay, item.typeB, item.typeA].filter(Boolean).join(' ');
     const name = code ? `[${code}] ${baseName}` : baseName;
-    const searchable = [baseName, code, item.specKey, item.productName, item.vendor, item.crystalName, item.typeA, item.typeB]
+    const searchable = [baseName, code, ...(item._allCodes||[]), item.specKey, item.productName, item.vendor, item.crystalName, item.typeA, item.typeB]
       .filter(Boolean).join(' ').toLowerCase();
     if (!search || searchable.includes(search)) {
       _materialMatches.push({ type: 'crystal', specKey: item.specKey, displayName: name, unitCost: item.costPerBead || 0 });
@@ -247,13 +247,7 @@ function showMaterialSuggestions() {
   });
 
   if (!_materialMatches.length) {
-    const withCode = crystalOptions.filter(s => s.itemCode).length;
-    const hlItems = crystalOptions.filter(s => (s.itemCode||'').toUpperCase().startsWith('HL'));
-    const dbg = `有itemCode: ${withCode}筆 | HL開頭: ${hlItems.length}筆 | HL範例: ${hlItems.slice(0,2).map(s=>s.itemCode).join(', ')||'無'}`;
-    dropdown.innerHTML = `<div class="ac-item" style="color:var(--text-muted);font-size:11px;flex-direction:column;align-items:flex-start;gap:2px">
-      <span>無符合項目（水晶 ${crystalOptions.length} 筆 / 配件 ${accessoryOptions.length} 筆）</span>
-      <span style="color:#c00;font-size:10px">${dbg}</span>
-    </div>`;
+    dropdown.innerHTML = `<div class="ac-item" style="color:var(--text-muted);font-size:12px">無符合項目（水晶 ${crystalOptions.length} 筆 / 配件 ${accessoryOptions.length} 筆）</div>`;
     dropdown.style.display = 'block';
     return;
   }
