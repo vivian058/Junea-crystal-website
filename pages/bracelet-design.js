@@ -37,7 +37,19 @@ document.addEventListener('DOMContentLoaded', async () => {
 // ─── 預載選項 ─────────────────────────────
 
 async function preloadOptions() {
-  try { crystalOptions = await getLatestCrystalCosts(); } catch(e) { console.warn('[crystal]', e); }
+  try {
+    crystalOptions = await getLatestCrystalCosts();
+    // 直接查所有歷史記錄補齊 itemCode（去重邏輯可能丟失舊貨號）
+    const allSnap = await db.collection(COLLECTIONS.CRYSTAL_COSTS).get();
+    const codeMap = {};
+    allSnap.docs.forEach(doc => {
+      const d = doc.data();
+      if (d.specKey && d.itemCode) codeMap[d.specKey] = d.itemCode;
+    });
+    crystalOptions.forEach(item => {
+      if (!item.itemCode && codeMap[item.specKey]) item.itemCode = codeMap[item.specKey];
+    });
+  } catch(e) { console.warn('[crystal]', e); }
   try { accessoryOptions = await getLatestAccessoryCosts(); } catch(e) { console.warn('[accessory]', e); }
   try { chainOptions = await getChainCosts(); } catch(e) { console.warn('[chain] 載入失敗:', e); }
 }
@@ -209,7 +221,7 @@ function showMaterialSuggestions() {
     const code = item.itemCode || '';
     const baseName = `${item.crystalName} ${sizeDisplay} ${item.typeB} ${item.typeA}`.trim();
     const name = code ? `[${code}] ${baseName}` : baseName;
-    const searchable = [baseName, code, item.specKey, item.productName, item.vendor, item.crystalName]
+    const searchable = [baseName, code, item.specKey, item.productName, item.vendor, item.crystalName, item.typeA, item.typeB]
       .filter(Boolean).join(' ').toLowerCase();
     if (!search || searchable.includes(search)) {
       _materialMatches.push({ type: 'crystal', specKey: item.specKey, displayName: name, unitCost: item.costPerBead || 0 });
