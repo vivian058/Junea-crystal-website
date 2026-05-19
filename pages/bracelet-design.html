@@ -40,6 +40,8 @@
       border-radius: 6px; box-shadow: 0 4px 16px rgba(0,0,0,0.13);
       max-height: 220px; overflow-y: auto; width: 100%; top: calc(100% + 2px); left: 0;
     }
+    /* 鍊條線材的 dropdown 向上展開，避免被 modal 底部截斷 */
+    #ch-dropdown { top: auto; bottom: calc(100% + 2px); box-shadow: 0 -4px 16px rgba(0,0,0,0.13); }
     .ac-item {
       padding: 8px 12px; cursor: pointer; font-size: 13px;
       display: flex; align-items: center; gap: 8px;
@@ -263,6 +265,6 @@
   <script src="../js/firebase-config.js"></script>
   <script src="../js/db.js"></script>
   <script src="../js/utils.js"></script>
-  <script src="bracelet-design.js?v=5"></script>
+  <script src="bracelet-design.js?v=6"></script>
 </body>
 </html>

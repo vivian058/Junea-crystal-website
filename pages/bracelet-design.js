@@ -39,10 +39,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 async function preloadOptions() {
   try { crystalOptions = await getLatestCrystalCosts(); } catch(e) { console.warn('[crystal]', e); }
   try { accessoryOptions = await getLatestAccessoryCosts(); } catch(e) { console.warn('[accessory]', e); }
-  try {
-    chainOptions = await getChainCosts();
-    console.log('[chain] 載入筆數:', chainOptions.length, chainOptions.slice(0,2));
-  } catch(e) { console.warn('[chain] 載入失敗:', e); }
+  try { chainOptions = await getChainCosts(); } catch(e) { console.warn('[chain] 載入失敗:', e); }
 }
 
 // ─── 載入設計款列表 ───────────────────────
@@ -93,7 +90,7 @@ async function renderDesignCard(design) {
   let chainRows = '';
   if ((design.chainItems || []).length) {
     chainRows = `<div style="font-size:12px;font-weight:600;color:var(--text-muted);margin-top:8px;padding-top:6px;border-top:1px dashed var(--border)">鍊條線材</div>` +
-      (design.chainItems || []).map(i => `<div class="material-row"><span>${i.displayName} × ${i.lengthCm}cm</span><span style="color:var(--primary)">${fmtCurrency(Number(i.totalCost))}</span></div>`).join('');
+      (design.chainItems || []).map(i => `<div class="material-row"><span>${i.displayName} × ${i.lengthCm}cm</span><span style="color:var(--primary)">${fmtChainCost(Number(i.totalCost))}</span></div>`).join('');
   }
 
   let packagingRows = '';
@@ -400,12 +397,12 @@ function renderChainList() {
       <span style="flex:1;font-size:13px">${c.displayName}</span>
       ${c.costPerCm ? `<span style="font-size:12px;color:var(--text-muted)">$${Number(c.costPerCm).toFixed(4)}/cm</span><span style="font-size:12px;color:var(--text-muted)">×</span>` : ''}
       <span style="font-size:13px;color:var(--text-muted)">${c.lengthCm}cm</span>
-      <span style="font-size:13px;color:var(--secondary);font-weight:700;min-width:52px;text-align:right">${fmtCurrency(c.totalCost)}</span>
+      <span style="font-size:13px;color:var(--secondary);font-weight:700;min-width:52px;text-align:right">${fmtChainCost(c.totalCost)}</span>
       <span onclick="removeChain('${c.itemId}')" style="cursor:pointer;color:var(--text-muted);padding:0 4px">✕</span>
     </div>`).join('');
 
   const total = currentChains.reduce((s, c) => s + Number(c.totalCost || 0), 0);
-  _setText('chain-cost-preview', fmtCurrency(total));
+  _setText('chain-cost-preview', fmtChainCost(total));
 }
 
 // ─── 包裝成本 ─────────────────────────────
@@ -476,7 +473,7 @@ function updateCostPreviews() {
   _lastTotalCost = grand;
 
   _setText('material-cost-preview', fmtCurrency(materialCost));
-  _setText('chain-cost-preview', fmtCurrency(chainTotal));
+  _setText('chain-cost-preview', fmtChainCost(chainTotal));
   _setText('packaging-cost-preview', fmtCurrency(packagingTotal));
   _setText('logistics-cost-preview', fmtCurrency(logisticsTotal));
   _setText('total-cost-preview', fmtCurrency(grand));
@@ -551,6 +548,14 @@ async function submitDesign() {
     btn.disabled = false;
     btn.textContent = editingId ? '儲存修改' : '儲存設計款';
   }
+}
+
+// ─── 鍊條成本 formatter（小數值顯示 4 位）─
+function fmtChainCost(num) {
+  const n = Number(num);
+  if (!n || isNaN(n)) return '$0';
+  const digits = n < 0.1 ? 4 : n < 1 ? 2 : 1;
+  return `$${n.toLocaleString('zh-TW', { minimumFractionDigits: digits, maximumFractionDigits: digits })}`;
 }
 
 // ─── 製作備註 ─────────────────────────────
