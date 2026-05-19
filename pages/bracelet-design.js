@@ -169,23 +169,24 @@ function openSizePicker(id) {
     const active = savedSizes.includes(s);
     return `<span class="wrist-chip${active ? ' active' : ' chip-empty'}"
       style="min-width:52px;height:38px;font-size:14px;${active ? 'cursor:pointer' : 'cursor:default'}"
-      ${active ? `onclick="event.stopPropagation();openDetailModal('${id}')"` : ''}
+      ${active ? `onclick="openDetailModal('${id}')"` : ''}
     >${s}</span>`;
   }).join('');
 
-  _setText('size-picker-title', design.name);
-  document.getElementById('size-picker-body').innerHTML = `
+  _setText('detail-title', design.name);
+  document.getElementById('detail-body').innerHTML = `
     ${imgHtml}
-    <div style="font-size:13px;color:var(--text-muted);margin-bottom:16px;text-align:center">選擇手圍尺寸查看詳細資料<br><span style="font-size:12px">（紫色 = 已填入資料）</span></div>
+    <div style="font-size:13px;color:var(--text-muted);margin-bottom:16px;text-align:center">
+      選擇手圍尺寸查看詳細資料<br><span style="font-size:12px">（紫色 = 已填入資料）</span>
+    </div>
     <div style="display:flex;flex-wrap:wrap;gap:8px;justify-content:center;padding-bottom:8px">${chips}</div>`;
 
-  openModal('sizePickerModal');
+  openModal('detailModal');
 }
 
 // ─── 詳細瀏覽 Modal ──────────────────────────
 
 async function openDetailModal(id) {
-  closeModal('sizePickerModal');
   const design = _loadedDesigns[id] || await getBraceletDesign(id);
   if (!design) return;
 
