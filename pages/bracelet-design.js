@@ -37,13 +37,9 @@ document.addEventListener('DOMContentLoaded', async () => {
 // ─── 預載選項 ─────────────────────────────
 
 async function preloadOptions() {
-  try {
-    [crystalOptions, accessoryOptions, chainOptions] = await Promise.all([
-      getLatestCrystalCosts(),
-      getLatestAccessoryCosts(),
-      getChainCosts()
-    ]);
-  } catch(e) { console.warn(e); }
+  try { crystalOptions = await getLatestCrystalCosts(); } catch(e) { console.warn('[crystal]', e); }
+  try { accessoryOptions = await getLatestAccessoryCosts(); } catch(e) { console.warn('[accessory]', e); }
+  try { chainOptions = await getChainCosts(); } catch(e) { console.warn('[chain]', e); }
 }
 
 // ─── 載入設計款列表 ───────────────────────
@@ -195,7 +191,7 @@ async function openEditModal(id) {
   _setText('modal-title', '編輯設計款手鍊');
   _setText('save-btn', '儲存修改');
   renderMaterialList(); renderChainList(); renderPackagingList(); renderLogisticsList(); renderNoteList();
-  await updateCostPreviews();
+  updateCostPreviews();
   updateProfitCalc();
   openModal('designModal');
 }
@@ -463,8 +459,9 @@ function renderLogisticsList() {
 
 // ─── 成本加總 ─────────────────────────────
 
-async function updateCostPreviews() {
-  const materialCost = await calcBraceletCurrentCost(currentMaterials);
+function updateCostPreviews() {
+  // 直接用 unitCost 計算，不做 Firestore 查詢，避免 costPerPiece 欄遺失造成 $0
+  const materialCost = currentMaterials.reduce((s, m) => s + (m.unitCost || 0) * (m.quantity || 0), 0);
   const chainTotal = currentChains.reduce((s, c) => s + Number(c.totalCost || 0), 0);
   const packagingTotal = currentPackaging.reduce((s, i) => s + Number(i.cost || 0), 0);
   const logisticsTotal = currentLogistics.reduce((s, i) => s + Number(i.cost || 0), 0);
