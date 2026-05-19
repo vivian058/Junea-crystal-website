@@ -123,8 +123,14 @@ async function renderDesignCard(design) {
 
   const matCount = (design.materials||[]).length + (design.chainItems||[]).length;
 
+  const savedSizes = design.wristSizes || [];
+  const cardChips = `<div style="display:flex;flex-wrap:wrap;gap:4px;margin:10px 0 4px">` +
+    WRIST_SIZES.map(s =>
+      `<span class="wrist-chip${savedSizes.includes(s) ? ' active' : ''}" style="min-width:36px;height:24px;font-size:11px;cursor:default">${s}</span>`
+    ).join('') + `</div>`;
+
   return `
-    <div class="design-card" onclick="openDetailModal('${design.id}')">
+    <div class="design-card" onclick="openSizePicker('${design.id}')">
       ${imgHtml}
       <div class="design-card-header">
         <div>
@@ -137,6 +143,7 @@ async function renderDesignCard(design) {
         </div>
       </div>
       ${alertHtml}
+      ${cardChips}
       ${profitHtml}
       <div class="btn-group mt-16" onclick="event.stopPropagation()">
         <button class="btn btn-secondary btn-sm" onclick="openEditModal('${design.id}')">編輯</button>
@@ -146,6 +153,34 @@ async function renderDesignCard(design) {
 }
 
 // ─── Modal 控制 ───────────────────────────
+
+// ─── 手圍選擇 Modal ──────────────────────────
+
+function openSizePicker(id) {
+  const design = _loadedDesigns[id];
+  if (!design) return;
+  const savedSizes = design.wristSizes || [];
+
+  const imgHtml = design.imageUrl
+    ? `<img src="${design.imageUrl}" alt="${design.name}" style="width:100%;border-radius:8px;margin-bottom:16px;object-fit:cover;max-height:160px" onerror="this.style.display='none'">`
+    : '';
+
+  const chips = WRIST_SIZES.map(s => {
+    const active = savedSizes.includes(s);
+    return `<span class="wrist-chip${active ? ' active' : ' chip-empty'}"
+      style="min-width:52px;height:38px;font-size:14px;${active ? 'cursor:pointer' : 'cursor:default'}"
+      ${active ? `onclick="closeModal('sizePickerModal');openDetailModal('${id}')"` : ''}
+    >${s}</span>`;
+  }).join('');
+
+  _setText('size-picker-title', design.name);
+  document.getElementById('size-picker-body').innerHTML = `
+    ${imgHtml}
+    <div style="font-size:13px;color:var(--text-muted);margin-bottom:16px;text-align:center">選擇手圍尺寸查看詳細資料<br><span style="font-size:12px">（紫色 = 已填入資料）</span></div>
+    <div style="display:flex;flex-wrap:wrap;gap:8px;justify-content:center;padding-bottom:8px">${chips}</div>`;
+
+  openModal('sizePickerModal');
+}
 
 // ─── 詳細瀏覽 Modal ──────────────────────────
 
