@@ -247,8 +247,9 @@ function showMaterialSuggestions() {
   });
 
   if (!_materialMatches.length) {
-    const s0 = crystalOptions[0];
-    const dbg = s0 ? `第1筆: itemCode=${s0.itemCode||'空'} productName=${s0.productName||'空'} crystalName=${s0.crystalName||'空'}` : '無資料';
+    const withCode = crystalOptions.filter(s => s.itemCode).length;
+    const hlItems = crystalOptions.filter(s => (s.itemCode||'').toUpperCase().startsWith('HL'));
+    const dbg = `有itemCode: ${withCode}筆 | HL開頭: ${hlItems.length}筆 | HL範例: ${hlItems.slice(0,2).map(s=>s.itemCode).join(', ')||'無'}`;
     dropdown.innerHTML = `<div class="ac-item" style="color:var(--text-muted);font-size:11px;flex-direction:column;align-items:flex-start;gap:2px">
       <span>無符合項目（水晶 ${crystalOptions.length} 筆 / 配件 ${accessoryOptions.length} 筆）</span>
       <span style="color:#c00;font-size:10px">${dbg}</span>
