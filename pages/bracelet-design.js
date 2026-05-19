@@ -43,12 +43,13 @@ async function preloadOptions() {
     allRecords.sort((a, b) => (b.date || '').localeCompare(a.date || ''));
     const seenSpec = new Map();
     allRecords.forEach(r => {
-      if (!seenSpec.has(r.specKey)) {
-        seenSpec.set(r.specKey, { ...r, _allCodes: r.itemCode ? [r.itemCode] : [] });
+      // 用 specKey+productName 當去重 key，避免同顏色/尺寸/形狀的不同礦石互相蓋掉
+      const dedupKey = `${r.specKey}__${r.productName || ''}`;
+      if (!seenSpec.has(dedupKey)) {
+        seenSpec.set(dedupKey, { ...r, _allCodes: r.itemCode ? [r.itemCode] : [] });
       } else {
-        const ex = seenSpec.get(r.specKey);
+        const ex = seenSpec.get(dedupKey);
         if (r.itemCode && !ex._allCodes.includes(r.itemCode)) ex._allCodes.push(r.itemCode);
-        if (!ex.productName && r.productName) ex.productName = r.productName;
       }
     });
     crystalOptions = [...seenSpec.values()];
