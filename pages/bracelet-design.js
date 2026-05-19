@@ -204,8 +204,12 @@ function showMaterialSuggestions() {
   _materialMatches = [];
 
   crystalOptions.forEach(item => {
-    const name = `${item.crystalName} ${item.size}mm ${item.typeB} ${item.typeA}`;
-    const searchable = [name, item.specKey, item.itemCode, item.productName, item.vendor, item.crystalName]
+    const sizeStr = String(item.size || '');
+    const sizeDisplay = sizeStr.includes('mm') ? sizeStr : sizeStr + 'mm';
+    const code = item.itemCode || '';
+    const baseName = `${item.crystalName} ${sizeDisplay} ${item.typeB} ${item.typeA}`.trim();
+    const name = code ? `[${code}] ${baseName}` : baseName;
+    const searchable = [baseName, code, item.specKey, item.productName, item.vendor, item.crystalName]
       .filter(Boolean).join(' ').toLowerCase();
     if (!search || searchable.includes(search)) {
       _materialMatches.push({ type: 'crystal', specKey: item.specKey, displayName: name, unitCost: item.costPerBead || 0 });
