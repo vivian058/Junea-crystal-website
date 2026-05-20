@@ -276,7 +276,7 @@ async function openDetailModal(id) {
   if ((design.notes||[]).length) {
     notesHtml = sectionTitle('製作備註') +
       (design.notes||[]).map(n =>
-        `<div class="material-row"><span style="color:var(--text-muted);white-space:nowrap;font-size:12px">${fmtNoteDate(n.date)}</span><span style="flex:1;font-size:13px;padding-left:8px">${n.text}</span></div>`
+        `<div class="material-row" style="align-items:flex-start"><span style="color:var(--text-muted);white-space:nowrap;font-size:12px;padding-top:2px">${fmtNoteDate(n.date)}</span><span style="flex:1;font-size:13px;padding-left:8px;white-space:pre-line">${n.text}</span></div>`
       ).join('');
   }
 
@@ -377,8 +377,7 @@ function showMaterialSuggestions() {
     const code = item.itemCode || '';
     // productName = 礦石名（白水晶、拉長石）；crystalName = 色系（白色/多彩、黑色/灰色）
     const mineral = item.productName || item.crystalName || '';
-    const color   = item.productName ? (item.crystalName || '') : '';
-    const baseName = [mineral, color, sizeDisplay, item.typeB, item.typeA].filter(Boolean).join(' ');
+    const baseName = [mineral, sizeDisplay, item.typeB, item.typeA].filter(Boolean).join(' · ');
     const name = code ? `[${code}] ${baseName}` : baseName;
     const searchable = [baseName, code, ...(item._allCodes||[]), item.specKey, item.productName, item.vendor, item.crystalName, item.typeA, item.typeB]
       .filter(Boolean).join(' ').toLowerCase();
@@ -747,11 +746,19 @@ function fmtNoteDate(isoDate) {
 }
 
 function addNote() {
-  const text = (document.getElementById('note-input').value || '').trim();
+  const el = document.getElementById('note-input');
+  const text = (el ? el.value : '').trim();
   const dateVal = document.getElementById('note-date').value || new Date().toISOString().split('T')[0];
   if (!text) { showToast('請輸入備註內容', 'warning'); return; }
   currentNotes.push({ date: dateVal, text });
-  _setVal('note-input', '');
+  if (el) el.value = '';
+  renderNoteList();
+}
+
+function moveNote(idx, dir) {
+  const target = idx + dir;
+  if (target < 0 || target >= currentNotes.length) return;
+  [currentNotes[idx], currentNotes[target]] = [currentNotes[target], currentNotes[idx]];
   renderNoteList();
 }
 
@@ -764,11 +771,16 @@ function startEditNote(idx) {
   const row = document.getElementById(`note-row-${idx}`);
   if (!row) return;
   const note = currentNotes[idx];
+  const safeText = note.text.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
   row.innerHTML = `
-    <input class="form-control" id="note-edit-date-${idx}" type="date" value="${note.date}" style="max-width:140px;font-size:13px;padding:4px 8px">
-    <input class="form-control" id="note-edit-${idx}" value="${note.text.replace(/"/g, '&quot;')}" style="flex:1;font-size:13px;padding:4px 8px">
-    <button class="btn btn-primary btn-sm" onclick="saveEditNote(${idx})" style="white-space:nowrap">儲存</button>
-    <button class="btn btn-secondary btn-sm" onclick="renderNoteList()" style="white-space:nowrap">取消</button>`;
+    <div style="display:flex;flex-direction:column;gap:6px;width:100%">
+      <div style="display:flex;gap:6px;align-items:center">
+        <input class="form-control" id="note-edit-date-${idx}" type="date" value="${note.date}" style="max-width:140px;font-size:13px;padding:4px 8px">
+        <button class="btn btn-primary btn-sm" onclick="saveEditNote(${idx})" style="white-space:nowrap">儲存</button>
+        <button class="btn btn-secondary btn-sm" onclick="renderNoteList()" style="white-space:nowrap">取消</button>
+      </div>
+      <textarea class="form-control" id="note-edit-${idx}" rows="3" style="font-size:13px;padding:4px 8px;resize:vertical;min-height:60px">${safeText}</textarea>
+    </div>`;
   document.getElementById(`note-edit-${idx}`).focus();
 }
 
@@ -790,12 +802,17 @@ function renderNoteList() {
     container.innerHTML = `<div style="text-align:center;padding:10px;color:var(--text-muted);font-size:13px">尚未加入任何備註</div>`;
     return;
   }
+  const total = currentNotes.length;
   container.innerHTML = currentNotes.map((n, idx) => `
-    <div id="note-row-${idx}" style="display:flex;align-items:center;gap:8px;padding:7px 0;border-bottom:1px solid var(--border)">
-      <span style="font-size:12px;color:var(--text-muted);white-space:nowrap">${fmtNoteDate(n.date)}</span>
-      <span style="flex:1;font-size:13px">${n.text}</span>
-      <span onclick="startEditNote(${idx})" style="cursor:pointer;color:var(--primary);font-size:13px;padding:0 4px" title="編輯">✎</span>
-      <span onclick="removeNote(${idx})" style="cursor:pointer;color:var(--text-muted);padding:0 4px" title="刪除">✕</span>
+    <div id="note-row-${idx}" style="display:flex;align-items:flex-start;gap:8px;padding:7px 0;border-bottom:1px solid var(--border)">
+      <span style="font-size:12px;color:var(--text-muted);white-space:nowrap;margin-top:2px">${fmtNoteDate(n.date)}</span>
+      <span style="flex:1;font-size:13px;white-space:pre-line">${n.text}</span>
+      <div style="display:flex;flex-direction:column;gap:2px;flex-shrink:0">
+        <span onclick="moveNote(${idx},-1)" style="cursor:${idx===0?'default':'pointer'};color:${idx===0?'#ccc':'var(--primary)'};font-size:12px;line-height:1;padding:1px 4px" title="上移">▲</span>
+        <span onclick="moveNote(${idx},1)" style="cursor:${idx===total-1?'default':'pointer'};color:${idx===total-1?'#ccc':'var(--primary)'};font-size:12px;line-height:1;padding:1px 4px" title="下移">▼</span>
+      </div>
+      <span onclick="startEditNote(${idx})" style="cursor:pointer;color:var(--primary);font-size:13px;padding:0 4px;margin-top:1px" title="編輯">✎</span>
+      <span onclick="removeNote(${idx})" style="cursor:pointer;color:var(--text-muted);padding:0 4px;margin-top:1px" title="刪除">✕</span>
     </div>`).join('');
 }
 
