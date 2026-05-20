@@ -282,7 +282,7 @@ async function openDetailModal(id) {
 
   _setText('detail-title', design.name);
   document.getElementById('detail-body').innerHTML = `
-    <div style="display:flex;height:100%">
+    <div style="display:flex;height:calc(90vh - 64px)">
       <div style="width:260px;flex-shrink:0;padding:20px;border-right:1px solid var(--border);overflow-y:auto">
         ${imgHtml}${wristHtml}${totalHtml}${profitHtml}
         <div class="btn-group" style="margin-top:20px;padding-top:16px;border-top:1px solid var(--border)">
