@@ -283,15 +283,15 @@ async function openDetailModal(id) {
   _setText('detail-title', design.name);
   document.getElementById('detail-body').innerHTML = `
     <div style="display:flex;height:min(90vh,720px)">
-      <div style="width:260px;flex-shrink:0;padding:20px;border-right:1px solid var(--border);overflow-y:auto">
-        ${imgHtml}${wristHtml}${totalHtml}${profitHtml}
-      </div>
-      <div style="flex:1;min-width:0;padding:20px;overflow-y:auto">
-        ${matHtml}${chainHtml}${pkgHtml}${logHtml}${notesHtml}
-        <div class="btn-group mt-16">
+      <div style="width:260px;flex-shrink:0;padding:20px;border-right:1px solid var(--border);overflow-y:auto;display:flex;flex-direction:column">
+        <div style="flex:1">${imgHtml}${wristHtml}${totalHtml}${profitHtml}</div>
+        <div class="btn-group" style="margin-top:16px">
           <button class="btn btn-secondary" onclick="closeModal('detailModal');openEditModal('${design.id}')">編輯</button>
           <button class="btn btn-danger" onclick="closeModal('detailModal');deleteDesign('${design.id}','${design.name.replace(/'/g,"\\'")}')">刪除</button>
         </div>
+      </div>
+      <div style="flex:1;min-width:0;padding:20px;overflow-y:auto">
+        ${matHtml}${chainHtml}${pkgHtml}${logHtml}${notesHtml}
       </div>
     </div>`;
   openModal('detailModal');
