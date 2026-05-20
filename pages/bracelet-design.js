@@ -755,12 +755,7 @@ function addNote() {
   renderNoteList();
 }
 
-function moveNote(idx, dir) {
-  const target = idx + dir;
-  if (target < 0 || target >= currentNotes.length) return;
-  [currentNotes[idx], currentNotes[target]] = [currentNotes[target], currentNotes[idx]];
-  renderNoteList();
-}
+let _noteDragSrc = null;
 
 function removeNote(idx) {
   currentNotes.splice(idx, 1);
@@ -802,18 +797,49 @@ function renderNoteList() {
     container.innerHTML = `<div style="text-align:center;padding:10px;color:var(--text-muted);font-size:13px">尚未加入任何備註</div>`;
     return;
   }
-  const total = currentNotes.length;
   container.innerHTML = currentNotes.map((n, idx) => `
-    <div id="note-row-${idx}" style="display:flex;align-items:flex-start;gap:8px;padding:7px 0;border-bottom:1px solid var(--border)">
+    <div id="note-row-${idx}" draggable="true" data-idx="${idx}"
+         style="display:flex;align-items:flex-start;gap:8px;padding:7px 0;border-bottom:1px solid var(--border)">
+      <span style="cursor:grab;color:var(--text-muted);font-size:18px;padding:0 2px;margin-top:0;user-select:none;line-height:1.2" title="拖曳排序">⠿</span>
       <span style="font-size:12px;color:var(--text-muted);white-space:nowrap;margin-top:2px">${fmtNoteDate(n.date)}</span>
       <span style="flex:1;font-size:13px;white-space:pre-line">${n.text}</span>
-      <div style="display:flex;flex-direction:column;gap:2px;flex-shrink:0">
-        <span onclick="moveNote(${idx},-1)" style="cursor:${idx===0?'default':'pointer'};color:${idx===0?'#ccc':'var(--primary)'};font-size:12px;line-height:1;padding:1px 4px" title="上移">▲</span>
-        <span onclick="moveNote(${idx},1)" style="cursor:${idx===total-1?'default':'pointer'};color:${idx===total-1?'#ccc':'var(--primary)'};font-size:12px;line-height:1;padding:1px 4px" title="下移">▼</span>
-      </div>
       <span onclick="startEditNote(${idx})" style="cursor:pointer;color:var(--primary);font-size:13px;padding:0 4px;margin-top:1px" title="編輯">✎</span>
       <span onclick="removeNote(${idx})" style="cursor:pointer;color:var(--text-muted);padding:0 4px;margin-top:1px" title="刪除">✕</span>
     </div>`).join('');
+  _setupNoteDrag(container);
+}
+
+function _setupNoteDrag(container) {
+  const rows = container.querySelectorAll('[data-idx]');
+  rows.forEach(row => {
+    row.addEventListener('dragstart', e => {
+      _noteDragSrc = parseInt(row.dataset.idx);
+      e.dataTransfer.effectAllowed = 'move';
+      setTimeout(() => row.style.opacity = '0.4', 0);
+    });
+    row.addEventListener('dragend', () => {
+      row.style.opacity = '';
+      container.querySelectorAll('[data-idx]').forEach(r => r.style.background = '');
+    });
+    row.addEventListener('dragover', e => {
+      e.preventDefault();
+      e.dataTransfer.dropEffect = 'move';
+      container.querySelectorAll('[data-idx]').forEach(r => r.style.background = '');
+      row.style.background = 'var(--primary-light)';
+    });
+    row.addEventListener('dragleave', () => {
+      row.style.background = '';
+    });
+    row.addEventListener('drop', e => {
+      e.preventDefault();
+      const targetIdx = parseInt(row.dataset.idx);
+      if (_noteDragSrc === null || _noteDragSrc === targetIdx) return;
+      const moved = currentNotes.splice(_noteDragSrc, 1)[0];
+      currentNotes.splice(targetIdx, 0, moved);
+      _noteDragSrc = null;
+      renderNoteList();
+    });
+  });
 }
 
 // ─── 刪除 ─────────────────────────────────
