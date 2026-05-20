@@ -212,7 +212,7 @@ async function openDetailModal(id) {
 
   // ── 左側：圖片 / 手圍 / 總成本 / 毛利 ──
   const imgHtml = design.imageUrl
-    ? `<img src="${design.imageUrl}" alt="${design.name}" style="width:100%;border-radius:8px;margin-bottom:16px;object-fit:cover;max-height:200px" onerror="this.style.display='none'">`
+    ? `<img src="${design.imageUrl}" alt="${design.name}" style="width:100%;border-radius:8px;margin-bottom:12px;object-fit:cover;max-height:150px" onerror="this.style.display='none'">`
     : '';
 
   const savedSizes = design.wristSizes || [];
@@ -282,7 +282,7 @@ async function openDetailModal(id) {
 
   _setText('detail-title', design.name);
   document.getElementById('detail-body').innerHTML = `
-    <div style="display:flex;height:min(82vh,660px)">
+    <div style="display:flex;height:min(90vh,720px)">
       <div style="width:260px;flex-shrink:0;padding:20px;border-right:1px solid var(--border);overflow-y:auto">
         ${imgHtml}${wristHtml}${totalHtml}${profitHtml}
       </div>
