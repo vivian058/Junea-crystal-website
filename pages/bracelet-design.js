@@ -198,10 +198,6 @@ async function openDetailModal(id) {
   const logTotal     = (design.logisticsItems||[]).reduce((s,i) => s + Number(i.cost||0), 0);
   const totalCost    = materialCost + chainTotal + pkgTotal + logTotal;
 
-  const imgHtml = design.imageUrl
-    ? `<img src="${design.imageUrl}" alt="${design.name}" style="width:100%;border-radius:8px;margin-bottom:16px;object-fit:cover;max-height:240px" onerror="this.style.display='none'">`
-    : '';
-
   const row = (label, val, color='') =>
     `<div class="material-row"><span style="color:var(--text-muted)">${label}</span><span style="font-weight:600${color ? ';color:'+color : ''}">${val}</span></div>`;
 
