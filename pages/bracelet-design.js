@@ -254,7 +254,7 @@ async function openDetailModal(id) {
   if ((design.chainItems||[]).length) {
     chainHtml = sectionTitle('② 鍊條線材') +
       (design.chainItems||[]).map(c =>
-        `<div class="material-row"><span style="flex:1;font-size:13px">${c.displayName} × ${c.lengthCm}cm</span><span style="color:var(--primary);font-weight:600">${fmtChainCost(Number(c.totalCost))}</span></div>`
+        `<div class="material-row" style="gap:6px"><span class="badge" style="background:#e8f4e8;color:#2d6a2d;flex-shrink:0">線材</span><span style="flex:1;font-size:13px">${c.displayName} × ${c.lengthCm}cm</span><span style="color:var(--primary);font-weight:600">${fmtChainCost(Number(c.totalCost))}</span></div>`
       ).join('') + subtotalRow(fmtChainCost(chainTotal));
   }
 
