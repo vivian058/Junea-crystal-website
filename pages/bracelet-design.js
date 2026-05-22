@@ -310,7 +310,7 @@ function resetModal() {
   _setDisplay('profit-section', 'none'); _setDisplay('suggested-section', 'none');
   clearMaterialSelection(); clearChainSelection();
   _setVal('pkg-name', ''); _setVal('pkg-cost', '');
-  _setVal('log-name', ''); _setVal('log-cost', '');
+  _setVal('log-name', ''); _setVal('log-cost', ''); _setVal('log-rate', ''); _setVal('log-price', '');
   renderWristChips();
 }
 
@@ -613,12 +613,28 @@ function renderPackagingList() {
 
 // ─── 物流平台成本 ──────────────────────────
 
+function calcLogCost() {
+  const rate = parseFloat(document.getElementById('log-rate').value);
+  const price = parseFloat(document.getElementById('log-price').value);
+  const hint = document.getElementById('log-rate-hint');
+  if (rate > 0 && price > 0) {
+    document.getElementById('log-cost').value = (price * rate / 100).toFixed(2);
+    if (hint) hint.style.display = 'block';
+  } else {
+    if (hint) hint.style.display = 'none';
+  }
+}
+
 function addLogisticsItem() {
   const name = document.getElementById('log-name').value.trim();
   const cost = parseFloat(document.getElementById('log-cost').value) || 0;
   if (!name) { showToast('請填寫物流/平台項目名稱', 'warning'); return; }
-  currentLogistics.push({ name, cost });
-  _setVal('log-name', ''); _setVal('log-cost', '');
+  const rate = parseFloat(document.getElementById('log-rate').value) || null;
+  const price = parseFloat(document.getElementById('log-price').value) || null;
+  currentLogistics.push({ name, cost, rate, price });
+  _setVal('log-name', ''); _setVal('log-cost', ''); _setVal('log-rate', ''); _setVal('log-price', '');
+  const hint = document.getElementById('log-rate-hint');
+  if (hint) hint.style.display = 'none';
   renderLogisticsList(); updateCostPreviews();
 }
 
@@ -630,12 +646,16 @@ function removeLogisticsItem(idx) {
 function renderLogisticsList() {
   const container = document.getElementById('logistics-list');
   if (!currentLogistics.length) { container.innerHTML = ''; _setText('logistics-cost-preview', '$0'); return; }
-  container.innerHTML = currentLogistics.map((item, idx) => `
-    <div style="display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid var(--border)">
-      <span style="flex:1;font-size:13px">${item.name}</span>
+  container.innerHTML = currentLogistics.map((item, idx) => {
+    const rateLabel = (item.rate && item.price)
+      ? `<span style="font-size:12px;color:var(--text-muted)">（售價 $${item.price} × ${item.rate}%）</span>`
+      : '';
+    return `<div style="display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid var(--border)">
+      <span style="flex:1;font-size:13px">${item.name}${rateLabel}</span>
       <span style="font-size:13px;color:var(--secondary);font-weight:600">${fmtCurrency(Number(item.cost))}</span>
       <span onclick="removeLogisticsItem(${idx})" style="cursor:pointer;color:var(--text-muted);padding:0 4px">✕</span>
-    </div>`).join('');
+    </div>`;
+  }).join('');
   _setText('logistics-cost-preview', fmtCurrency(currentLogistics.reduce((s, i) => s + Number(i.cost || 0), 0)));
 }
 
