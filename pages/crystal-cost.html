@@ -30,22 +30,22 @@
         </div>
         <div class="form-group">
           <label>尺寸 (mm)</label>
-          <input class="form-control" id="f-size" list="list-size" placeholder="全部（可直接輸入）" autocomplete="off">
+          <input class="form-control" id="f-size" list="list-size" placeholder="全部（可直接輸入）" autocomplete="off" onkeydown="if(event.key==='Enter')doSearch()">
           <datalist id="list-size"></datalist>
         </div>
         <div class="form-group">
           <label>規格 (條珠/成品串)</label>
-          <input class="form-control" id="f-typeA" list="list-typeA" placeholder="全部（可直接輸入）" autocomplete="off">
+          <input class="form-control" id="f-typeA" list="list-typeA" placeholder="全部（可直接輸入）" autocomplete="off" onkeydown="if(event.key==='Enter')doSearch()">
           <datalist id="list-typeA"></datalist>
         </div>
         <div class="form-group">
           <label>形狀</label>
-          <input class="form-control" id="f-typeB" list="list-typeB" placeholder="全部（可直接輸入）" autocomplete="off">
+          <input class="form-control" id="f-typeB" list="list-typeB" placeholder="全部（可直接輸入）" autocomplete="off" onkeydown="if(event.key==='Enter')doSearch()">
           <datalist id="list-typeB"></datalist>
         </div>
         <div class="form-group">
           <label>關鍵字搜尋</label>
-          <input class="form-control" id="f-keyword" type="text" placeholder="廠家、商品名…">
+          <input class="form-control" id="f-keyword" type="text" placeholder="廠家、商品名…" onkeydown="if(event.key==='Enter')doSearch()">
         </div>
         <button class="btn btn-primary" onclick="doSearch()">查詢</button>
         <button class="btn btn-secondary" onclick="clearSearch()">清除</button>
