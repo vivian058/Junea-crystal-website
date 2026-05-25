@@ -25,12 +25,12 @@
       <div class="search-row">
         <div class="form-group">
           <label>廠家</label>
-          <input class="form-control" id="f-vendor" list="list-vendor" placeholder="全部（可直接輸入）" autocomplete="off">
+          <input class="form-control" id="f-vendor" list="list-vendor" placeholder="全部（可直接輸入）" autocomplete="off" onkeydown="if(event.key==='Enter')doSearch()">
           <datalist id="list-vendor"></datalist>
         </div>
         <div class="form-group">
           <label>關鍵字 / 貨號</label>
-          <input class="form-control" id="f-keyword" type="text" placeholder="商品名、貨號、顏色…">
+          <input class="form-control" id="f-keyword" type="text" placeholder="商品名、貨號、顏色…" onkeydown="if(event.key==='Enter')doSearch()">
         </div>
         <button class="btn btn-primary" onclick="doSearch()">查詢</button>
         <button class="btn btn-secondary" onclick="clearSearch()">清除</button>
