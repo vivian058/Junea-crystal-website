@@ -862,6 +862,129 @@ function _setupNoteDrag(container) {
   });
 }
 
+// ─── 學習日誌 ─────────────────────────────
+
+let currentJournalEntries = [];
+let _journalDragSrc = null;
+
+async function openJournalModal() {
+  try {
+    currentJournalEntries = await getLearningJournal();
+  } catch(e) {
+    currentJournalEntries = [];
+  }
+  _setVal('journal-input', '');
+  _setVal('journal-date', new Date().toISOString().split('T')[0]);
+  renderJournalList();
+  openModal('journalModal');
+}
+
+function renderJournalList() {
+  const container = document.getElementById('journal-list');
+  if (!container) return;
+  if (!currentJournalEntries.length) {
+    container.innerHTML = `<div style="text-align:center;padding:10px;color:var(--text-muted);font-size:13px">尚未加入任何日誌</div>`;
+    return;
+  }
+  container.innerHTML = currentJournalEntries.map((n, idx) => `
+    <div id="journal-row-${idx}" draggable="true" data-idx="${idx}"
+         style="display:flex;align-items:flex-start;gap:8px;padding:8px 0;border-bottom:1px solid var(--border)">
+      <span style="cursor:grab;color:var(--text-muted);font-size:18px;padding:0 2px;user-select:none;line-height:1.2" title="拖曳排序">⠿</span>
+      <span style="font-size:12px;color:var(--text-muted);white-space:nowrap;margin-top:2px">${fmtNoteDate(n.date)}</span>
+      <span style="flex:1;font-size:13px;white-space:pre-line">${n.text}</span>
+      <span onclick="startEditJournalEntry(${idx})" style="cursor:pointer;color:var(--primary);font-size:13px;padding:0 4px;margin-top:1px" title="編輯">✎</span>
+      <span onclick="removeJournalEntry(${idx})" style="cursor:pointer;color:var(--text-muted);padding:0 4px;margin-top:1px" title="刪除">✕</span>
+    </div>`).join('');
+  _setupJournalDrag(container);
+}
+
+function _setupJournalDrag(container) {
+  const rows = container.querySelectorAll('[data-idx]');
+  rows.forEach(row => {
+    row.addEventListener('dragstart', e => {
+      _journalDragSrc = parseInt(row.dataset.idx);
+      e.dataTransfer.effectAllowed = 'move';
+      setTimeout(() => row.style.opacity = '0.4', 0);
+    });
+    row.addEventListener('dragend', () => {
+      row.style.opacity = '';
+      container.querySelectorAll('[data-idx]').forEach(r => r.style.background = '');
+    });
+    row.addEventListener('dragover', e => {
+      e.preventDefault();
+      container.querySelectorAll('[data-idx]').forEach(r => r.style.background = '');
+      row.style.background = 'var(--primary-light)';
+    });
+    row.addEventListener('dragleave', () => { row.style.background = ''; });
+    row.addEventListener('drop', e => {
+      e.preventDefault();
+      const targetIdx = parseInt(row.dataset.idx);
+      if (_journalDragSrc === null || _journalDragSrc === targetIdx) return;
+      const moved = currentJournalEntries.splice(_journalDragSrc, 1)[0];
+      currentJournalEntries.splice(targetIdx, 0, moved);
+      _journalDragSrc = null;
+      renderJournalList();
+    });
+  });
+}
+
+function addJournalEntry() {
+  const el = document.getElementById('journal-input');
+  const text = (el ? el.value : '').trim();
+  const dateVal = document.getElementById('journal-date').value || new Date().toISOString().split('T')[0];
+  if (!text) { showToast('請輸入日誌內容', 'warning'); return; }
+  currentJournalEntries.unshift({ date: dateVal, text });
+  if (el) el.value = '';
+  renderJournalList();
+}
+
+function removeJournalEntry(idx) {
+  currentJournalEntries.splice(idx, 1);
+  renderJournalList();
+}
+
+function startEditJournalEntry(idx) {
+  const row = document.getElementById(`journal-row-${idx}`);
+  if (!row) return;
+  const entry = currentJournalEntries[idx];
+  const safeText = entry.text.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  row.innerHTML = `
+    <div style="display:flex;flex-direction:column;gap:6px;width:100%">
+      <div style="display:flex;gap:6px;align-items:center">
+        <input class="form-control" id="journal-edit-date-${idx}" type="date" value="${entry.date}" style="max-width:140px;font-size:13px;padding:4px 8px">
+        <button class="btn btn-primary btn-sm" onclick="saveEditJournalEntry(${idx})">儲存</button>
+        <button class="btn btn-secondary btn-sm" onclick="renderJournalList()">取消</button>
+      </div>
+      <textarea class="form-control" id="journal-edit-${idx}" rows="3" style="font-size:13px;padding:4px 8px;resize:vertical;min-height:60px">${safeText}</textarea>
+    </div>`;
+  document.getElementById(`journal-edit-${idx}`).focus();
+}
+
+function saveEditJournalEntry(idx) {
+  const el = document.getElementById(`journal-edit-${idx}`);
+  const dateEl = document.getElementById(`journal-edit-date-${idx}`);
+  if (!el) return;
+  const text = el.value.trim();
+  if (!text) { showToast('日誌不能為空', 'warning'); return; }
+  currentJournalEntries[idx].text = text;
+  if (dateEl && dateEl.value) currentJournalEntries[idx].date = dateEl.value;
+  renderJournalList();
+}
+
+async function saveJournal() {
+  const btn = document.getElementById('journal-save-btn');
+  btn.disabled = true; btn.textContent = '儲存中...';
+  try {
+    await saveLearningJournal(currentJournalEntries);
+    showToast('學習日誌已儲存', 'success');
+    closeModal('journalModal');
+  } catch(e) {
+    showToast(`儲存失敗：${e.message}`, 'danger');
+  } finally {
+    btn.disabled = false; btn.textContent = '儲存日誌';
+  }
+}
+
 // ─── 刪除 ─────────────────────────────────
 
 async function deleteDesign(id, name) {
