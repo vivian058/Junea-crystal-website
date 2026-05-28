@@ -26,5 +26,6 @@ const COLLECTIONS = {
   INVENTORY: 'inventory',
   INITIAL_STOCK: 'initialStockSettings',
   CRYSTAL_EFFECTS: 'crystalEffects',
-  INSPIRATIONS: 'inspirations'
+  INSPIRATIONS: 'inspirations',
+  SETTINGS: 'settings'
 };

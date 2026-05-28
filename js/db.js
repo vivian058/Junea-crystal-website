@@ -859,6 +859,21 @@ async function setAccessoryInitialSetting(data) {
   return { specKey, isNewInventory };
 }
 
+// ─── 學習日誌 ─────────────────────────────
+
+async function getLearningJournal() {
+  const doc = await db.collection(COLLECTIONS.SETTINGS).doc('learningJournal').get();
+  if (!doc.exists) return [];
+  return doc.data().entries || [];
+}
+
+async function saveLearningJournal(entries) {
+  await db.collection(COLLECTIONS.SETTINGS).doc('learningJournal').set({
+    entries,
+    updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+  });
+}
+
 // ─── 水晶功效 ─────────────────────────────
 
 // ─── 靈感收藏 ──────────────────────────────
