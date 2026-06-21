@@ -269,7 +269,7 @@ function renderTable(records) {
     </tr>`;
 
     extra.forEach(r => {
-      rows += `<tr class="${gid}-hist" style="display:none;background:#f5f4f4">
+      rows += `<tr class="${gid}-hist" style="display:none;background:#f6f6f6">
         <td style="text-align:center;padding:8px 6px">
           <input type="checkbox" class="row-check" value="${r.id}" onchange="updateBulkBar()">
         </td>
