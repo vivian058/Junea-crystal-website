@@ -314,7 +314,7 @@ tbody tr {
   transition: background 0.12s;
 }
 
-tbody tr:hover { background: #fbf6ef; }
+tbody tr:hover { background: #fafafa; }
 
 tbody td {
   padding: 11px 14px;
