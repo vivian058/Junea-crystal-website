@@ -233,9 +233,9 @@ function renderTable(records) {
       <td style="${s}">${r.typeB || '-'}</td>
       <td><strong style="color:var(--primary-dark)">${fmtCurrency(r.costPerBead)}</strong></td>
       <td style="${s}">${fmtYuan(r.pricePerStrand)}</td>
+      <td style="min-width:120px;color:var(--text-muted)">${r.note || '-'}</td>
       <td style="${s}">${r.weightPerStrand ? r.weightPerStrand + 'g' : '-'}</td>
       <td style="${s}">${r.pricePerGram ? fmtYuan(r.pricePerGram) : '-'}</td>
-      <td style="min-width:120px;color:var(--text-muted)">${r.note || '-'}</td>
       <td style="${s}">${r.vendor || '-'}</td>
       <td class="td-link">${r.shopLink ? `<a href="${r.shopLink}" target="_blank">連結 ↗</a>` : '-'}</td>
       <td>
@@ -302,9 +302,9 @@ function renderTable(records) {
             ${_thBtn('typeB','形狀',80)}
             <th style="min-width:110px">單顆進貨成本$</th>
             <th style="min-width:90px">單條進價¥</th>
+            <th style="min-width:140px">備註</th>
             <th style="min-width:80px">一條重量g</th>
             <th style="min-width:80px">克價¥</th>
-            <th style="min-width:140px">備註</th>
             ${_thBtn('vendor','廠家',80)}
             <th style="min-width:60px">賣場連結</th>
             <th style="min-width:110px">操作</th>
