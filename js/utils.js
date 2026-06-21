@@ -86,6 +86,7 @@ function makePriceChangeBadge(current, previous, threshold = 50) {
 // ─── 導覽列 ───────────────────────────────
 
 const NAV_PAGES = [
+  { href: '../index.html', label: '首頁' },
   { href: '../pages/crystal-cost.html', label: '水晶成本' },
   { href: '../pages/accessory-cost.html', label: '配件成本' },
   { href: '../pages/chain-cost.html', label: '鍊條線材成本' },
@@ -100,7 +101,6 @@ function renderNav(activePage) {
   ).join('');
   return `
     <nav class="navbar">
-      <a href="../index.html" class="nav-brand">玖釀 <span>Crystal</span></a>
       <div class="nav-links">${links}</div>
     </nav>`;
 }
