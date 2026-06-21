@@ -10,8 +10,10 @@
   --primary-light:  #e8e0d2;   /* 輔助色：暖棕米，用於 hover / badge / 區塊底色 */
   --primary-dark:   #5c4830;
   --secondary:      #b8943f;
-  --bg:             #faf6f0;   /* 最淺：主要大面積底色 */
-  --card-bg:        #faf6f0;   /* 與 bg 相同，用 border 區分 */
+  --bg:             #faf6f0;   /* 頁面大面積暖奶油底色 */
+  --card-bg:        #ffffff;   /* 卡片純白底色 */
+  --nav-bg:         #6b5f52;   /* 深暖棕：導覽列 + 主要按鈕（對標 MORRICANDLE 深色區） */
+  --nav-text:       #e8e0d4;   /* 導覽列淺色文字 */
   --text:           #28211c;
   --text-muted:     #8c8078;
   --border:         #e2d9cc;
@@ -19,8 +21,8 @@
   --success:        #4a7a55;
   --warning:        #a06828;
   --danger:         #9e3a3a;
-  --shadow:         0 1px 4px rgba(40,33,28,0.05), 0 4px 16px rgba(40,33,28,0.03);
-  --shadow-hover:   0 4px 12px rgba(40,33,28,0.09), 0 12px 36px rgba(40,33,28,0.07);
+  --shadow:         0 1px 4px rgba(40,33,28,0.06), 0 4px 16px rgba(40,33,28,0.04);
+  --shadow-hover:   0 4px 12px rgba(40,33,28,0.10), 0 12px 36px rgba(40,33,28,0.08);
   --radius:         4px;
   --radius-sm:      2px;
   --radius-lg:      8px;
@@ -40,8 +42,8 @@ body {
 
 /* ===== Navbar ===== */
 .navbar {
-  background: var(--card-bg);
-  border-bottom: 1px solid var(--border);
+  background: var(--nav-bg);
+  border-bottom: 1px solid rgba(0,0,0,0.18);
   padding: 0 40px;
   display: flex;
   align-items: center;
@@ -56,14 +58,14 @@ body {
   font-family: 'Cormorant Garamond', Georgia, 'Times New Roman', serif;
   font-size: 19px;
   font-weight: 500;
-  color: var(--text);
+  color: var(--nav-text);
   text-decoration: none;
   letter-spacing: 0.8px;
   white-space: nowrap;
 }
 
 .nav-brand span {
-  color: var(--secondary);
+  color: #d4b87a;
   font-style: italic;
 }
 
@@ -75,7 +77,7 @@ body {
 }
 
 .nav-links a {
-  color: var(--text-muted);
+  color: rgba(232,224,212,0.68);
   text-decoration: none;
   font-size: 13px;
   font-weight: 400;
@@ -87,13 +89,13 @@ body {
 }
 
 .nav-links a:hover {
-  color: var(--text);
-  background: var(--primary-light);
+  color: var(--nav-text);
+  background: rgba(255,255,255,0.12);
 }
 
 .nav-links a.active {
-  background: var(--primary);
-  color: #fff;
+  background: rgba(255,255,255,0.20);
+  color: #ffffff;
   font-weight: 500;
 }
 
@@ -165,14 +167,14 @@ body {
 }
 
 .btn-primary {
-  background: var(--primary);
+  background: var(--nav-bg);
   color: #fff;
-  border-color: var(--primary);
+  border-color: var(--nav-bg);
 }
 .btn-primary:hover {
   background: var(--primary-dark);
   border-color: var(--primary-dark);
-  box-shadow: 0 4px 12px rgba(139,115,85,0.30);
+  box-shadow: 0 4px 12px rgba(107,95,82,0.35);
 }
 
 .btn-secondary {
