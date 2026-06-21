@@ -10,7 +10,7 @@
   --primary-light:  #e8e0d2;   /* 輔助色：暖棕米，用於 hover / badge / 區塊底色 */
   --primary-dark:   #5c4830;
   --secondary:      #b8943f;
-  --bg:             #faf6f0;   /* 頁面大面積暖奶油底色 */
+  --bg:             #f5f2ee;   /* 頁面大面積底色（接近 MORRICANDLE 紅框白色區） */
   --card-bg:        #ffffff;   /* 卡片純白底色 */
   --nav-bg:         #6b5f52;   /* 深暖棕：導覽列 + 主要按鈕（對標 MORRICANDLE 深色區） */
   --nav-text:       #e8e0d4;   /* 導覽列淺色文字 */
@@ -294,15 +294,15 @@ table {
 }
 
 thead tr {
-  background: var(--primary-light);
-  border-bottom: 1px solid var(--border-strong);
+  background: #c6bbb0;
+  border-bottom: 1px solid #b0a49a;
 }
 
 thead th {
   padding: 11px 14px;
   text-align: left;
   font-weight: 500;
-  color: var(--text-muted);
+  color: #4a3f38;
   white-space: nowrap;
   font-size: 12px;
   letter-spacing: 0.05em;
@@ -338,8 +338,8 @@ tbody td {
 }
 
 .badge-purple {
-  background: var(--primary-light);
-  color: var(--primary-dark);
+  background: #c6bbb0;
+  color: #3a302a;
 }
 .badge-gold { background: #f5edda; color: #7a5e1c; }
 .badge-success { background: #ddeee4; color: #2d5c3a; }
