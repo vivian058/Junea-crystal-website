@@ -7,20 +7,20 @@
 
 :root {
   --primary:        #8b7355;
-  --primary-light:  #f0ece3;
+  --primary-light:  #e8e0d2;   /* 輔助色：暖棕米，用於 hover / badge / 區塊底色 */
   --primary-dark:   #5c4830;
   --secondary:      #b8943f;
-  --bg:             #f5f0e8;
-  --card-bg:        #fdfaf5;
+  --bg:             #faf6f0;   /* 最淺：主要大面積底色 */
+  --card-bg:        #faf6f0;   /* 與 bg 相同，用 border 區分 */
   --text:           #28211c;
   --text-muted:     #8c8078;
-  --border:         #e6dfd4;
-  --border-strong:  #cec4b6;
+  --border:         #e2d9cc;
+  --border-strong:  #c8bfb0;
   --success:        #4a7a55;
   --warning:        #a06828;
   --danger:         #9e3a3a;
-  --shadow:         0 1px 4px rgba(40,33,28,0.06), 0 4px 16px rgba(40,33,28,0.04);
-  --shadow-hover:   0 4px 12px rgba(40,33,28,0.10), 0 12px 36px rgba(40,33,28,0.08);
+  --shadow:         0 1px 4px rgba(40,33,28,0.05), 0 4px 16px rgba(40,33,28,0.03);
+  --shadow-hover:   0 4px 12px rgba(40,33,28,0.09), 0 12px 36px rgba(40,33,28,0.07);
   --radius:         4px;
   --radius-sm:      2px;
   --radius-lg:      8px;
@@ -292,7 +292,7 @@ table {
 }
 
 thead tr {
-  background: var(--bg);
+  background: var(--primary-light);
   border-bottom: 1px solid var(--border-strong);
 }
 
@@ -312,7 +312,7 @@ tbody tr {
   transition: background 0.12s;
 }
 
-tbody tr:hover { background: var(--primary-light); }
+tbody tr:hover { background: #f0ebe1; }
 
 tbody td {
   padding: 11px 14px;
@@ -385,7 +385,7 @@ tbody td {
   border-radius: var(--radius);
   margin-bottom: 12px;
   flex-wrap: wrap;
-  border: 1px solid var(--border);
+  border: 1px solid var(--border-strong);
 }
 
 .result-stat {
