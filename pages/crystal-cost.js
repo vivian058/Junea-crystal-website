@@ -197,6 +197,14 @@ function _thBtn(field, label, minW) {
 
 // ─── 渲染表格 ─────────────────────────────
 
+function toggleGroup(gid) {
+  const histRows = document.querySelectorAll(`.${gid}-hist`);
+  const btn = document.getElementById(`${gid}-btn`);
+  const isOpen = histRows[0] && histRows[0].style.display !== 'none';
+  histRows.forEach(r => r.style.display = isOpen ? 'none' : '');
+  if (btn) btn.textContent = isOpen ? '▶' : '▼';
+}
+
 function renderTable(records) {
   const container = document.getElementById('table-container');
   if (!records.length) {
@@ -204,35 +212,76 @@ function renderTable(records) {
     return;
   }
 
-  const HL = '';
-  const rows = records.map(r => `
-    <tr>
-      <td style="text-align:center;padding:8px 6px">
-        <input type="checkbox" class="row-check" value="${r.id}" onchange="updateBulkBar()">
-      </td>
-      <td>${fmtDate(r.date)}</td>
-      <td>${r.vendor || '-'}</td>
+  // 以 (色系, 賣場商品名稱, 規格, 尺寸, 形狀) 為 key 群組化
+  const groupMap = new Map();
+  records.forEach(r => {
+    const key = [r.crystalName||'', r.productName||'', r.typeA||'', String(r.size||''), r.typeB||''].join('§');
+    if (!groupMap.has(key)) groupMap.set(key, []);
+    groupMap.get(key).push(r);
+  });
+  // 每組內按日期降序
+  groupMap.forEach(g => g.sort((a, b) => (b.date||'').localeCompare(a.date||'')));
+
+  const renderCells = (r, muted = false) => {
+    const s = muted ? 'color:var(--text-muted)' : '';
+    return `
+      <td style="${s}">${fmtDate(r.date)}</td>
+      <td style="${s}">${r.vendor || '-'}</td>
       <td class="td-link">${r.shopLink ? `<a href="${r.shopLink}" target="_blank">連結 ↗</a>` : '-'}</td>
       <td>${r.itemCode ? `<span class="badge badge-purple">${r.itemCode}</span>` : '-'}</td>
-      <td><strong>${r.crystalName || '-'}</strong></td>
-      <td>${r.productName || '-'}</td>
-      <td><span class="badge badge-purple">${r.typeA || '-'}</span></td>
-      <td>${r.size ? r.size + 'mm' : '-'}</td>
-      <td>${r.typeB || '-'}</td>
-      <td style="${HL}"><strong style="color:var(--primary-dark)">${fmtCurrency(r.costPerBead)}</strong></td>
-      <td style="${HL}">${r.weightPerStrand ? r.weightPerStrand + 'g' : '-'}</td>
-      <td style="${HL}">${r.pricePerGram ? fmtYuan(r.pricePerGram) : '-'}</td>
-      <td style="${HL}">${fmtYuan(r.pricePerStrand)}</td>
+      <td style="${s}">${muted ? (r.crystalName||'-') : `<strong>${r.crystalName || '-'}</strong>`}</td>
+      <td style="${s}">${r.productName || '-'}</td>
+      <td><span class="badge badge-purple" style="${muted?'opacity:0.6':''}">${r.typeA || '-'}</span></td>
+      <td style="${s}">${r.size ? r.size + 'mm' : '-'}</td>
+      <td style="${s}">${r.typeB || '-'}</td>
+      <td><strong style="color:var(--primary-dark)">${fmtCurrency(r.costPerBead)}</strong></td>
+      <td style="${s}">${r.weightPerStrand ? r.weightPerStrand + 'g' : '-'}</td>
+      <td style="${s}">${r.pricePerGram ? fmtYuan(r.pricePerGram) : '-'}</td>
+      <td style="${s}">${fmtYuan(r.pricePerStrand)}</td>
       <td style="min-width:120px;color:var(--text-muted)">${r.note || '-'}</td>
       <td>
         <div style="display:flex;gap:4px;flex-wrap:nowrap">
           <button class="btn btn-secondary btn-sm" onclick="openEditRecord('${r.id}')">編輯</button>
           <button class="btn btn-danger btn-sm" onclick="deleteRecord('${r.id}')">刪除</button>
         </div>
-      </td>
-    </tr>`).join('');
+      </td>`;
+  };
 
-  const HLth = '';
+  let gIdx = 0;
+  let rows = '';
+  groupMap.forEach(groupRecords => {
+    const latest = groupRecords[0];
+    const extra = groupRecords.slice(1);
+    const gid = `grp${gIdx++}`;
+    const hasExtra = extra.length > 0;
+
+    const toggleBtn = hasExtra
+      ? `<button id="${gid}-btn" onclick="toggleGroup('${gid}')" style="background:none;border:none;cursor:pointer;font-size:11px;color:var(--primary);padding:0 4px 0 0;vertical-align:middle" title="展開 ${extra.length} 筆歷史">▶</button>`
+      : '';
+    const histBadge = hasExtra
+      ? `<span style="font-size:11px;color:var(--text-muted);margin-left:3px">(+${extra.length})</span>` : '';
+
+    rows += `<tr>
+      <td style="text-align:center;padding:8px 6px">
+        <input type="checkbox" class="row-check" value="${latest.id}" onchange="updateBulkBar()">
+      </td>
+      <td style="white-space:nowrap">${toggleBtn}${fmtDate(latest.date)}${histBadge}</td>
+      ${renderCells(latest, false)}
+    </tr>`;
+
+    extra.forEach(r => {
+      rows += `<tr class="${gid}-hist" style="display:none;background:var(--bg)">
+        <td style="text-align:center;padding:8px 6px">
+          <input type="checkbox" class="row-check" value="${r.id}" onchange="updateBulkBar()">
+        </td>
+        <td style="white-space:nowrap;padding-left:20px">
+          <span style="font-size:12px;color:var(--text-muted)">${fmtDate(r.date)}</span>
+        </td>
+        ${renderCells(r, true)}
+      </tr>`;
+    });
+  });
+
   container.innerHTML = `
     <div id="bulk-bar" style="display:none;padding:10px 16px;background:var(--primary-light);border-radius:6px;margin-bottom:8px;align-items:center;gap:12px">
       <span id="bulk-count" style="font-size:13px;color:var(--primary-dark);font-weight:600"></span>
@@ -254,10 +303,10 @@ function renderTable(records) {
             ${_thBtn('typeA','規格',70)}
             ${_thBtn('size','尺寸',60)}
             ${_thBtn('typeB','形狀',80)}
-            <th style="min-width:110px;${HLth}">單顆進貨成本$</th>
-            <th style="min-width:80px;${HLth}">一條重量g</th>
-            <th style="min-width:80px;${HLth}">克價¥</th>
-            <th style="min-width:90px;${HLth}">單條進價¥</th>
+            <th style="min-width:110px">單顆進貨成本$</th>
+            <th style="min-width:80px">一條重量g</th>
+            <th style="min-width:80px">克價¥</th>
+            <th style="min-width:90px">單條進價¥</th>
             <th style="min-width:140px">備註</th>
             <th style="min-width:110px">操作</th>
           </tr>
