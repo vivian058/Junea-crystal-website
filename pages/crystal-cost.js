@@ -225,7 +225,6 @@ function renderTable(records) {
   const renderCells = (r, muted = false) => {
     const s = muted ? 'color:var(--text-muted)' : '';
     return `
-      <td style="${s}">${fmtDate(r.date)}</td>
       <td style="${s}">${r.vendor || '-'}</td>
       <td class="td-link">${r.shopLink ? `<a href="${r.shopLink}" target="_blank">連結 ↗</a>` : '-'}</td>
       <td>${r.itemCode ? `<span class="badge badge-purple">${r.itemCode}</span>` : '-'}</td>
