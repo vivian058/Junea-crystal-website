@@ -294,8 +294,8 @@ table {
 }
 
 thead tr {
-  background: #a39d97;
-  border-bottom: 1px solid #918b85;
+  background: #d3ceca;
+  border-bottom: 1px solid #b8b2ae;
 }
 
 thead th {
@@ -338,7 +338,7 @@ tbody td {
 }
 
 .badge-purple {
-  background: #ded7d1;
+  background: #efeae6;
   color: #3a302a;
 }
 .badge-gold { background: #f5edda; color: #7a5e1c; }
