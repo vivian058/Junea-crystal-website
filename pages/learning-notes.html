@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>學習筆記 - 玖釀</title>
+  <link rel="stylesheet" href="../css/style.css">
+  <style>
+    .notes-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+      gap: 16px;
+    }
+    .note-card {
+      background: var(--card-bg);
+      border-radius: var(--radius-lg);
+      border: 1px solid var(--border);
+      box-shadow: var(--shadow);
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      transition: all 0.2s;
+    }
+    .note-card:hover { transform: translateY(-2px); box-shadow: var(--shadow-hover); }
+    .note-card-header { display: flex; justify-content: space-between; align-items: flex-start; gap: 8px; }
+    .note-card-title { font-size: 15px; font-weight: 600; color: var(--text); flex: 1; line-height: 1.4; }
+    .note-card-date { font-size: 11px; color: var(--text-muted); white-space: nowrap; }
+    .note-card-category {
+      display: inline-block;
+      padding: 2px 9px;
+      background: #efeae6;
+      color: var(--primary-dark);
+      border-radius: var(--radius-sm);
+      font-size: 11px;
+      font-weight: 500;
+      align-self: flex-start;
+    }
+    .note-card-content {
+      font-size: 13px;
+      color: var(--text);
+      line-height: 1.75;
+      white-space: pre-wrap;
+      flex: 1;
+    }
+    .note-card-source { font-size: 12px; }
+    .note-card-source a { color: var(--primary); text-decoration: none; }
+    .note-card-source a:hover { text-decoration: underline; }
+    .note-card-actions { display: flex; gap: 6px; margin-top: 4px; }
+    .category-filters { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 16px; }
+    .cat-chip {
+      padding: 4px 12px;
+      border-radius: 20px;
+      border: 1px solid var(--border);
+      background: var(--card-bg);
+      color: var(--text-muted);
+      font-size: 12px;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    .cat-chip:hover, .cat-chip.active {
+      background: var(--nav-bg);
+      color: #fff;
+      border-color: var(--nav-bg);
+    }
+  </style>
+</head>
+<body>
+  <div id="navbar-root"></div>
+
+  <div class="container">
+    <div class="flex-between mb-20">
+      <div class="page-title">學習筆記</div>
+      <button class="btn btn-primary" onclick="openAddModal()">＋ 新增筆記</button>
+    </div>
+
+    <!-- 查詢區 -->
+    <div class="search-area">
+      <div class="search-row">
+        <div class="form-group" style="flex:1">
+          <label>分類</label>
+          <select class="form-control" id="f-category" onchange="doSearch()">
+            <option value="">全部</option>
+            <option>材料知識</option>
+            <option>工藝技法</option>
+            <option>商業知識</option>
+            <option>市場研究</option>
+            <option>其他</option>
+          </select>
+        </div>
+        <div class="form-group" style="flex:3">
+          <label>關鍵字搜尋</label>
+          <input class="form-control" id="f-keyword" type="text" placeholder="標題、內容…"
+            onkeydown="if(event.key==='Enter')doSearch()">
+        </div>
+        <button class="btn btn-primary" onclick="doSearch()">查詢</button>
+        <button class="btn btn-secondary" onclick="clearSearch()">清除</button>
+      </div>
+    </div>
+
+    <div id="notes-container">
+      <div class="loading"><div class="spinner"></div><div>載入中...</div></div>
+    </div>
+  </div>
+
+  <!-- 新增/編輯 Modal -->
+  <div class="modal-overlay" id="noteModal">
+    <div class="modal" style="max-width:640px">
+      <div class="modal-header">
+        <div class="modal-title" id="modal-title">新增學習筆記</div>
+        <button class="modal-close" onclick="closeModal('noteModal')">✕</button>
+      </div>
+      <div class="modal-body">
+        <div class="form-grid-2 mb-16">
+          <div class="form-group">
+            <label class="required">標題</label>
+            <input class="form-control" id="e-title" type="text" placeholder="筆記標題">
+          </div>
+          <div class="form-group">
+            <label class="required">日期</label>
+            <input class="form-control" id="e-date" type="date">
+          </div>
+        </div>
+        <div class="form-group mb-16">
+          <label>分類</label>
+          <select class="form-control" id="e-category">
+            <option value="">不分類</option>
+            <option>材料知識</option>
+            <option>工藝技法</option>
+            <option>商業知識</option>
+            <option>市場研究</option>
+            <option>其他</option>
+          </select>
+        </div>
+        <div class="form-group mb-16">
+          <label>來源連結</label>
+          <input class="form-control" id="e-source" type="url" placeholder="https://...（可選）">
+        </div>
+        <div class="form-group">
+          <label class="required">筆記內容</label>
+          <textarea class="form-control" id="e-content" style="min-height:200px"
+            placeholder="記錄你學到的知識、心得或重點…"></textarea>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" onclick="closeModal('noteModal')">取消</button>
+        <button class="btn btn-primary" id="save-btn" onclick="submitNote()">儲存</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+  <script src="../js/firebase-config.js"></script>
+  <script src="../js/db.js"></script>
+  <script src="../js/utils.js"></script>
+  <script src="learning-notes.js?v=1"></script>
+</body>
+</html>
