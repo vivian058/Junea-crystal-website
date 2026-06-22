@@ -92,7 +92,8 @@ const NAV_PAGES = [
   { href: '../pages/chain-cost.html', label: '鍊條線材成本' },
   { href: '../pages/bracelet-design.html', label: '設計款手鍊' },
   { href: '../pages/crystal-effects.html', label: '水晶功效' },
-  { href: '../pages/inspiration.html', label: '靈感收藏' }
+  { href: '../pages/inspiration.html', label: '靈感收藏' },
+  { href: '../pages/learning-notes.html', label: '學習筆記' }
 ];
 
 function renderNav(activePage) {

@@ -946,3 +946,35 @@ async function getEffectTags() {
   const all = snapshot.docs.flatMap(doc => doc.data().tags || []);
   return [...new Set(all)].sort();
 }
+
+// ─── 學習筆記 ──────────────────────────────
+
+async function addLearningNote(data) {
+  const record = { ...data, createdAt: firebase.firestore.FieldValue.serverTimestamp() };
+  const docRef = await db.collection(COLLECTIONS.LEARNING_NOTES).add(record);
+  return docRef.id;
+}
+
+async function getLearningNotes(filters = {}) {
+  const snapshot = await db.collection(COLLECTIONS.LEARNING_NOTES).get();
+  let results = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+  results.sort((a, b) => (b.date || '').localeCompare(a.date || ''));
+  if (filters.category) results = results.filter(r => r.category === filters.category);
+  if (filters.keyword) {
+    const kw = filters.keyword.toLowerCase();
+    results = results.filter(r =>
+      (r.title && r.title.toLowerCase().includes(kw)) ||
+      (r.content && r.content.toLowerCase().includes(kw)) ||
+      (r.category && r.category.toLowerCase().includes(kw))
+    );
+  }
+  return results;
+}
+
+async function updateLearningNote(id, data) {
+  await db.collection(COLLECTIONS.LEARNING_NOTES).doc(id).update({ ...data, updatedAt: firebase.firestore.FieldValue.serverTimestamp() });
+}
+
+async function deleteLearningNote(id) {
+  await db.collection(COLLECTIONS.LEARNING_NOTES).doc(id).delete();
+}
